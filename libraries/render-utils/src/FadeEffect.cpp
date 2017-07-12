@@ -13,6 +13,10 @@
 #define FADE_MIN_SCALE  0.001
 #define FADE_MAX_SCALE  10000.0
 #define FADE_MAX_SPEED  50.f
+#ifndef M_SQRT3
+#define M_SQRT3 1.732f
+#endif
+#define FADE_BUBBLE_TRANSITION_DISTANCE 0.5f    // Transition distance from opaque to transparent
 
 inline float parameterToValuePow(float parameter, const double minValue, const double maxOverMinValue) {
     return (float)(minValue * pow(maxOverMinValue, double(parameter)));
@@ -94,7 +98,7 @@ FadeConfig::FadeConfig()
     events[BUBBLE_ISECT_OWNER].noiseLevel = 0.37f;
     events[BUBBLE_ISECT_OWNER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
     events[BUBBLE_ISECT_OWNER].timing = FadeConfig::LINEAR;
-    events[BUBBLE_ISECT_OWNER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    events[BUBBLE_ISECT_OWNER].baseSize = glm::vec3{ 1.0f, 1.0f, 1.0f };
     events[BUBBLE_ISECT_OWNER].baseLevel = 1.f;
     events[BUBBLE_ISECT_OWNER].isInverted = false;
     events[BUBBLE_ISECT_OWNER].duration = 4.f;
@@ -106,7 +110,7 @@ FadeConfig::FadeConfig()
     events[BUBBLE_ISECT_TRESPASSER].noiseLevel = 1.f;
     events[BUBBLE_ISECT_TRESPASSER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
     events[BUBBLE_ISECT_TRESPASSER].timing = FadeConfig::LINEAR;
-    events[BUBBLE_ISECT_TRESPASSER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    events[BUBBLE_ISECT_TRESPASSER].baseSize = glm::vec3{ 1.0f, 1.0f, 1.0f };
     events[BUBBLE_ISECT_TRESPASSER].baseLevel = 0.f;
     events[BUBBLE_ISECT_TRESPASSER].isInverted = false;
     events[BUBBLE_ISECT_TRESPASSER].duration = 4.f;
@@ -594,7 +598,8 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     bool continueTransition = true;
 
     if (item.exist()) {
-        auto aabb = item.getBound();
+        auto itemAabb = item.getBound();
+        auto aabb = itemAabb;
         if (render::Item::isValidID(transition.boundItemId)) {
             auto& boundItem = scene->getItem(transition.boundItemId);
             if (boundItem.exist()) {
@@ -614,21 +619,21 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         case render::Transition::ELEMENT_ENTER_DOMAIN:
         case render::Transition::ELEMENT_LEAVE_DOMAIN:
         {
-            transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
+            transition.percent = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
             transition.baseOffset = transition.noiseOffset;
             transition.baseInvSize.x = 1.f / dimensions.x;
             transition.baseInvSize.y = 1.f / dimensions.y;
             transition.baseInvSize.z = 1.f / dimensions.z;
-            continueTransition = transition.threshold < 1.f;
+            continueTransition = transition.percent < 1.f;
             if (transition.eventType == render::Transition::ELEMENT_ENTER_DOMAIN) {
-                transition.threshold = 1.f - transition.threshold;
+                transition.percent = 1.f - transition.percent;
             }
         }
         break;
 
         case render::Transition::BUBBLE_ISECT_OWNER:
         {
-            transition.threshold = 0.5f;
+            transition.percent = 0.5f;
             transition.baseOffset = transition.noiseOffset;
 
             /*       const glm::vec3 cameraPos = renderContext->args->getViewFrustum().getPosition();
@@ -644,7 +649,14 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
 
         case render::Transition::BUBBLE_ISECT_TRESPASSER:
         {
-            transition.threshold = 0.5f;
+            auto itemCenter = itemAabb.calcCenter();
+            auto trespasserRadius = glm::length(itemAabb.getDimensions()/2.f) / M_SQRT3;
+            auto lowPassCoeff = expf(-deltaTime / 1.5f);
+            auto newThreshold = glm::length(aabb.calcCenter() - itemCenter);
+            newThreshold -= trespasserRadius;
+            newThreshold = std::min(std::max(-newThreshold / FADE_BUBBLE_TRANSITION_DISTANCE, 0.0f), 1.0f);
+            // Filter the threshold in time
+            transition.percent = transition.percent*lowPassCoeff + newThreshold*(1.f - lowPassCoeff);
             transition.baseOffset = transition.noiseOffset;
         }
         break;
@@ -652,12 +664,12 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         case render::Transition::USER_ENTER_DOMAIN:
         case render::Transition::USER_LEAVE_DOMAIN:
         {
-            transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
+            transition.percent = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
             transition.baseOffset = transition.noiseOffset - dimensions.y / 2.f;
             transition.baseInvSize.y = 1.f / dimensions.y;
-            continueTransition = transition.threshold < 1.f;
+            continueTransition = transition.percent < 1.f;
             if (transition.eventType == render::Transition::USER_LEAVE_DOMAIN) {
-                transition.threshold = 1.f - transition.threshold;
+                transition.percent = 1.f - transition.percent;
             }
         }
         break;
@@ -671,7 +683,7 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     }
 
     transition.noiseOffset += eventConfig.noiseSpeed * (float)transition.time;
-    transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[fadeCategory] + 0.5f;
+    transition.threshold = (transition.percent - 0.5f)*_thresholdScale[fadeCategory] + 0.5f;
     transition.time += deltaTime;
 
     return continueTransition;

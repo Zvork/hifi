@@ -330,7 +330,30 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
     }
     _avatarsToFade.push_back(removedAvatar);
-    avatar->fadeOut(qApp->getMain3DScene(), removalReason);
+    avatar->fadeLeave(qApp->getMain3DScene());
+}
+
+void AvatarManager::handleBubbleCollision(const AvatarSharedPointer& otherAvatar, KillAvatarReason reason) {
+    AvatarHashMap::handleRemovedAvatar(otherAvatar, reason);
+
+    auto avatar = std::static_pointer_cast<Avatar>(otherAvatar);
+    auto scene = qApp->getMain3DScene();
+    auto myAvatar = getMyAvatar();
+    
+    if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        avatar->fadeBubblePOV(scene, *myAvatar);
+    }
+    else if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
+        avatar->fadeBubbleTrespasser(scene, *myAvatar);
+    }
+}
+
+void AvatarManager::exitBubbleCollision(const AvatarSharedPointer& otherAvatar) {
+    AvatarHashMap::exitBubbleCollision(otherAvatar);
+
+    auto avatar = std::static_pointer_cast<Avatar>(otherAvatar);
+    auto scene = qApp->getMain3DScene();
+    avatar->fadeBubbleStop(scene);
 }
 
 void AvatarManager::clearOtherAvatars() {

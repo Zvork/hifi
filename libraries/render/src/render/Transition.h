@@ -28,7 +28,7 @@ namespace render {
             USER_LEAVE_DOMAIN,
             AVATAR_CHANGE,
 
-            // Don't forget to modify Fade.slh to reflect the change in number of categories
+            // Don't forget to modify FadeEffect if a new transition event is added, especially update the transitionToCategory array.
             TYPE_COUNT,
             NONE = TYPE_COUNT
         };
@@ -41,7 +41,11 @@ namespace render {
         glm::vec3 baseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseInvSize{ 1.f, 1.f, 1.f };
         float threshold{ 0.f };
-
+        float percent{ 0.f };
+#ifdef DEBUG
+        float dbg_data0{ 0.f };
+        float dbg_data1{ 0.f };
+#endif
     };
 
     typedef std::shared_ptr<Transition> TransitionPointer;

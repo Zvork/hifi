@@ -507,31 +507,41 @@ bool Avatar::isFading(render::ScenePointer scene) const {
     return _isWaitingForFade;
 }
 
-void Avatar::fadeIn(render::ScenePointer scene) {
+void Avatar::fadeEnter(render::ScenePointer scene) {
     render::Transaction transaction;
-    fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+    fade(transaction, render::Transition::USER_ENTER_DOMAIN, _renderItemID);
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
-    render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
+void Avatar::fadeLeave(render::ScenePointer scene) {
     render::Transaction transaction;
-
-    if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
-        transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
-    }
-    else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
-        transitionType = render::Transition::BUBBLE_ISECT_OWNER;
-    }
-    fade(transaction, transitionType);
+    fade(transaction, render::Transition::USER_LEAVE_DOMAIN, _renderItemID);
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
-    transaction.addTransitionToItem(_renderItemID, type);
+void Avatar::fadeBubblePOV(render::ScenePointer scene, const Avatar& myAvatar) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::BUBBLE_ISECT_OWNER, myAvatar._renderItemID);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fadeBubbleTrespasser(render::ScenePointer scene, const Avatar& myAvatar) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::BUBBLE_ISECT_TRESPASSER, myAvatar._renderItemID);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fadeBubbleStop(render::ScenePointer scene) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::NONE, _renderItemID);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fade(render::Transaction& transaction, render::Transition::Type type, render::ItemID boundId) {
+    transaction.addTransitionToItem(_renderItemID, type, boundId);
     for (auto& attachmentModel : _attachmentModels) {
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
-            transaction.addTransitionToItem(itemId, type, _renderItemID);
+            transaction.addTransitionToItem(itemId, type, boundId);
         }
     }
     _isWaitingForFade = true;
@@ -708,7 +718,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
 
     if (_mustFadeIn && canTryFade) {
         // Do it now to be sure all the sub items are ready and the fade is sent to them too
-        fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+        fade(transaction, render::Transition::USER_ENTER_DOMAIN, _renderItemID);
         _mustFadeIn = false;
     }
 

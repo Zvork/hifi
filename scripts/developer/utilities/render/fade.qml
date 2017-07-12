@@ -357,8 +357,8 @@ Column {
 							}
 
 							PlotPerf {
-								title: "Threshold"
-								height: parent.evalEvenHeight()
+								title: "Fade"
+								height: 110
 								object:  config
 								valueUnit: "%"
 								valueScale: 0.01
@@ -368,10 +368,9 @@ Column {
 										prop: "threshold",
 										label: "Threshold",
 										color: "#FFBB77"
-									}
+									},
 								]
 							}
-
 						}
 					}
 

@@ -250,8 +250,11 @@ public:
     void addPhysicsFlags(uint32_t flags);
     bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
 
-    void fadeIn(render::ScenePointer scene);
-    void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
+    void fadeEnter(render::ScenePointer scene);
+    void fadeLeave(render::ScenePointer scene);
+    void fadeBubblePOV(render::ScenePointer scene, const Avatar& myAvatar);
+    void fadeBubbleTrespasser(render::ScenePointer scene, const Avatar& myAvatar);
+    void fadeBubbleStop(render::ScenePointer scene);
     bool isFading(render::ScenePointer scene) const;
 
 public slots:
@@ -298,7 +301,7 @@ protected:
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
 
-    void fade(render::Transaction& transaction, render::Transition::Type type);
+    void fade(render::Transaction& transaction, render::Transition::Type type, render::ItemID boundId);
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
