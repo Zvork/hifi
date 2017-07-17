@@ -41,11 +41,7 @@ namespace render {
         glm::vec3 baseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseInvSize{ 1.f, 1.f, 1.f };
         float threshold{ 0.f };
-        float percent{ 0.f };
-#ifdef DEBUG
-        float dbg_data0{ 0.f };
-        float dbg_data1{ 0.f };
-#endif
+        uint8_t isFinished{ 0 };
     };
 
     typedef std::shared_ptr<Transition> TransitionPointer;

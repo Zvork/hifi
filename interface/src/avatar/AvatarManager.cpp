@@ -63,7 +63,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::ExitingSpaceBubble, this, "processExitingSpaceBubble");
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
@@ -274,18 +273,13 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         return;
     }
 
-    //const float SHRINK_RATE = 0.15f;
-    //const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
-
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        // TEMP OP avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
-        // TEMP OP avatar->animateScaleChanges(deltaTime);
-        // TEMP OP if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
-        if (!avatar->isFading(scene)) {
+        avatar->updateFadingStatus(scene);
+        if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
                 render::Transaction transaction;
@@ -321,9 +315,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
-    }
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == YourAvatarEnteredTheirBubble) {
-        DependencyManager::get<NodeList>()->radiusIgnoreNodeBySessionID(avatar->getSessionUUID(), true);
     } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
@@ -459,8 +450,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-
-                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) {
                     return !injector || injector->isFinished();
                 });
 

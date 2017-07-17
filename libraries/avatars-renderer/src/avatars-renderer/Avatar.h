@@ -255,7 +255,8 @@ public:
     void fadeBubblePOV(render::ScenePointer scene, const Avatar& myAvatar);
     void fadeBubbleTrespasser(render::ScenePointer scene, const Avatar& myAvatar);
     void fadeBubbleStop(render::ScenePointer scene);
-    bool isFading(render::ScenePointer scene) const;
+    bool isFading() const { return _isFading; }
+    void updateFadingStatus(render::ScenePointer scene);
 
 public slots:
 
@@ -274,6 +275,13 @@ protected:
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
 
     SkeletonModelPointer _skeletonModel;
+
+    void invalidateJointIndicesCache() const;
+    void withValidJointIndicesCache(std::function<void()> const& worker) const;
+    mutable QHash<QString, int> _modelJointIndicesCache;
+    mutable QReadWriteLock _modelJointIndicesCacheLock;
+    mutable bool _modelJointsCached { false };
+
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
@@ -351,8 +359,8 @@ private:
     bool _initialized { false };
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
-    bool _mustFadeIn{ false };
-    bool _isWaitingForFade{ false };
+    bool _mustFadeIn { false };
+    bool _isFading { false };
 
     static int _jointConesID;
 

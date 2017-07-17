@@ -170,17 +170,6 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
     removeAvatar(sessionUUID, reason);
 }
 
-void AvatarHashMap::processExitingSpaceBubble(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    // read the node id
-    QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->radiusIgnoreNodeBySessionID(sessionUUID, false);
-
-    QReadLocker locker(&_hashLock);
-    auto otherAvatar = _avatarHash[sessionUUID];
-    exitBubbleCollision(otherAvatar);
-}
-
 void AvatarHashMap::exitBubbleCollision(const AvatarSharedPointer& otherAvatar) {
 
 }
