@@ -173,6 +173,19 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
+    bool isMyAvatarIgnoreEnabled;
+    {
+        auto avatarUuid = _myAvatar->getID();
+        auto avatarNode = DependencyManager::get<NodeList>()->nodeWithUUID(avatarUuid);
+        isMyAvatarIgnoreEnabled = avatarNode->isIgnoreRadiusEnabled();
+    }
+
+    // Set up the bounding box for the current node
+    AABox myAvatarBox = _myAvatar->getIgnoreBoundingBox();
+    AABox scaledMyAvatarBox = myAvatarBox;
+    // Increase box size by 15%
+    scaledMyAvatarBox.embiggen(glm::vec3(1.15f, 1.15f, 1.15f));
+
 
     render::Transaction transaction;
     while (!sortedAvatars.empty()) {
@@ -196,6 +209,52 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             }
         }
         avatar->animateScaleChanges(deltaTime);
+
+        // Check for bubble collisions with my avatar
+        if (avatar != _myAvatar) {
+            auto avatarUuid = avatar->getID();
+            auto avatarNode = DependencyManager::get<NodeList>()->nodeWithUUID(avatarUuid);
+
+            if (avatarNode->isIgnoreRadiusEnabled() || isMyAvatarIgnoreEnabled) {
+                // Check for bubble collision
+                AABox otherAvatarBox = avatar->getIgnoreBoundingBox();
+
+                if (scaledMyAvatarBox.touches(otherAvatarBox)) {
+                    glm::vec3 direction = glm::normalize(_myAvatar->getPosition() - avatar->getPosition());
+                    glm::vec3 origin = avatar->getPosition()- direction * glm::length(otherAvatarBox.getDimensions());
+                    float distance;
+                    float minDistance;
+                    float maxDistance;
+                    BoxFace face;
+                    glm::vec3 normal;
+                    float fadeRatio;
+
+                    scaledMyAvatarBox.findRayIntersection(origin, direction, minDistance, face, normal);
+                    myAvatarBox.findRayIntersection(origin, direction, maxDistance, face, normal);
+                    otherAvatarBox.findRayIntersection(origin, direction, distance, face, normal);
+                    fadeRatio = (distance - minDistance) / (maxDistance - minDistance);
+                    fadeRatio = std::max(0.f, std::min(1.f, fadeRatio));
+
+                    if (isMyAvatarIgnoreEnabled) {
+                        float minRadius;
+                        float maxRadius;
+                        
+                        origin = _myAvatar->getPosition();
+                        direction = -direction;
+                        myAvatarBox.findRayIntersection(origin, direction, minRadius, face, normal);
+                        scaledMyAvatarBox.findRayIntersection(origin, direction, maxRadius, face, normal);
+
+                        float radius = minRadius + (maxRadius - minRadius)*fadeRatio;
+
+                        avatar->fadeBubblePOV(transaction, *_myAvatar, radius);
+                    } else {
+                        avatar->fadeBubbleTrespasser(transaction, fadeRatio);
+                    }
+                }
+            } else if (avatar->isFading()) {
+                avatar->fadeBubbleStop(transaction);
+            }
+        }
 
         const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
         uint64_t now = usecTimestampNow();
@@ -322,29 +381,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     }
     _avatarsToFade.push_back(removedAvatar);
     avatar->fadeLeave(qApp->getMain3DScene());
-}
-
-void AvatarManager::handleBubbleCollision(const AvatarSharedPointer& otherAvatar, KillAvatarReason reason) {
-    AvatarHashMap::handleRemovedAvatar(otherAvatar, reason);
-
-    auto avatar = std::static_pointer_cast<Avatar>(otherAvatar);
-    auto scene = qApp->getMain3DScene();
-    auto myAvatar = getMyAvatar();
-    
-    if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
-        avatar->fadeBubblePOV(scene, *myAvatar);
-    }
-    else if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
-        avatar->fadeBubbleTrespasser(scene, *myAvatar);
-    }
-}
-
-void AvatarManager::exitBubbleCollision(const AvatarSharedPointer& otherAvatar) {
-    AvatarHashMap::exitBubbleCollision(otherAvatar);
-
-    auto avatar = std::static_pointer_cast<Avatar>(otherAvatar);
-    auto scene = qApp->getMain3DScene();
-    avatar->fadeBubbleStop(scene);
 }
 
 void AvatarManager::clearOtherAvatars() {

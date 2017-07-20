@@ -407,6 +407,8 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
+    AABox getIgnoreBoundingBox() const;
+
     typedef enum {
         NoData,
         PALMinimum,

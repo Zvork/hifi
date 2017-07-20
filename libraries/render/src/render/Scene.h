@@ -46,7 +46,7 @@ public:
     void removeItem(ItemID id);
     bool hasRemovedItems() const { return !_removedItems.empty(); }
 
-    void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
+    void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID, float value = 0.f);
     void removeTransitionFromItem(ItemID id);
     void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
 
@@ -70,7 +70,7 @@ protected:
     using Reset = std::tuple<ItemID, PayloadPointer>;
     using Remove = ItemID;
     using Update = std::tuple<ItemID, UpdateFunctorPointer>;
-    using TransitionAdd = std::tuple<ItemID, Transition::Type, ItemID>;
+    using TransitionAdd = std::tuple<ItemID, Transition::Type, ItemID, float>;
     using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
     using SelectionReset = Selection;
 

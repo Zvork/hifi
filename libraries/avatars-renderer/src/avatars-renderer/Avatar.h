@@ -252,9 +252,9 @@ public:
 
     void fadeEnter(render::ScenePointer scene);
     void fadeLeave(render::ScenePointer scene);
-    void fadeBubblePOV(render::ScenePointer scene, const Avatar& myAvatar);
-    void fadeBubbleTrespasser(render::ScenePointer scene, const Avatar& myAvatar);
-    void fadeBubbleStop(render::ScenePointer scene);
+    void fadeBubblePOV(render::Transaction& transaction, const Avatar& myAvatar, float sphereRadius);
+    void fadeBubbleTrespasser(render::Transaction& transaction, float ratio);
+    void fadeBubbleStop(render::Transaction& transaction, float ratio);
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
@@ -309,7 +309,7 @@ protected:
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
 
-    void fade(render::Transaction& transaction, render::Transition::Type type, render::ItemID boundId);
+    void fade(render::Transaction& transaction, render::Transition::Type type, render::ItemID boundId, float ratio = 0.f);
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }

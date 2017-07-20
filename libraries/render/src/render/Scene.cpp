@@ -33,8 +33,8 @@ void Transaction::removeItem(ItemID id) {
     _removedItems.emplace_back(id);
 }
 
-void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId) {
-    _addedTransitions.emplace_back(TransitionAdd{ id, transition, boundId });
+void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId, float value) {
+    _addedTransitions.emplace_back(TransitionAdd{ id, transition, boundId, value });
 }
 
 void Transaction::removeTransitionFromItem(ItemID id) {
@@ -251,7 +251,8 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
             }
             // Add a new one.
             if (transitionType != Transition::NONE) {
-                transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
+                auto value = std::get<3>(add);
+                transitionId = transitionStage->addTransition(itemId, transitionType, boundId, value);
             }
 
             setItemTransition(itemId, transitionId);

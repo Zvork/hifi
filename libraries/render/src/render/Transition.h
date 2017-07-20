@@ -41,6 +41,7 @@ namespace render {
         glm::vec3 baseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseInvSize{ 1.f, 1.f, 1.f };
         float threshold{ 0.f };
+        float context_value{ 0.f };
         uint8_t isFinished{ 0 };
     };
 

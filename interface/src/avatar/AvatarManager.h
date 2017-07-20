@@ -92,8 +92,6 @@ private:
     AvatarSharedPointer newSharedAvatar() override;
     void deleteMotionStates();
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
-    void handleBubbleCollision(const AvatarSharedPointer& otherAvatar, KillAvatarReason reason = KillAvatarReason::NoReason) override;
-    void exitBubbleCollision(const AvatarSharedPointer& otherAvatar) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 

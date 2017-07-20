@@ -170,24 +170,11 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
     removeAvatar(sessionUUID, reason);
 }
 
-void AvatarHashMap::exitBubbleCollision(const AvatarSharedPointer& otherAvatar) {
-
-}
-
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
-        QReadLocker locker(&_hashLock);
-        auto otherAvatar = _avatarHash[sessionUUID];
-        if (otherAvatar) {
-            handleBubbleCollision(otherAvatar, removalReason);
-        }
-    }
-    else {
-        QWriteLocker locker(&_hashLock);
-        auto removedAvatar = _avatarHash.take(sessionUUID);
-        if (removedAvatar) {
-            handleRemovedAvatar(removedAvatar, removalReason);
-        }
+    QWriteLocker locker(&_hashLock);
+    auto removedAvatar = _avatarHash.take(sessionUUID);
+    if (removedAvatar) {
+        handleRemovedAvatar(removedAvatar, removalReason);
     }
 }
 
@@ -195,12 +182,6 @@ void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     qCDebug(avatars) << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
         << "from AvatarHashMap" << removalReason;
     emit avatarRemovedEvent(removedAvatar->getSessionUUID());
-}
-
-void AvatarHashMap::handleBubbleCollision(const AvatarSharedPointer& otherAvatar, KillAvatarReason reason) {
-    qCDebug(avatars) << "Collided with avatar with UUID" << uuidStringWithoutCurlyBraces(otherAvatar->getSessionUUID())
-        << "from AvatarHashMap" << reason;
-    emit avatarCollidedEvent(otherAvatar->getSessionUUID());
 }
 
 void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {

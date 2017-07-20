@@ -169,19 +169,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // setup a PacketList for the avatarPackets
     auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-    // Define the minimum bubble size
-    static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
-    // Define the scale of the box for the current node
-    glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f;
     // Set up the bounding box for the current node
-    AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
-    // Clamp the size of the bounding box to a minimum scale
-    if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
-        nodeBox.setScaleStayCentered(minBubbleSize);
+    AABox nodeBox;
+    if (nodeData->getAvatarSharedPointer()) {
+        nodeBox = nodeData->getConstAvatarData()->getIgnoreBoundingBox();
     }
-    // Quadruple the scale of both bounding boxes
-    nodeBox.embiggen(4.0f);
-
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
     // for calling the AvatarData::sortAvatars() function and getting our sorted list of client nodes
@@ -244,17 +236,10 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
             if (node->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
-
-                // Define the scale of the box for the current other node
-                glm::vec3 otherNodeBoxScale = (avatarNodeData->getPosition() - avatarNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
-                // Set up the bounding box for the current other node
-                AABox otherNodeBox(avatarNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
-                    otherNodeBox.setScaleStayCentered(minBubbleSize);
+                AABox otherNodeBox;
+                if (avatarNodeData->getAvatarSharedPointer()) {
+                    otherNodeBox = avatarNodeData->getConstAvatarData()->getIgnoreBoundingBox();
                 }
-                // Quadruple the scale of both bounding boxes
-                otherNodeBox.embiggen(4.0f);
 
                 // Perform the collision check between the two bounding boxes
                 if (nodeBox.touches(otherNodeBox)) {

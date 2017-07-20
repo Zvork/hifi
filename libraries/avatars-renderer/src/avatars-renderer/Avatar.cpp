@@ -511,29 +511,23 @@ void Avatar::fadeLeave(render::ScenePointer scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeBubblePOV(render::ScenePointer scene, const Avatar& myAvatar) {
-    render::Transaction transaction;
-    fade(transaction, render::Transition::BUBBLE_ISECT_OWNER, myAvatar._renderItemID);
-    scene->enqueueTransaction(transaction);
+void Avatar::fadeBubblePOV(render::Transaction& transaction, const Avatar& myAvatar, float sphereRadius) {
+    fade(transaction, render::Transition::BUBBLE_ISECT_OWNER, myAvatar._renderItemID, sphereRadius);
 }
 
-void Avatar::fadeBubbleTrespasser(render::ScenePointer scene, const Avatar& myAvatar) {
-    render::Transaction transaction;
-    fade(transaction, render::Transition::BUBBLE_ISECT_TRESPASSER, myAvatar._renderItemID);
-    scene->enqueueTransaction(transaction);
+void Avatar::fadeBubbleTrespasser(render::Transaction& transaction, float ratio) {
+    fade(transaction, render::Transition::BUBBLE_ISECT_TRESPASSER, render::Item::INVALID_ITEM_ID, ratio);
 }
 
-void Avatar::fadeBubbleStop(render::ScenePointer scene) {
-    render::Transaction transaction;
+void Avatar::fadeBubbleStop(render::Transaction& transaction, float ratio) {
     fade(transaction, render::Transition::NONE, _renderItemID);
-    scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fade(render::Transaction& transaction, render::Transition::Type type, render::ItemID boundId) {
-    transaction.addTransitionToItem(_renderItemID, type, boundId);
+void Avatar::fade(render::Transaction& transaction, render::Transition::Type type, render::ItemID boundId, float ratio) {
+    transaction.addTransitionToItem(_renderItemID, type, boundId, ratio);
     for (auto& attachmentModel : _attachmentModels) {
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
-            transaction.addTransitionToItem(itemId, type, boundId);
+            transaction.addTransitionToItem(itemId, type, boundId, ratio);
         }
     }
     _isFading = true;

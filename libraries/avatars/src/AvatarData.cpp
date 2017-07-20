@@ -127,6 +127,23 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     updateAttitude();
 }
 
+AABox AvatarData::getIgnoreBoundingBox() const {
+    // Define the minimum bubble size
+    static const glm::vec3 minBubbleSize = glm::vec3(0.3f, 1.3f, 0.3f);
+
+    // Define the scale of the box for the current node
+    glm::vec3 nodeBoxScale = (getPosition() - getGlobalBoundingBoxCorner()) * 2.0f;
+    // Set up the bounding box for the current node
+    AABox nodeBox(getGlobalBoundingBoxCorner(), nodeBoxScale);
+    // Clamp the size of the bounding box to a minimum scale
+    if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
+        nodeBox.setScaleStayCentered(minBubbleSize);
+    }
+    // Quadruple the scale of both bounding boxes
+    nodeBox.embiggen(4.0f);
+    return nodeBox;
+}
+
 void AvatarData::setTargetScale(float targetScale) {
     auto newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
     if (_targetScale != newValue) {
