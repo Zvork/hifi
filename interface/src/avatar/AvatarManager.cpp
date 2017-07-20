@@ -222,30 +222,32 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 AABox otherAvatarBox = avatar->getIgnoreBoundingBox();
 
                 if (scaledMyAvatarBox.touches(otherAvatarBox)) {
-                    glm::vec3 direction = glm::normalize(_myAvatar->getPosition() - avatar->getPosition());
-                    glm::vec3 origin = avatar->getPosition()- direction * glm::length(otherAvatarBox.getDimensions());
-                    float distance;
-                    float minDistance;
-                    float maxDistance;
+                    glm::vec3 direction = glm::normalize(avatar->getPosition() - _myAvatar->getPosition());
+                    glm::vec3 origin;
                     BoxFace face;
                     glm::vec3 normal;
-                    float fadeRatio;
-
-                    scaledMyAvatarBox.findRayIntersection(origin, direction, minDistance, face, normal);
-                    myAvatarBox.findRayIntersection(origin, direction, maxDistance, face, normal);
-                    otherAvatarBox.findRayIntersection(origin, direction, distance, face, normal);
-                    fadeRatio = (distance - minDistance) / (maxDistance - minDistance);
-                    fadeRatio = std::max(0.f, std::min(1.f, fadeRatio));
 
                     if (isMyAvatarIgnoreEnabled) {
                         float maxRadius;
                         
                         origin = _myAvatar->getPosition();
-                        direction = -direction;
                         scaledMyAvatarBox.findRayIntersection(origin, direction, maxRadius, face, normal);
 
                         avatar->fadeBubblePOV(transaction, *_myAvatar, maxRadius);
                     } else {
+                        float distance;
+                        float minDistance;
+                        float maxDistance;
+                        float fadeRatio;
+
+                        origin = avatar->getPosition() + direction * glm::length(otherAvatarBox.getDimensions());
+
+                        scaledMyAvatarBox.findRayIntersection(origin, direction, minDistance, face, normal);
+                        myAvatarBox.findRayIntersection(origin, direction, maxDistance, face, normal);
+                        otherAvatarBox.findRayIntersection(origin, direction, distance, face, normal);
+                        fadeRatio = (distance - minDistance) / (maxDistance - minDistance);
+                        fadeRatio = std::max(0.f, std::min(1.f, fadeRatio));
+
                         avatar->fadeBubbleTrespasser(transaction, fadeRatio);
                     }
                 }
