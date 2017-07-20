@@ -38,7 +38,7 @@ void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, It
 }
 
 void Transaction::removeTransitionFromItem(ItemID id) {
-    _addedTransitions.emplace_back(TransitionAdd{ id, Transition::NONE, render::Item::INVALID_ITEM_ID });
+    _addedTransitions.emplace_back(TransitionAdd{ id, Transition::NONE, render::Item::INVALID_ITEM_ID, 0.f });
 }
 
 void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {

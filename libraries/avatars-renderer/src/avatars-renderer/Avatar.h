@@ -254,7 +254,7 @@ public:
     void fadeLeave(render::ScenePointer scene);
     void fadeBubblePOV(render::Transaction& transaction, const Avatar& myAvatar, float sphereRadius);
     void fadeBubbleTrespasser(render::Transaction& transaction, float ratio);
-    void fadeBubbleStop(render::Transaction& transaction, float ratio);
+    void fadeBubbleStop(render::Transaction& transaction);
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 

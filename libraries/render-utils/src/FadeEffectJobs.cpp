@@ -648,12 +648,15 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         {
             transition.threshold = 0.5f;
             transition.baseOffset = transition.noiseOffset;
+            transition.baseInvSize.x = 1.f / transition.context_value;
+            transition.baseInvSize.y = transition.baseInvSize.x;
+            transition.baseInvSize.z = transition.baseInvSize.x;
         }
         break;
 
         case render::Transition::BUBBLE_ISECT_TRESPASSER:
         {
-            transition.threshold = 0.5f;
+            transition.threshold = transition.context_value;
             transition.baseOffset = transition.noiseOffset;
         }
         break;

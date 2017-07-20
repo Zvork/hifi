@@ -519,7 +519,7 @@ void Avatar::fadeBubbleTrespasser(render::Transaction& transaction, float ratio)
     fade(transaction, render::Transition::BUBBLE_ISECT_TRESPASSER, render::Item::INVALID_ITEM_ID, ratio);
 }
 
-void Avatar::fadeBubbleStop(render::Transaction& transaction, float ratio) {
+void Avatar::fadeBubbleStop(render::Transaction& transaction) {
     fade(transaction, render::Transition::NONE, _renderItemID);
 }
 

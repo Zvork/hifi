@@ -173,11 +173,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
-    bool isMyAvatarIgnoreEnabled;
+    bool isMyAvatarIgnoreEnabled = false;
     {
         auto avatarUuid = _myAvatar->getID();
         auto avatarNode = DependencyManager::get<NodeList>()->nodeWithUUID(avatarUuid);
-        isMyAvatarIgnoreEnabled = avatarNode->isIgnoreRadiusEnabled();
+        if (avatarNode) {
+            isMyAvatarIgnoreEnabled = avatarNode->isIgnoreRadiusEnabled();
+        }
     }
 
     // Set up the bounding box for the current node
@@ -215,7 +217,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             auto avatarUuid = avatar->getID();
             auto avatarNode = DependencyManager::get<NodeList>()->nodeWithUUID(avatarUuid);
 
-            if (avatarNode->isIgnoreRadiusEnabled() || isMyAvatarIgnoreEnabled) {
+            if (avatarNode && (avatarNode->isIgnoreRadiusEnabled() || isMyAvatarIgnoreEnabled)) {
                 // Check for bubble collision
                 AABox otherAvatarBox = avatar->getIgnoreBoundingBox();
 
@@ -236,17 +238,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                     fadeRatio = std::max(0.f, std::min(1.f, fadeRatio));
 
                     if (isMyAvatarIgnoreEnabled) {
-                        float minRadius;
                         float maxRadius;
                         
                         origin = _myAvatar->getPosition();
                         direction = -direction;
-                        myAvatarBox.findRayIntersection(origin, direction, minRadius, face, normal);
                         scaledMyAvatarBox.findRayIntersection(origin, direction, maxRadius, face, normal);
 
-                        float radius = minRadius + (maxRadius - minRadius)*fadeRatio;
-
-                        avatar->fadeBubblePOV(transaction, *_myAvatar, radius);
+                        avatar->fadeBubblePOV(transaction, *_myAvatar, maxRadius);
                     } else {
                         avatar->fadeBubbleTrespasser(transaction, fadeRatio);
                     }
