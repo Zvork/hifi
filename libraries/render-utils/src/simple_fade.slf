@@ -16,7 +16,7 @@
 <@include model/Material.slh@>
 
 <@include Fade.slh@>
-<$declareFadeFragment()$>
+<$declareFadeFragmentInstanced()$>
 
 // the interpolated normal
 in vec3 _normal;
@@ -24,7 +24,7 @@ in vec3 _modelNormal;
 in vec4 _color;
 in vec2 _texCoord0;
 in vec4 _position;
-in vec4 _worldFadePosition;
+in vec4 _worldPosition;
 
 //PROCEDURAL_COMMON_BLOCK
 
@@ -34,8 +34,10 @@ in vec4 _worldFadePosition;
 #line 2030
 void main(void) {
     vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
 
-    applyFade(_worldFadePosition.xyz, fadeEmissive);
+    <$fetchFadeObjectParamsInstanced(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     Material material = getMaterial();
     vec3 normal = normalize(_normal.xyz); 
@@ -43,7 +45,7 @@ void main(void) {
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;
     float emissiveAmount = 0.0;
-    
+
 #ifdef PROCEDURAL
 
 #ifdef PROCEDURAL_V1

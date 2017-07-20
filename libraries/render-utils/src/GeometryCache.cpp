@@ -25,6 +25,7 @@
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 #include "StencilMaskPass.h"
+#include "FadeEffect.h"
 
 #include "gpu/StandardShaderLib.h"
 
@@ -59,9 +60,11 @@ static const int VERTICES_PER_TRIANGLE = 3;
 static const gpu::Element POSITION_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element COLOR_ELEMENT { gpu::VEC4, gpu::NUINT8, gpu::RGBA };
+static const gpu::Element TEXCOORD4_ELEMENT { gpu::VEC4, gpu::FLOAT, gpu::XYZW };
 
 static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
+static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
@@ -450,14 +453,63 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
 
+gpu::Stream::FormatPointer& getInstancedSolidFadeStreamFormat() {
+    if (!INSTANCED_SOLID_FADE_STREAM_FORMAT) {
+        INSTANCED_SOLID_FADE_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD2, gpu::Stream::TEXCOORD2, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD3, gpu::Stream::TEXCOORD3, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD4, gpu::Stream::TEXCOORD4, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+    }
+    return INSTANCED_SOLID_FADE_STREAM_FORMAT;
+}
+
+QHash<SimpleProgramKey, gpu::PipelinePointer> GeometryCache::_simplePrograms;
+
+gpu::ShaderPointer GeometryCache::_simpleShader;
+gpu::ShaderPointer GeometryCache::_unlitShader;
+gpu::ShaderPointer GeometryCache::_simpleFadeShader;
+gpu::ShaderPointer GeometryCache::_unlitFadeShader;
+
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
 
+uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
+
+render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+    initializeShapePipelines();
+
+    if (key.isWireframe()) {
+        return _simpleWirePipeline;
+    }
+
+    if (key.isFaded()) {
+        if (key.isTranslucent()) {
+            return _simpleTransparentFadePipeline;
+        }
+        else {
+            return _simpleOpaqueFadePipeline;
+        }
+    }
+    else {
+        if (key.isTranslucent()) {
+            return _simpleTransparentPipeline;
+        }
+        else {
+            return _simpleOpaquePipeline;
+        }
+    }
+}
+
 GeometryCache::GeometryCache() :
 _nextID(0) {
+    // Let's register its special shapePipeline factory:
+    registerShapePipeline();
     buildShapes();
 }
 
@@ -498,27 +550,37 @@ void GeometryCache::releaseID(int id) {
     _registeredGridBuffers.remove(id);
 }
 
-void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
-    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
-}
-
 void GeometryCache::initializeShapePipelines() {
-    GeometryCache::_simpleOpaquePipeline = getShapePipeline(false, false, true, false);
-    GeometryCache::_simpleTransparentPipeline = getShapePipeline(false, true, true, false);
-    GeometryCache::_simpleOpaqueFadePipeline = getShapePipeline(false, false, true, false, false, true);
-    GeometryCache::_simpleTransparentFadePipeline = getShapePipeline(false, true, true, false, false, true);
-    GeometryCache::_simpleWirePipeline = getShapePipeline(false, false, true, true);
+    if (!_simpleOpaquePipeline) {
+        _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
+        _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
+        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
+        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
+        _simpleWirePipeline = getShapePipeline(false, false, true, true);
+    }
 }
 
 render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias, bool fading) {
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, fading), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch, render::Args*) {
-        // Set the defaults needed for a simple program
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-            DependencyManager::get<TextureCache>()->getWhiteTexture());
+    bool unlit, bool depthBias) {
+
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false), nullptr,
+        [](const render::ShapePipeline& , gpu::Batch& batch, render::Args*) {
+        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
+    );
+}
+
+render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured, bool transparent, bool culled,
+    bool unlit, bool depthBias) {
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
+    auto fadeBatchSetter = fadeEffect->getBatchSetter();
+    auto fadeItemSetter = fadeEffect->getItemStoredSetter();
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true), nullptr,
+        [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args* args) {
+            batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
+            fadeBatchSetter(shapePipeline, batch, args);
+        },
+        fadeItemSetter
     );
 }
 
@@ -540,6 +602,11 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
     _shapes[shape].drawWire(batch);
 }
 
+void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
+    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
+    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+}
+
 void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer) {
     batch.setInputFormat(getInstancedSolidStreamFormat());
     setupBatchInstance(batch, colorBuffer);
@@ -549,6 +616,32 @@ void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t 
 void GeometryCache::renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer) {
     batch.setInputFormat(getInstancedSolidStreamFormat());
     setupBatchInstance(batch, colorBuffer);
+    _shapes[shape].drawWireInstances(batch, count);
+}
+
+void setupBatchFadeInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer, 
+    gpu::BufferPointer fadeBuffer1, gpu::BufferPointer fadeBuffer2, gpu::BufferPointer fadeBuffer3) {
+    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
+    gpu::BufferView texCoord2View(fadeBuffer1, TEXCOORD4_ELEMENT);
+    gpu::BufferView texCoord3View(fadeBuffer2, TEXCOORD4_ELEMENT);
+    gpu::BufferView texCoord4View(fadeBuffer3, TEXCOORD4_ELEMENT);
+    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD2, texCoord2View);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD3, texCoord3View);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD4, texCoord4View);
+}
+
+void GeometryCache::renderFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
+    gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3) {
+    batch.setInputFormat(getInstancedSolidFadeStreamFormat());
+    setupBatchFadeInstance(batch, colorBuffer, fadeBuffer1, fadeBuffer2, fadeBuffer3);
+    _shapes[shape].drawInstances(batch, count);
+}
+
+void GeometryCache::renderWireFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
+    gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3) {
+    batch.setInputFormat(getInstancedSolidFadeStreamFormat());
+    setupBatchFadeInstance(batch, colorBuffer, fadeBuffer1, fadeBuffer2, fadeBuffer3);
     _shapes[shape].drawWireInstances(batch, count);
 }
 
@@ -1914,6 +2007,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
 
             gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
             gpu::Shader::makeProgram(*_simpleShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitShader, slotBindings);
         });
@@ -1928,6 +2022,8 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             _unlitFadeShader = gpu::Shader::createProgram(VS, PSUnlit);
 
             gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
+            slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
             gpu::Shader::makeProgram(*_simpleFadeShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitFadeShader, slotBindings);
         });
@@ -1991,8 +2087,58 @@ void renderInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color
 
         if (isWire) {
             DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
-        } else {
+        }
+        else {
             DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
+        }
+    });
+}
+
+static const size_t INSTANCE_FADE_BUFFER1 = 1;
+static const size_t INSTANCE_FADE_BUFFER2 = 2;
+static const size_t INSTANCE_FADE_BUFFER3 = 3;
+
+void renderFadeInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, int fadeCategory, float fadeThreshold,
+    const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, bool isWire,
+    const render::ShapePipelinePointer& pipeline, GeometryCache::Shape shape) {
+    // Add pipeline to name
+    std::string instanceName = (isWire ? "wire_shapes_" : "solid_shapes_") + std::to_string(shape) + "_" + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
+
+    // Add color to named buffer
+    {
+        gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(instanceName, INSTANCE_COLOR_BUFFER);
+        auto compactColor = toCompactColor(color);
+        instanceColorBuffer->append(compactColor);
+    }
+    // Add fade parameters to named buffers
+    {
+        gpu::BufferPointer fadeBuffer1 = batch.getNamedBuffer(instanceName, INSTANCE_FADE_BUFFER1);
+        gpu::BufferPointer fadeBuffer2 = batch.getNamedBuffer(instanceName, INSTANCE_FADE_BUFFER2);
+        gpu::BufferPointer fadeBuffer3 = batch.getNamedBuffer(instanceName, INSTANCE_FADE_BUFFER3);
+        // Pack parameters in 3 vec4s
+        glm::vec4 fadeData1;
+        glm::vec4 fadeData2;
+        glm::vec4 fadeData3;
+        FadeEffect::packToAttributes(fadeCategory, fadeThreshold, fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize,
+            fadeData1, fadeData2, fadeData3);
+        fadeBuffer1->append(fadeData1);
+        fadeBuffer2->append(fadeData2);
+        fadeBuffer3->append(fadeData3);
+    }
+
+    // Add call to named buffer
+    batch.setupNamedCalls(instanceName, [args, isWire, pipeline, shape](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        auto& buffers = data.buffers;
+        batch.setPipeline(pipeline->pipeline);
+        pipeline->prepare(batch, args);
+
+        if (isWire) {
+            DependencyManager::get<GeometryCache>()->renderWireFadeShapeInstances(batch, shape, data.count(), 
+                buffers[INSTANCE_COLOR_BUFFER], buffers[INSTANCE_FADE_BUFFER1], buffers[INSTANCE_FADE_BUFFER2], buffers[INSTANCE_FADE_BUFFER3]);
+        }
+        else {
+            DependencyManager::get<GeometryCache>()->renderFadeShapeInstances(batch, shape, data.count(), 
+                buffers[INSTANCE_COLOR_BUFFER], buffers[INSTANCE_FADE_BUFFER1], buffers[INSTANCE_FADE_BUFFER2], buffers[INSTANCE_FADE_BUFFER3]);
         }
     });
 }
@@ -2005,6 +2151,20 @@ void GeometryCache::renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch
 void GeometryCache::renderWireShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, shape);
+}
+
+void GeometryCache::renderSolidFadeShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, 
+    int fadeCategory, float fadeThreshold, const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, 
+    const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
+    renderFadeInstances(args, batch, color, fadeCategory, fadeThreshold, fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, false, pipeline, shape);
+}
+
+void GeometryCache::renderWireFadeShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, 
+    int fadeCategory, float fadeThreshold, const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, 
+    const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
+    renderFadeInstances(args, batch, color, fadeCategory, fadeThreshold, fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, true, pipeline, shape);
 }
 
 void GeometryCache::renderSolidSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {

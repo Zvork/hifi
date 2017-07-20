@@ -19,6 +19,7 @@
 
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
+#include <FadeEffect.h>
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1 
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
@@ -73,20 +74,53 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
 }
 
 bool RenderableShapeEntityItem::isTransparent() {
-    if (_procedural && _procedural->isFading()) {
-        float isFading = Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
-        _procedural->setIsFading(isFading);
-        return isFading;
-    } else {
-        return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
+    return getLocalRenderAlpha() < 1.0f;
+}
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const ShapePayload::Pointer& payload) {
+        return payloadGetKey(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
     }
+    template <> const Item::Bound payloadGetBound(const ShapePayload::Pointer& payload) {
+        return payloadGetBound(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
+    }
+    template <> void payloadRender(const ShapePayload::Pointer& payload, RenderArgs* args) {
+        payloadRender(std::static_pointer_cast<RenderableEntityItemProxy>(payload), args);
+    }
+    template <> uint32_t metaFetchMetaSubItems(const ShapePayload::Pointer& payload, ItemIDs& subItems) {
+        return metaFetchMetaSubItems(std::static_pointer_cast<RenderableEntityItemProxy>(payload), subItems);
+    }
+
+    template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload) {
+        auto shapeKey = ShapeKey::Builder().withCustom(GeometryCache::CUSTOM_PIPELINE_NUMBER);
+        auto entity = payload->_entity;
+        if (entity->getLocalRenderAlpha() < 1.f) {
+            shapeKey.withTranslucent();
+        }
+        return shapeKey.build();
+    }
+}
+
+bool RenderableShapeEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
+    _myItem = scene->allocateID();
+
+    auto renderData = std::make_shared<ShapePayload>(self, _myItem);
+    auto renderPayload = std::make_shared<ShapePayload::Payload>(renderData);
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(self, statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
+    transaction.resetItem(_myItem, renderPayload);
+    transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+
+    return true;
 }
 
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
-    checkFading();
 
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));
@@ -114,7 +148,6 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
-        outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
             DependencyManager::get<GeometryCache>()->renderWireShape(batch, MAPPING[_shape]);
@@ -122,17 +155,35 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
             DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
         }
     } else {
-        color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        auto shapeKey = render::ShapeKey(args->_itemShapeKey);
         
-        assert(pipeline != nullptr);
+        assert(args->_shapePipeline != nullptr);
 
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, pipeline);
+        if (shapeKey.isFaded()) {
+            auto fadeEffect = DependencyManager::get<FadeEffect>();
+            auto fadeCategory = fadeEffect->getLastCategory();
+            auto fadeThreshold = fadeEffect->getLastThreshold();
+            auto fadeNoiseOffset = fadeEffect->getLastNoiseOffset();
+            auto fadeBaseOffset = fadeEffect->getLastBaseOffset();
+            auto fadeBaseInvSize = fadeEffect->getLastBaseInvSize();
+
+            if (shapeKey.isWireframe()) {
+                geometryCache->renderWireFadeShapeInstance(args, batch, MAPPING[_shape], color, fadeCategory, fadeThreshold,
+                    fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, args->_shapePipeline);
+            }
+            else {
+                geometryCache->renderSolidFadeShapeInstance(args, batch, MAPPING[_shape], color, fadeCategory, fadeThreshold,
+                    fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, args->_shapePipeline);
+            }
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, pipeline);
+            if (shapeKey.isWireframe()) {
+                geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
+            }
+            else {
+                geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
+            }
         }
     }
 

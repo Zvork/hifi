@@ -2,10 +2,10 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple_fade.vert
+//  paintStroke_fade.slv
 //  vertex shader
 //
-//  Created by Olivier Prat on 06/04/17.
+//  Created by Olivier Prat on 19/07/17.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -17,28 +17,27 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include Fade.slh@>
-<$declareFadeVertexInstanced()$>
-
 // the interpolated normal
-out vec3 _normal;
-out vec3 _modelNormal;
-out vec4 _color;
-out vec2 _texCoord0;
-out vec4 _position;
+out vec3 interpolatedNormal;
+
+//the diffuse texture
+out vec2 varTexcoord;
+
+out vec4 varColor;
 out vec4 _worldPosition;
 
 void main(void) {
-    _color = colorToLinearRGBA(inColor);
-    _texCoord0 = inTexCoord0.st;
-    _position = inPosition;
-    _modelNormal = inNormal.xyz;
+    
+    varTexcoord = inTexCoord0.st;
+    
+    // pass along the diffuse color
+    varColor = colorToLinearRGBA(inColor);
+
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, inNormal.xyz, interpolatedNormal)$>
     <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
-    <$passThroughFadeObjectParams()$>
 }
