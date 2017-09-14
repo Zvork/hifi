@@ -15,9 +15,6 @@
 // Necessary for M_PI definition
 #include <qmath.h>
 
-extern void compressHDRMip(gpu::Texture* texture, const nvtt::Surface& surface, int face, int mipLevel);
-extern void convertQImageToVec4s(const QImage& image, const gpu::Element format, std::vector<glm::vec4>& vec4s);
-
 static const glm::vec3 faceNormals[6] = {
     glm::vec3(1, 0, 0),
     glm::vec3(-1, 0, 0),
@@ -102,6 +99,9 @@ static float solidAngleTerm(uint x, uint y, float inverseEdgeLength) {
 
 namespace image {
 
+    void compressHDRMip(gpu::Texture* texture, const nvtt::Surface& surface, int face, int mipLevel);
+    void convertQImageToVec4s(const QImage& image, const gpu::Element format, std::vector<glm::vec4>& vec4s);
+
     struct TexelTable {
 
         TexelTable(uint edgeLength) : size(edgeLength) {
@@ -149,20 +149,20 @@ namespace image {
     };
 }
 
-void compressHDRCubeMap(gpu::Texture* texture, const nvtt::CubeSurface& cubeMap, int mipLevel) {
+static void compressHDRCubeMap(gpu::Texture* texture, const nvtt::CubeSurface& cubeMap, int mipLevel) {
     for (auto i = 0; i < 6; i++) {
-        compressHDRMip(texture, cubeMap.face(i), i, mipLevel);
+        image::compressHDRMip(texture, cubeMap.face(i), i, mipLevel);
     }
 }
 
-float evaluateGGX(float roughness, const float cosAngle) {
+static float evaluateGGX(float roughness, const float cosAngle) {
     float denom;
     roughness *= roughness;
     denom = (roughness - 1)*cosAngle*cosAngle + 1;
     return roughness / (M_PI*denom*denom);
 }
 
-float findGGXCosLimitAngle(const float roughness, const float eps) {
+static float findGGXCosLimitAngle(const float roughness, const float eps) {
     // Do a simple dichotomy search for the moment. We can switch to Newton-Raphson later on or even
     // a closed solution if we can find one...
     float minCosAngle = 0.f;
@@ -183,7 +183,7 @@ float findGGXCosLimitAngle(const float roughness, const float eps) {
     return midCosAngle;
 }
 
-glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const float coneCosAngle,
+static glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const float coneCosAngle,
     const image::TexelTable& texelTable) {
     const float coneAngle = acosf(coneCosAngle);
     assert(coneCosAngle >= 0);
@@ -258,7 +258,7 @@ glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3
     return color;
 }
 
-void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex, 
+static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex,
     const float roughness, const float coneCosAngle, const image::TexelTable& texelTable) {
     nvtt::Surface& filteredFace = filteredCubeMap.face(faceIndex);
     const uint size = filteredFace.width();
@@ -281,7 +281,7 @@ void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurfa
     filteredFace.setImage(nvtt::InputFormat_RGBA_32F, size, size, 1, &(*filteredData.begin()));
 }
 
-void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& destCubeMap, const float roughness,
+static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& destCubeMap, const float roughness,
     const image::TexelTable& texelTable) {
     // This entire code is inspired by the NVTT source code for applying a cosinePowerFilter which is unfortunately private. 
     // If we could give it our proper filter kernel, we woudn't have to do most of this...
@@ -294,7 +294,7 @@ void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurfa
     }
 }
 
-float computeGGXRoughnessFromMipLevel(const int mipCount, int mipLevel, float bias) {
+static float computeGGXRoughnessFromMipLevel(const int mipCount, int mipLevel, float bias) {
     float alpha;
 
     alpha = glm::clamp(mipCount - mipLevel - bias + 1, 1.f / 12.f, 12.f / 7.f);
@@ -319,7 +319,7 @@ namespace image {
             std::vector<glm::vec4>  data;
 
             for (auto i = 0; i < 6; i++) {
-                convertQImageToVec4s(faces[i], sourceFormat, data);
+                image::convertQImageToVec4s(faces[i], sourceFormat, data);
                 cubeMap.face(i).setImage(nvtt::InputFormat_RGBA_32F, size, size, 1, &(*data.begin()));
             }
         }

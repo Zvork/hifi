@@ -422,7 +422,7 @@ void convertQImageToVec4s(const QImage& image, const gpu::Element format, std::v
             ++dataIt;
         }
     }
-    assert(dataIt == data.end());
+    assert(dataIt == vec4s.end());
 }
 
 void compressHDRMip(gpu::Texture* texture, const nvtt::Surface& surface, int face, int mipLevel) {
