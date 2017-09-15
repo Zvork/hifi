@@ -11,6 +11,7 @@
 #include "CubeMap.h"
 
 #include <nvtt/nvtt.h>
+#include <TBBHelpers.h>
 
 // Necessary for M_PI definition
 #include <qmath.h>
@@ -105,15 +106,16 @@ namespace image {
     struct TexelTable {
 
         TexelTable(uint edgeLength) : size(edgeLength) {
-
-            uint hsize = size / 2;
+            // Round up as size isn't necessarily a power of 2
+            uint hsize = (size / 2) + (size & 1);
+            float hsizeF = size*0.5f;
 
             // Allocate a small solid angle table that takes into account cube map symmetry.
             solidAngleArray.resize(hsize * hsize);
 
             for (uint y = 0; y < hsize; y++) {
                 for (uint x = 0; x < hsize; x++) {
-                    solidAngleArray[y * hsize + x] = solidAngleTerm(hsize + x, hsize + y, 1.0f / edgeLength);
+                    solidAngleArray[y * hsize + x] = solidAngleTerm(hsizeF + x, hsizeF + y, 1.0f / edgeLength);
                 }
             }
 
@@ -129,13 +131,21 @@ namespace image {
         }
 
         float solidAngle(uint f, uint x, uint y) const {
-            uint hsize = size / 2;
-            if (x >= hsize) x -= hsize;
-            else if (x < hsize) x = hsize - x - 1;
-            if (y >= hsize) y -= hsize;
-            else if (y < hsize) y = hsize - y - 1;
+            uint hsize_floor = size / 2;
+            uint hsize_ceil = hsize_floor + (size & 1);
+            if (x >= hsize_ceil) {
+                x -= hsize_floor;
+            } else if (x < hsize_ceil) {
+                x = hsize_ceil - x - 1;
+            }
 
-            return solidAngleArray[y * hsize + x];
+            if (y >= hsize_ceil) {
+                y -= hsize_floor;
+            } else if (y < hsize_ceil) {
+                y = hsize_ceil - y - 1;
+            }
+
+            return solidAngleArray[y * hsize_ceil + x];
         }
 
         const glm::vec3 & direction(uint f, uint x, uint y) const {
@@ -212,7 +222,7 @@ static glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const gl
         assert(x1 >= x0);
         assert(y1 >= y0);
 
-        if (x1 == x0 || y1 == y0) {
+        if (size>1 && (x1 == x0 || y1 == y0)) {
             // Skip this face.
             continue;
         }
@@ -261,13 +271,13 @@ static glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const gl
 static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex,
     const float roughness, const float coneCosAngle, const image::TexelTable& texelTable) {
     nvtt::Surface& filteredFace = filteredCubeMap.face(faceIndex);
-    const uint size = filteredFace.width();
+    const uint size = sourceCubeMap.face(0).width();
     std::vector<glm::vec4> filteredData;
-    std::vector<glm::vec4>::iterator filteredDataIt;
 
     filteredData.resize(size*size);
 
-    filteredDataIt = filteredData.begin();
+#if 0
+    std::vector<glm::vec4>::iterator filteredDataIt = filteredData.begin();
     for (uint y = 0; y < size; y++) {
         for (uint x = 0; x < size; x++) {
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
@@ -277,6 +287,18 @@ static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::Cu
             ++filteredDataIt;
         }
     }
+#else
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, size*size), [&](const tbb::blocked_range<size_t>& range) {
+        for (size_t i = range.begin(); i != range.end(); i++) {
+            int x = int(i % size);
+            int y = int(i / size);
+            const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
+            // Convolve filter against cube.
+            glm::vec4 color = applyGGXFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
+            filteredData[x + y*size] = color;
+        }
+    });
+#endif
 
     filteredFace.setImage(nvtt::InputFormat_RGBA_32F, size, size, 1, &(*filteredData.begin()));
 }
@@ -294,10 +316,11 @@ static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::Cu
     }
 }
 
-static float computeGGXRoughnessFromMipLevel(const int mipCount, int mipLevel, float bias) {
+static float computeGGXRoughnessFromMipLevel(const int size, int mipLevel, float bias) {
     float alpha;
+    float mipCount = log2f(size);
 
-    alpha = glm::clamp(mipCount - mipLevel - bias + 1, 1.f / 12.f, 12.f / 7.f);
+    alpha = glm::clamp(mipCount - mipLevel - bias + 1, 12.f / 7.f, 12.f);
     alpha = glm::clamp(2.f / alpha - 1.f / 6.f, 0.f, 1.f);
     return alpha*alpha;
 }
@@ -308,7 +331,6 @@ namespace image {
         const int size = faces.front().width();
         nvtt::CubeSurface cubeMap;
         nvtt::CubeSurface filteredCubeMap;
-        const int mipCount = (int)ceilf(log2f(size));
         const float bias = 0.5f;
         int mipLevel = 0;
         float roughness;
@@ -324,17 +346,23 @@ namespace image {
             }
         }
 
-        roughness = computeGGXRoughnessFromMipLevel(mipCount, mipLevel, bias);
+        // This is a compromise between speed and precision: building the mip maps
+        // on the source cube map and then applying the GGX convolution results in extra
+        // filtering due to the box filtering used in the mip building function.
+        // In theory, to prevent this we should compute the filtered results at
+        // full resolution for each mip and then downsize each filtered result to the final 
+        // mip resolution without any extra filtering. This would work as the GGX filters
+        // act as low pass filters.
+        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
         convolveWithGGXLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
         compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
         while (cubeMap.face(0).canMakeNextMipmap()) {
-            assert(mipLevel < mipCount);
-            roughness = computeGGXRoughnessFromMipLevel(mipCount, mipLevel, bias);
-            convolveWithGGXLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
             for (auto i = 0; i < 6; i++) {
                 cubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);
             }
             texelTable.reset(new TexelTable(cubeMap.face(0).width()));
+            roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
+            convolveWithGGXLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
             compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
         }
     }
