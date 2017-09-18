@@ -331,7 +331,7 @@ namespace image {
         const int size = faces.front().width();
         nvtt::CubeSurface cubeMap;
         nvtt::CubeSurface filteredCubeMap;
-        const float bias = 1.0f;
+        const float bias = 0.5f;
         int mipLevel = 0;
         float roughness;
         std::auto_ptr<TexelTable> texelTable( new TexelTable(size) );
@@ -353,16 +353,19 @@ namespace image {
         // full resolution for each mip and then downsize each filtered result to the final 
         // mip resolution without any extra filtering. This would work as the GGX filters
         // act as low pass filters.
-        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
-        convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
-        compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
+
+        // First level is always RAW
+//        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
+//        convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
+        compressHDRCubeMap(texture, cubeMap, mipLevel++);
         while (cubeMap.face(0).canMakeNextMipmap()) {
-            for (auto i = 0; i < 6; i++) {
-                cubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);
-            }
             texelTable.reset(new TexelTable(cubeMap.face(0).width()));
             roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
             convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
+            for (auto i = 0; i < 6; i++) {
+                cubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);
+                filteredCubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);
+            }
             compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
         }
     }
