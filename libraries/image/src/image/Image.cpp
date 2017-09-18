@@ -1219,7 +1219,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             theTexture->setSource(srcImageName);
             theTexture->setStoredMipFormat(formatMip);
 
-            generateSpecularFilteredMips(theTexture.get(), faces, cubeMapHDRFormat);
+            generateSpecularFilteredMips(theTexture.get(), faces, cubeMapHDRFormat, srcImageName);
 
             // Generate irradiance while we are at it
             if (generateIrradiance) {

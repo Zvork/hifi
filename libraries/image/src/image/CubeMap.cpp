@@ -16,6 +16,8 @@
 // Necessary for M_PI definition
 #include <qmath.h>
 
+#include "ImageLogging.h"
+
 static const glm::vec3 faceNormals[6] = {
     glm::vec3(1, 0, 0),
     glm::vec3(-1, 0, 0),
@@ -327,7 +329,7 @@ static float computeGGXRoughnessFromMipLevel(const int size, int mipLevel, float
 
 namespace image {
 
-    void generateSpecularFilteredMips(gpu::Texture* texture, const CubeFaces& faces, gpu::Element sourceFormat) {
+    void generateSpecularFilteredMips(gpu::Texture* texture, const CubeFaces& faces, gpu::Element sourceFormat, const std::string& srcImageName) {
         const int size = faces.front().width();
         nvtt::CubeSurface cubeMap;
         nvtt::CubeSurface filteredCubeMap;
@@ -358,6 +360,7 @@ namespace image {
 //        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
 //        convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
         compressHDRCubeMap(texture, cubeMap, mipLevel++);
+        qCInfo(imagelogging) << "Cube map " << QString(srcImageName.c_str()) << " mip level " << (mipLevel-1) << '/' << texture->getMaxMip() << " has been processed.";
         while (cubeMap.face(0).canMakeNextMipmap()) {
             texelTable.reset(new TexelTable(cubeMap.face(0).width()));
             roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
@@ -367,6 +370,7 @@ namespace image {
                 filteredCubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);
             }
             compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
+            qCInfo(imagelogging) << "Cube map " << QString(srcImageName.c_str()) << " mip level " << (mipLevel - 1) << " has been processed.";
         }
     }
 }
