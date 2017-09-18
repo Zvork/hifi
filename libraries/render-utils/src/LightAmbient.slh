@@ -43,8 +43,9 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, vec3 fragEyeDir, vec3 f
             <@if supportAmbientMap@>
         {
             float levels = getLightAmbientMapNumMips(ambient);
-            float bias = 0.5f; // See generateGGXFilteredMips() in CubeMap.cpp
-            float lod = clamp(levels-12.0/(1.0+6.0*pow(roughness, 0.25))-bias+1, 0, levels);
+            float bias = 1.0f; // See generateSpecularFilteredMips() in CubeMap.cpp
+            //roughness = sqrt(roughness);
+            float lod = clamp(levels-2.0/((1.0/6.5)+sqrt(roughness))-bias, 0, levels);
             specularLight = evalSkyboxLight(direction, lod).xyz;
         }
     <@endif@>

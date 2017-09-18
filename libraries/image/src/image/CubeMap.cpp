@@ -181,7 +181,7 @@ static float findSpecularCosLimitAngle(const float roughness, const float eps) {
     float x;
 
     midCosAngle = (maxCosAngle + minCosAngle) / 2.f;
-    while ((maxCosAngle - minCosAngle) > 1e-2f) {
+    while ((maxCosAngle - minCosAngle) > 1e-3f) {
         x = evaluateGGX(roughness, midCosAngle) * midCosAngle;
         if (x > eps) {
             maxCosAngle = midCosAngle;
@@ -318,10 +318,10 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
 
 static float computeGGXRoughnessFromMipLevel(const int size, int mipLevel, float bias) {
     float alpha;
-    float mipCount = log2f(size);
+    float mipCount = ceilf(log2f(size));
 
-    alpha = glm::clamp(mipCount - mipLevel - bias + 1, 12.f / 7.f, 12.f);
-    alpha = glm::clamp(2.f / alpha - 1.f / 6.f, 0.f, 1.f);
+    alpha = glm::clamp(mipCount - mipLevel - bias, 26 / 15.f, 13.f);
+    alpha = glm::clamp(2.f / alpha - 2.f / 13.f, 0.f, 1.f);
     return alpha*alpha;
 }
 
@@ -331,7 +331,7 @@ namespace image {
         const int size = faces.front().width();
         nvtt::CubeSurface cubeMap;
         nvtt::CubeSurface filteredCubeMap;
-        const float bias = 0.5f;
+        const float bias = 1.0f;
         int mipLevel = 0;
         float roughness;
         std::auto_ptr<TexelTable> texelTable( new TexelTable(size) );
