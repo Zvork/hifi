@@ -172,7 +172,7 @@ static float evaluateGGX(float roughness, const float cosAngle) {
     return roughness / (M_PI*denom*denom);
 }
 
-static float findGGXCosLimitAngle(const float roughness, const float eps) {
+static float findSpecularCosLimitAngle(const float roughness, const float eps) {
     // Do a simple dichotomy search for the moment. We can switch to Newton-Raphson later on or even
     // a closed solution if we can find one...
     float minCosAngle = 0.f;
@@ -193,7 +193,7 @@ static float findGGXCosLimitAngle(const float roughness, const float eps) {
     return midCosAngle;
 }
 
-static glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const float coneCosAngle,
+static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const float coneCosAngle,
     const image::TexelTable& texelTable) {
     const float coneAngle = acosf(coneCosAngle);
     assert(coneCosAngle >= 0);
@@ -268,7 +268,7 @@ static glm::vec4 applyGGXFilter(const nvtt::CubeSurface& sourceCubeMap, const gl
     return color;
 }
 
-static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex,
+static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex,
     const float roughness, const float coneCosAngle, const image::TexelTable& texelTable) {
     nvtt::Surface& filteredFace = filteredCubeMap.face(faceIndex);
     const uint size = sourceCubeMap.face(0).width();
@@ -282,7 +282,7 @@ static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::Cu
         for (uint x = 0; x < size; x++) {
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
             // Convolve filter against cube.
-            glm::vec4 color = applyGGXFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
+            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
             *filteredDataIt = color;
             ++filteredDataIt;
         }
@@ -294,7 +294,7 @@ static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::Cu
             int y = int(i / size);
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
             // Convolve filter against cube.
-            glm::vec4 color = applyGGXFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
+            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
             filteredData[x + y*size] = color;
         }
     });
@@ -303,16 +303,16 @@ static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::Cu
     filteredFace.setImage(nvtt::InputFormat_RGBA_32F, size, size, 1, &(*filteredData.begin()));
 }
 
-static void convolveWithGGXLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& destCubeMap, const float roughness,
+static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& destCubeMap, const float roughness,
     const image::TexelTable& texelTable) {
     // This entire code is inspired by the NVTT source code for applying a cosinePowerFilter which is unfortunately private. 
     // If we could give it our proper filter kernel, we woudn't have to do most of this...
     const float threshold = 0.001f;
     // We limit the cone angle of the filter kernel to speed things up
-    const float coneCosAngle = findGGXCosLimitAngle(roughness, threshold);
+    const float coneCosAngle = findSpecularCosLimitAngle(roughness, threshold);
 
     for (auto i = 0; i < 6; i++) {
-        convolveWithGGXLobe(sourceCubeMap, destCubeMap, i, roughness, coneCosAngle, texelTable);
+        convolveWithSpecularLobe(sourceCubeMap, destCubeMap, i, roughness, coneCosAngle, texelTable);
     }
 }
 
@@ -327,7 +327,7 @@ static float computeGGXRoughnessFromMipLevel(const int size, int mipLevel, float
 
 namespace image {
 
-    void generateGGXFilteredMips(gpu::Texture* texture, const CubeFaces& faces, gpu::Element sourceFormat) {
+    void generateSpecularFilteredMips(gpu::Texture* texture, const CubeFaces& faces, gpu::Element sourceFormat) {
         const int size = faces.front().width();
         nvtt::CubeSurface cubeMap;
         nvtt::CubeSurface filteredCubeMap;
@@ -354,7 +354,7 @@ namespace image {
         // mip resolution without any extra filtering. This would work as the GGX filters
         // act as low pass filters.
         roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
-        convolveWithGGXLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
+        convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
         compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
         while (cubeMap.face(0).canMakeNextMipmap()) {
             for (auto i = 0; i < 6; i++) {
@@ -362,7 +362,7 @@ namespace image {
             }
             texelTable.reset(new TexelTable(cubeMap.face(0).width()));
             roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
-            convolveWithGGXLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
+            convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
             compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
         }
     }

@@ -21,7 +21,7 @@ namespace image {
 
     typedef std::vector<QImage> CubeFaces;
 
-    void generateGGXFilteredMips(gpu::Texture* texture, const CubeFaces& faces, gpu::Element sourceFormat);
+    void generateSpecularFilteredMips(gpu::Texture* texture, const CubeFaces& faces, gpu::Element sourceFormat);
 
 }
 
