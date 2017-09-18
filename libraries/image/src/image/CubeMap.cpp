@@ -27,6 +27,25 @@ static const glm::vec3 faceNormals[6] = {
     glm::vec3(0, 0, -1),
 };
 
+
+static const glm::vec3 faceU[6] = {
+    glm::vec3(0, 0, -1),
+    glm::vec3(0, 0, 1),
+    glm::vec3(1, 0, 0),
+    glm::vec3(1, 0, 0),
+    glm::vec3(1, 0, 0),
+    glm::vec3(-1, 0, 0),
+};
+
+static const glm::vec3 faceV[6] = {
+    glm::vec3(0, -1, 0),
+    glm::vec3(0, -1, 0),
+    glm::vec3(0, 0, 1),
+    glm::vec3(0, 0, -1),
+    glm::vec3(0, -1, 0),
+    glm::vec3(0, -1, 0),
+};
+
 static glm::vec3 texelDirection(uint face, uint x, uint y, int edgeLength) {
     float u, v;
 
@@ -75,36 +94,83 @@ static glm::vec3 texelDirection(uint face, uint x, uint y, int edgeLength) {
     return glm::normalize(n);
 }
 
-// Solid angle of an axis aligned quad from (0,0,1) to (x,y,1)
-// See: http://www.fizzmoll11.com/thesis/ for a derivation of this formula.
-static float areaElement(float x, float y) {
-    return atan2(x*y, sqrtf(x*x + y*y + 1));
+inline float pixel(const nvtt::Surface& image, uint c, int x, int y) {
+    return image.channel(c)[x + y*image.width()];
 }
 
-// Solid angle of a hemicube texel.
-static float solidAngleTerm(uint x, uint y, float inverseEdgeLength) {
-    // Transform x,y to [-1, 1] range, offset by 0.5 to point to texel center.
-    float u = (float(x) + 0.5f) * (2 * inverseEdgeLength) - 1.0f;
-    float v = (float(y) + 0.5f) * (2 * inverseEdgeLength) - 1.0f;
-    assert(u >= -1.0f && u <= 1.0f);
-    assert(v >= -1.0f && v <= 1.0f);
+static float bilerp(const nvtt::Surface& image, uint c, int ix0, int iy0, int ix1, int iy1, float fx, float fy) {
+    float f1 = pixel(image, c, ix0, iy0);
+    float f2 = pixel(image, c, ix1, iy0);
+    float f3 = pixel(image, c, ix0, iy1);
+    float f4 = pixel(image, c, ix1, iy1);
 
-    // Exact solid angle:
-    float x0 = u - inverseEdgeLength;
-    float y0 = v - inverseEdgeLength;
-    float x1 = u + inverseEdgeLength;
-    float y1 = v + inverseEdgeLength;
-    float solidAngle = areaElement(x0, y0) - areaElement(x0, y1) - areaElement(x1, y0) + areaElement(x1, y1);
-    assert(solidAngle > 0.0f);
+    float i1 = glm::mix(f1, f2, fx);
+    float i2 = glm::mix(f3, f4, fx);
 
-    return solidAngle;
+    return glm::mix(i1, i2, fy);
 }
+
+static glm::vec4 sampleLinearClamp(const nvtt::Surface& image, float x, float y) {
+    const int w = image.width();
+    const int h = image.height();
+
+    x = x*w-0.5f;
+    y = y*h-0.5f;
+
+    const float fracX = x-floorf(x);
+    const float fracY = y-floorf(y);
+
+    const int ix0 = glm::clamp(int(x), 0, w - 1);
+    const int iy0 = glm::clamp(int(y), 0, h - 1);
+    const int ix1 = glm::clamp(int(x) + 1, 0, w - 1);
+    const int iy1 = glm::clamp(int(y) + 1, 0, h - 1);
+
+    glm::vec4 color;
+    color.r = bilerp(image, 0, ix0, iy0, ix1, iy1, fracX, fracY);
+    color.g = bilerp(image, 1, ix0, iy0, ix1, iy1, fracX, fracY);
+    color.b = bilerp(image, 2, ix0, iy0, ix1, iy1, fracX, fracY);
+    color.a = 1.f;
+    return color;
+}
+
+static glm::vec4 sample(const nvtt::CubeSurface& cubeMap, glm::vec3 dir) {
+    int f = -1;
+    glm::vec3 absDir = glm::abs(dir);
+
+    if (absDir.x > absDir.y && absDir.x > absDir.z) {
+        f = dir.x > 0 ? gpu::Texture::CUBE_FACE_RIGHT_POS_X : gpu::Texture::CUBE_FACE_LEFT_NEG_X;
+        dir /= absDir.x;
+    }
+    else if (absDir.y > absDir.z) {
+        f = dir.y > 0 ? gpu::Texture::CUBE_FACE_TOP_POS_Y : gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y;
+        dir /= absDir.y;
+    }
+    else {
+        f = dir.z > 0 ? gpu::Texture::CUBE_FACE_BACK_POS_Z : gpu::Texture::CUBE_FACE_FRONT_NEG_Z;
+        dir /= absDir.z;
+    }
+    assert(f != -1);
+
+    // uv coordinates corresponding to dir.
+    float u = glm::dot(dir, faceU[f])*0.5f + 0.5f;
+    float v = glm::dot(dir, faceV[f])*0.5f + 0.5f;
+
+    const nvtt::Surface& img = cubeMap.face(f);
+
+    return sampleLinearClamp(img, u, v);
+}
+
+#define SPECULAR_CONVOLUTION_NORMAL         0
+#define SPECULAR_CONVOLUTION_MONTE_CARLO    1
+
+#define SPECULAR_CONVOLUTION_METHOD         SPECULAR_CONVOLUTION_MONTE_CARLO
 
 namespace image {
 
     void compressHDRMip(gpu::Texture* texture, const nvtt::Surface& surface, int face, int mipLevel);
     void convertQImageToVec4s(const QImage& image, const gpu::Element format, std::vector<glm::vec4>& vec4s);
 
+#if SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_NORMAL
     struct TexelTable {
 
         TexelTable(uint edgeLength) : size(edgeLength) {
@@ -159,6 +225,7 @@ namespace image {
         std::vector<float> solidAngleArray;
         std::vector<glm::vec3> directionArray;
     };
+#endif
 }
 
 static void compressHDRCubeMap(gpu::Texture* texture, const nvtt::CubeSurface& cubeMap, int mipLevel) {
@@ -167,11 +234,38 @@ static void compressHDRCubeMap(gpu::Texture* texture, const nvtt::CubeSurface& c
     }
 }
 
+#if SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_NORMAL
+
+// Solid angle of an axis aligned quad from (0,0,1) to (x,y,1)
+// See: http://www.fizzmoll11.com/thesis/ for a derivation of this formula.
+static float areaElement(float x, float y) {
+    return atan2(x*y, sqrtf(x*x + y*y + 1));
+}
+
 static float evaluateGGX(float roughness, const float cosAngle) {
     float denom;
     roughness *= roughness;
     denom = (roughness - 1)*cosAngle*cosAngle + 1;
     return roughness / (M_PI*denom*denom);
+}
+
+// Solid angle of a hemicube texel.
+static float solidAngleTerm(uint x, uint y, float inverseEdgeLength) {
+    // Transform x,y to [-1, 1] range, offset by 0.5 to point to texel center.
+    float u = (float(x) + 0.5f) * (2 * inverseEdgeLength) - 1.0f;
+    float v = (float(y) + 0.5f) * (2 * inverseEdgeLength) - 1.0f;
+    assert(u >= -1.0f && u <= 1.0f);
+    assert(v >= -1.0f && v <= 1.0f);
+
+    // Exact solid angle:
+    float x0 = u - inverseEdgeLength;
+    float y0 = v - inverseEdgeLength;
+    float x1 = u + inverseEdgeLength;
+    float y1 = v + inverseEdgeLength;
+    float solidAngle = areaElement(x0, y0) - areaElement(x0, y1) - areaElement(x1, y0) + areaElement(x1, y1);
+    assert(solidAngle > 0.0f);
+
+    return solidAngle;
 }
 
 static float findSpecularCosLimitAngle(const float roughness, const float eps) {
@@ -187,7 +281,8 @@ static float findSpecularCosLimitAngle(const float roughness, const float eps) {
         x = evaluateGGX(roughness, midCosAngle) * midCosAngle;
         if (x > eps) {
             maxCosAngle = midCosAngle;
-        } else {
+        }
+        else {
             minCosAngle = midCosAngle;
         }
         midCosAngle = (maxCosAngle + minCosAngle) / 2.f;
@@ -195,9 +290,22 @@ static float findSpecularCosLimitAngle(const float roughness, const float eps) {
     return midCosAngle;
 }
 
-static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const float coneCosAngle,
-    const image::TexelTable& texelTable) {
-    const float coneAngle = acosf(coneCosAngle);
+struct ConvolutionConfig
+{
+    float coneCosAngle;
+    const image::TexelTable& texelTable;
+
+    ConvolutionConfig(float roughness, const image::TexelTable& texelTable) : texelTable(texelTable) {
+        // This entire code is inspired by the NVTT source code for applying a cosinePowerFilter which is unfortunately private. 
+        // If we could give it our proper filter kernel, we woudn't have to do most of this...
+        const float threshold = 0.001f;
+        // We limit the cone angle of the filter kernel to speed things up
+        coneCosAngle = findSpecularCosLimitAngle(roughness, threshold);
+    }
+};
+
+static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const ConvolutionConfig& config) {
+    const float coneAngle = acosf(config.coneCosAngle);
     assert(coneCosAngle >= 0);
 
     const int size = sourceCubeMap.face(0).width();
@@ -240,11 +348,11 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
             bool inside = false;
             for (int x = x0; x <= x1; x++) {
 
-                glm::vec3 dir = texelTable.direction(f, x, y);
+                glm::vec3 dir = config.texelTable.direction(f, x, y);
                 float cosineAngle = dot(dir, filterDir);
 
-                if (cosineAngle > coneCosAngle) {
-                    float solidAngle = texelTable.solidAngle(f, x, y);
+                if (cosineAngle > config.coneCosAngle) {
+                    float solidAngle = config.texelTable.solidAngle(f, x, y);
                     float scale = evaluateGGX(roughness, cosineAngle);
                     float contribution = solidAngle * scale;
                     int inputIdx = y * size + x;
@@ -269,9 +377,76 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
 
     return color;
 }
+#elif SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_MONTE_CARLO
+struct ConvolutionConfig
+{
+    uint sampleCount;
+};
+
+// Code taken from https://learnopengl.com/#!PBR/IBL/Specular-IBL
+static float getRadicalInverse_VdC(uint bits) {
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+inline glm::vec2 generateHammersley(uint i, uint N) {
+    return glm::vec2(float(i) / float(N), getRadicalInverse_VdC(i));
+}
+
+static glm::vec3 getGGXImportanceSampledDir(glm::vec2 Xi, glm::vec3 N, float roughness)
+{
+    float a = roughness;
+
+    float phi = 2.0 * M_PI * Xi.x;
+    float cosTheta = sqrtf((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
+    float sinTheta = sqrtf(1.0 - cosTheta*cosTheta);
+
+    // from spherical coordinates to cartesian coordinates
+    glm::vec3 H;
+    H.x = cosf(phi) * sinTheta;
+    H.y = sinf(phi) * sinTheta;
+    H.z = cosTheta;
+
+    // from tangent-space vector to world-space sample vector
+    glm::vec3 up = fabsf(N.z) < 0.999 ? glm::vec3(0.0, 0.0, 1.0) : glm::vec3(1.0, 0.0, 0.0);
+    glm::vec3 tangent = glm::normalize(glm::cross(up, N));
+    glm::vec3 bitangent = glm::cross(N, tangent);
+
+    glm::vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return glm::normalize(sampleVec);
+}
+
+static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const ConvolutionConfig& config) {
+    glm::vec4 filteredColor{ 0,0,0,1 };
+    glm::vec2 randomSeed;
+    glm::vec3 halfDir;
+    glm::vec3 viewDir = filterDir;
+    glm::vec3 lightDir;
+    float weight = 0.f;
+    float NdotL = 0.f;
+
+    for (uint i = 0; i < config.sampleCount; i++) {
+        randomSeed = generateHammersley(i, config.sampleCount);
+        halfDir = getGGXImportanceSampledDir(randomSeed, filterDir, roughness);
+        lightDir = glm::normalize(2.0f * glm::dot(viewDir, halfDir) * halfDir - viewDir);
+        NdotL = glm::dot(filterDir, lightDir);
+        if (NdotL > 0.f) {
+            filteredColor += sample(sourceCubeMap, lightDir) * NdotL;
+            weight += NdotL;
+        }
+    }
+    filteredColor = filteredColor / weight;
+    return filteredColor;
+}
+
+#endif
 
 static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex,
-    const float roughness, const float coneCosAngle, const image::TexelTable& texelTable) {
+    const float roughness, const ConvolutionConfig& config) {
     nvtt::Surface& filteredFace = filteredCubeMap.face(faceIndex);
     const uint size = sourceCubeMap.face(0).width();
     std::vector<glm::vec4> filteredData;
@@ -284,7 +459,7 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
         for (uint x = 0; x < size; x++) {
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
             // Convolve filter against cube.
-            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
+            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, config);
             *filteredDataIt = color;
             ++filteredDataIt;
         }
@@ -296,7 +471,7 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
             int y = int(i / size);
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
             // Convolve filter against cube.
-            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, coneCosAngle, texelTable);
+            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, config);
             filteredData[x + y*size] = color;
         }
     });
@@ -306,15 +481,9 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
 }
 
 static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& destCubeMap, const float roughness,
-    const image::TexelTable& texelTable) {
-    // This entire code is inspired by the NVTT source code for applying a cosinePowerFilter which is unfortunately private. 
-    // If we could give it our proper filter kernel, we woudn't have to do most of this...
-    const float threshold = 0.001f;
-    // We limit the cone angle of the filter kernel to speed things up
-    const float coneCosAngle = findSpecularCosLimitAngle(roughness, threshold);
-
+    const ConvolutionConfig& config) {
     for (auto i = 0; i < 6; i++) {
-        convolveWithSpecularLobe(sourceCubeMap, destCubeMap, i, roughness, coneCosAngle, texelTable);
+        convolveWithSpecularLobe(sourceCubeMap, destCubeMap, i, roughness, config);
     }
 }
 
@@ -336,7 +505,9 @@ namespace image {
         const float bias = 0.5f;
         int mipLevel = 0;
         float roughness;
+#if SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_NORMAL
         std::auto_ptr<TexelTable> texelTable( new TexelTable(size) );
+#endif
 
         // First pass: convert cube map to vec4 for faster access
         {
@@ -362,9 +533,14 @@ namespace image {
         compressHDRCubeMap(texture, cubeMap, mipLevel++);
         qCInfo(imagelogging) << "Cube map " << QString(srcImageName.c_str()) << " mip level " << (mipLevel-1) << '/' << texture->getMaxMip() << " has been processed.";
         while (cubeMap.face(0).canMakeNextMipmap()) {
-            texelTable.reset(new TexelTable(cubeMap.face(0).width()));
             roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
-            convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
+#if SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_NORMAL
+            texelTable.reset(new TexelTable(cubeMap.face(0).width()));
+            ConvolutionConfig config{ roughness, *texelTable };
+#elif SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_MONTE_CARLO
+            ConvolutionConfig config{ 300 };
+#endif
+            convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, config);
             for (auto i = 0; i < 6; i++) {
                 cubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);
                 filteredCubeMap.face(i).buildNextMipmap(nvtt::MipmapFilter_Box);

@@ -166,7 +166,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-        const float offset = -3.0;
+        const float offset = -4.5;
 
         batch.setViewportTransform(args->_viewport);
         auto viewFrustum = args->getViewFrustum();
@@ -180,7 +180,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
         batch.setPipeline(getKeyLightPipeline());
         auto numKeys = (int) keyLightStack.size();
         for (int i = numKeys - 1; i >= 0; i--) {
-            model.setTranslation(glm::vec3(-3.0+ offset, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
+            model.setTranslation(glm::vec3(-2.5+ offset, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
             if (keyLightStack[i]) {
                 batch.setUniformBuffer(ZONE_KEYLIGHT_BUFFER, keyLightStack[i]->getLightSchemaBuffer());
@@ -206,14 +206,14 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
         auto numBackgrounds = (int) skyboxStack.size();
         auto lodLocation = getBackgroundPipeline()->getProgram()->getUniforms().findLocation("skyboxLOD");
         for (int i = numBackgrounds - 1; i >= 0; i--) {
-            glm::vec3 pos(3.0+ offset, -3.0 + (i * 1.0), -10.0 - (i * 3.0));
+            glm::vec3 pos(2.5+ offset, -3.0 + (i * 1.0), -10.0 - (i * 3.0));
             if (skyboxStack[i]) {
                 auto cubeMap = skyboxStack[i]->getCubemap();
                 batch.setResourceTexture(ZONE_SKYBOX_MAP, cubeMap);
                 batch.setUniformBuffer(ZONE_SKYBOX_BUFFER, skyboxStack[i]->getSchemaBuffer());
                 if (cubeMap) {
                     for (int l = cubeMap->getMaxMip() - 1; l >= 0; l--) {
-                        model.setTranslation(pos + glm::vec3(0.75, 0, 0)*(float)l);
+                        model.setTranslation(pos + glm::vec3(0.85, 0, 0)*(float)l);
                         batch._glUniform1f(lodLocation, l);
                         batch.setModelTransform(model);
                         batch.draw(gpu::TRIANGLE_STRIP, 4);
