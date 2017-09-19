@@ -160,6 +160,17 @@ static glm::vec4 sample(const nvtt::CubeSurface& cubeMap, glm::vec3 dir) {
     return sampleLinearClamp(img, u, v);
 }
 
+static float evaluateGGX(float roughness, const float cosAngle) {
+    if (cosAngle > 0.f) {
+        float denom;
+        roughness *= roughness;
+        denom = (roughness - 1)*cosAngle*cosAngle + 1;
+        return roughness / (M_PI*denom*denom);
+    } else {
+        return 0.f;
+    }
+}
+
 #define SPECULAR_CONVOLUTION_NORMAL         0
 #define SPECULAR_CONVOLUTION_MONTE_CARLO    1
 
@@ -240,13 +251,6 @@ static void compressHDRCubeMap(gpu::Texture* texture, const nvtt::CubeSurface& c
 // See: http://www.fizzmoll11.com/thesis/ for a derivation of this formula.
 static float areaElement(float x, float y) {
     return atan2(x*y, sqrtf(x*x + y*y + 1));
-}
-
-static float evaluateGGX(float roughness, const float cosAngle) {
-    float denom;
-    roughness *= roughness;
-    denom = (roughness - 1)*cosAngle*cosAngle + 1;
-    return roughness / (M_PI*denom*denom);
 }
 
 // Solid angle of a hemicube texel.
@@ -378,9 +382,152 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
     return color;
 }
 #elif SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_MONTE_CARLO
-struct ConvolutionConfig
+class ConvolutionConfig
 {
-    uint sampleCount;
+public:
+   
+    ConvolutionConfig(uint sampleCount, const nvtt::CubeSurface& cubeMap) :
+        _sampleCount(sampleCount)
+    {
+        assert(_sampleCount > 0);
+        // Create a lat / long importance map for importance sampling of the cubemap.
+        _cdfSize.x = cubeMap.face(0).width() * 6; // We multiply by 6 to slightly oversample the cube map
+        _cdfSize.y = _cdfSize.x / 2;
+        _cdfX.resize(_cdfSize.x*_cdfSize.y);
+        _cdfY.resize(_cdfSize.y);
+        initializeImportanceMap(cubeMap);
+    }
+
+    uint sampleCount() const {
+        return _sampleCount;
+    }
+    
+    glm::vec3 getCubeMapImportanceSampledDir(const glm::vec2& random, float& probability) const {
+        // Start by choosing the row index
+        auto rowIt = std::lower_bound(_cdfY.begin(), _cdfY.end(), random.y);
+        assert(rowIt != _cdfY.end());
+        auto rowIndex = std::distance(_cdfY.begin(), rowIt);
+        auto rowOffset = rowIndex * _cdfSize.x;
+        auto columnBegin = _cdfX.begin() + rowOffset;
+        auto columnIt = std::lower_bound(columnBegin, columnBegin + _cdfSize.x, random.x);
+        auto columnIndex = std::distance(columnBegin, columnIt);
+
+        const float elevation = (rowIndex * M_PI) / (_cdfSize.y - 1);
+        const float sinElevation = sinf(elevation);
+        const float cosElevation = cosf(elevation);
+        const float azimuth = (columnIndex * 2 * M_PI) / _cdfSize.x;
+        const float sinAzimuth = sinf(azimuth);
+        const float cosAzimuth = cosf(azimuth);
+        glm::vec3 dir;
+
+        dir.x = sinAzimuth * sinElevation;
+        dir.y = cosElevation;
+        dir.z = cosAzimuth * sinElevation;
+        // Compute the probability that this sample dir was generated
+        float probabilityY = *rowIt;
+        if (rowIt != _cdfY.begin()) {
+            --rowIt;
+            probabilityY -= *rowIt;
+        }
+        float probabilityX = *columnIt;
+        if (columnIt != columnBegin) {
+            --columnIt;
+            probabilityX -= *columnIt;
+        }
+        probability = probabilityX * probabilityY;
+
+        return dir;
+    }
+
+    float getProbabilityOfDir(const glm::vec3& dir) const {
+        int y = std::min<int>(acosf(dir.y) * (_cdfSize.y - 1) / M_PI, _cdfSize.y - 1);
+        int x = int((atan2f(dir.x, dir.z)+M_PI) * _cdfSize.x / (2*M_PI)) % _cdfSize.x;
+        float probabilityX;
+        float probabilityY;
+
+        probabilityY = _cdfY[y];
+        if (y > 0) {
+            probabilityY -= _cdfY[y - 1];
+        }
+        y *= _cdfSize.x;
+        probabilityX = _cdfX[x+y];
+        if (x > 0) {
+            probabilityX -= _cdfX[x-1 + y];
+        }
+        return probabilityX*probabilityY;
+    }
+
+private:
+
+    uint _sampleCount;
+    std::vector<float> _cdfX;
+    std::vector<float> _cdfY;
+    glm::ivec2 _cdfSize;
+
+    // We create a cumulative distribution function by integrating probabilities in X and Y
+    // from the luminance of the cube map.
+    // Each row of CDF X contains the integral of the probabilities from left to right of pixels
+    // of fixed elevation.
+    // Each CDF Y contains the integral of the environment map row probabilities
+    void initializeImportanceMap(const nvtt::CubeSurface& cubeMap) {
+        glm::vec3 dir;
+        glm::vec4 color;
+        float probability;
+        float probabilityXIntegral;
+        float probabilityYIntegral;
+        std::vector<float>::iterator importanceMapIt;
+        std::vector<float>::iterator importanceMapLineBegin;
+        std::vector<float>::iterator importanceMapLineIt;
+        int x, y;
+
+        importanceMapIt = _cdfX.begin();
+        probabilityYIntegral = 0.f;
+        for (y = 0; y < _cdfSize.y; y++) {
+            const float elevation = (y * M_PI) / (_cdfSize.y - 1);
+            const float sinElevation = sinf(elevation);
+            const float cosElevation = cosf(elevation);
+
+            importanceMapLineBegin = importanceMapIt;
+            probabilityXIntegral = 0.f;
+            for (x = 0; x < _cdfSize.x; x++) {
+                const float azimuth = (x * 2 * M_PI) / _cdfSize.x;
+                const float sinAzimuth = sinf(azimuth);
+                const float cosAzimuth = cosf(azimuth);
+
+                dir.x = sinAzimuth * sinElevation;
+                dir.y = cosElevation;
+                dir.z = cosAzimuth * sinElevation;
+
+                // Start by sampling the cubeMap's weighted luminance values to
+                // compute the probability of each direction
+                color = sample(cubeMap, dir);
+                probability = (color.r + color.g + color.b) * sinElevation;
+
+                // Integrate it in the x direction
+                probabilityXIntegral += probability;
+                *importanceMapIt = probabilityXIntegral;
+                ++importanceMapIt;
+            }
+
+            // Normalize the probabilities in the x direction
+            if (probabilityXIntegral > 0.f) {
+                for (importanceMapLineIt = importanceMapLineBegin; importanceMapLineIt != importanceMapIt; ++importanceMapLineIt) {
+                    *importanceMapLineIt /= probabilityXIntegral;
+                }
+            }
+
+            // This is the non normalized probability for this row
+            probabilityYIntegral += probabilityXIntegral;
+            _cdfY[y] = probabilityYIntegral;
+        }
+
+        // Normalize the probabilities in the y direction
+        if (probabilityYIntegral > 0) {
+            for (importanceMapLineIt = _cdfY.begin(); importanceMapLineIt != _cdfY.end(); ++importanceMapLineIt) {
+                *importanceMapLineIt /= probabilityYIntegral;
+            }
+        }
+    }
 };
 
 // Code taken from https://learnopengl.com/#!PBR/IBL/Specular-IBL
@@ -397,7 +544,7 @@ inline glm::vec2 generateHammersley(uint i, uint N) {
     return glm::vec2(float(i) / float(N), getRadicalInverse_VdC(i));
 }
 
-static glm::vec3 getGGXImportanceSampledDir(glm::vec2 Xi, glm::vec3 N, float roughness)
+static glm::vec3 getGGXImportanceSampledDir(glm::vec2 Xi, glm::vec3 N, float roughness, float& probability)
 {
     float a = roughness;
 
@@ -417,49 +564,113 @@ static glm::vec3 getGGXImportanceSampledDir(glm::vec2 Xi, glm::vec3 N, float rou
     glm::vec3 bitangent = glm::cross(N, tangent);
 
     glm::vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+
+    // Compute the probability that this direction was generated
+    probability = evaluateGGX(roughness, cosTheta);
+
     return glm::normalize(sampleVec);
 }
 
-static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const ConvolutionConfig& config) {
-    glm::vec4 filteredColor{ 0,0,0,1 };
-    glm::vec2 randomSeed;
-    glm::vec3 halfDir;
+static glm::vec4 sampleBRDF(const glm::vec2& randomSeed, const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir,
+    const float roughness, const ConvolutionConfig& config) {
+    float probabilityGGX;
+    float probabilityCubeMap;
+    float weight = 1.f;
     glm::vec3 viewDir = filterDir;
-    glm::vec3 lightDir;
-    float weight = 0.f;
-    float NdotL = 0.f;
+    glm::vec3 halfDir = getGGXImportanceSampledDir(randomSeed, filterDir, roughness, probabilityGGX);
+    glm::vec3 lightDir = glm::normalize(2.0f * glm::dot(viewDir, halfDir) * halfDir - viewDir);
+    glm::vec4 color(0, 0, 0, 1);
+    float NdotL = glm::dot(filterDir, lightDir);
 
-    for (uint i = 0; i < config.sampleCount; i++) {
-        randomSeed = generateHammersley(i, config.sampleCount);
-        halfDir = getGGXImportanceSampledDir(randomSeed, filterDir, roughness);
-        lightDir = glm::normalize(2.0f * glm::dot(viewDir, halfDir) * halfDir - viewDir);
-        NdotL = glm::dot(filterDir, lightDir);
-        if (NdotL > 0.f) {
-            filteredColor += sample(sourceCubeMap, lightDir) * NdotL;
-            weight += NdotL;
+    if (NdotL > 0.f) {
+        probabilityCubeMap = config.getProbabilityOfDir(lightDir);
+        // Combine the two for multiple importance sampling based on the balance heuristic
+        weight = probabilityGGX + probabilityCubeMap;
+        if (weight > 0.f) {
+            // The probabilityGGX is the GGX NDF
+            color = sample(sourceCubeMap, lightDir) * NdotL * probabilityGGX;
+            color /= weight;
         }
     }
-    filteredColor = filteredColor / weight;
+    return color;
+}
+
+static glm::vec4 sampleCubeMap(const glm::vec2& randomSeed, const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir,
+    const float roughness, const ConvolutionConfig& config) {
+    float probabilityGGX;
+    float probabilityCubeMap;
+    float weight = 1.f;
+    glm::vec3 viewDir = filterDir;
+    glm::vec3 lightDir = config.getCubeMapImportanceSampledDir(randomSeed, probabilityCubeMap);
+    glm::vec4 color(0, 0, 0, 1);
+    float NdotL;
+
+    NdotL = glm::dot(filterDir, lightDir);
+    if (NdotL > 0.f) {
+        glm::vec3 halfDir = glm::normalize(lightDir + viewDir);
+
+        probabilityGGX = evaluateGGX(roughness, glm::dot(halfDir, filterDir));
+        // Combine the two for multiple importance sampling based on the balance heuristic
+        weight = probabilityGGX + probabilityCubeMap;
+        if (weight > 0.f) {
+            // The probabilityGGX is the GGX NDF
+            color = sample(sourceCubeMap, lightDir) * NdotL * probabilityGGX;
+            color /= weight;
+        }
+    }
+    return color;
+}
+
+static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const ConvolutionConfig& config,
+    std::vector<glm::vec2>::const_iterator randomSeedIt) {
+    glm::vec4 filteredColor{ 0,0,0,1 };
+    glm::vec2 randomSeed;
+
+    for (uint i = 0; i < config.sampleCount(); i++) {
+        randomSeed = *randomSeedIt;
+        ++randomSeedIt;
+
+        // First generate a sample based on the GGX distribution
+        filteredColor += sampleBRDF(randomSeed, sourceCubeMap, filterDir, roughness, config);
+  
+        // Then another sample based on the cubemap distribution
+        filteredColor += sampleCubeMap(randomSeed, sourceCubeMap, filterDir, roughness, config);
+    }
+    // Both sampling strategies BSDF & EnvMap have the same number of samples
+    filteredColor /= config.sampleCount();
     return filteredColor;
 }
 
 #endif
+
+static void generateHammersleySequence(std::vector<glm::vec2>& sequence) {
+    int i = 1;
+
+    for(auto& value : sequence) {
+        value = generateHammersley(i++, sequence.size()+1);
+    }
+}
 
 static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvtt::CubeSurface& filteredCubeMap, int faceIndex,
     const float roughness, const ConvolutionConfig& config) {
     nvtt::Surface& filteredFace = filteredCubeMap.face(faceIndex);
     const uint size = sourceCubeMap.face(0).width();
     std::vector<glm::vec4> filteredData;
+    std::vector<glm::vec2> randomSeeds;
+
+    randomSeeds.resize(config.sampleCount());
+    generateHammersleySequence(randomSeeds);
 
     filteredData.resize(size*size);
 
-#if 0
+#if 1
     std::vector<glm::vec4>::iterator filteredDataIt = filteredData.begin();
+
     for (uint y = 0; y < size; y++) {
         for (uint x = 0; x < size; x++) {
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
             // Convolve filter against cube.
-            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, config);
+            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, config, randomSeeds.begin());
             *filteredDataIt = color;
             ++filteredDataIt;
         }
@@ -471,7 +682,7 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
             int y = int(i / size);
             const glm::vec3 filterDir = texelDirection(faceIndex, x, y, size);
             // Convolve filter against cube.
-            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, config);
+            glm::vec4 color = applySpecularFilter(sourceCubeMap, filterDir, roughness, config, randomSeeds.begin());
             filteredData[x + y*size] = color;
         }
     });
@@ -527,6 +738,9 @@ namespace image {
         // mip resolution without any extra filtering. This would work as the GGX filters
         // act as low pass filters.
 
+#if SPECULAR_CONVOLUTION_METHOD == SPECULAR_CONVOLUTION_MONTE_CARLO
+            ConvolutionConfig config( 64U, cubeMap );
+#endif
         // First level is always RAW
 //        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
 //        convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, *texelTable);
@@ -537,8 +751,6 @@ namespace image {
 #if SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_NORMAL
             texelTable.reset(new TexelTable(cubeMap.face(0).width()));
             ConvolutionConfig config{ roughness, *texelTable };
-#elif SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_MONTE_CARLO
-            ConvolutionConfig config{ 300 };
 #endif
             convolveWithSpecularLobe(cubeMap, filteredCubeMap, roughness, config);
             for (auto i = 0; i < 6; i++) {
