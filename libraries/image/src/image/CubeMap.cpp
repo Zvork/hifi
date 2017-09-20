@@ -582,7 +582,7 @@ static glm::vec4 sampleBRDF(const glm::vec2& randomSeed, const nvtt::CubeSurface
     glm::vec3 viewDir = filterDir;
     glm::vec3 halfDir = getGGXImportanceSampledDir(randomSeed, filterDir, roughness, pdfGGX);
     glm::vec3 lightDir = glm::normalize(2.0f * glm::dot(viewDir, halfDir) * halfDir - viewDir);
-    glm::vec4 color(0, 0, 0, 1);
+    glm::vec4 color(0, 0, 0, 0);
     float NdotL = glm::dot(filterDir, lightDir);
 
     if (NdotL > 0.f) {
@@ -595,8 +595,9 @@ static glm::vec4 sampleBRDF(const glm::vec2& randomSeed, const nvtt::CubeSurface
         weight = pdfGGX*pdfGGX*ggxWeight + pdfCubeMap*pdfCubeMap*cubeMapWeight;
         if (weight > 0.0) {
             // The pdfGGX is the GGX NDF
-            color = sample(sourceCubeMap, lightDir) * NdotL * pdfGGX;
-            color *= float(pdfGGX*config.sampleCountForBRDF() / weight);
+            color = sample(sourceCubeMap, lightDir) * pdfGGX * NdotL;
+            color *= float(pdfGGX*ggxWeight / weight);
+            color.a = NdotL;
         }
     }
     return color;
@@ -608,7 +609,7 @@ static glm::vec4 sampleCubeMap(const glm::vec2& randomSeed, const nvtt::CubeSurf
     float pdfCubeMap;
     glm::vec3 viewDir = filterDir;
     glm::vec3 lightDir = config.getCubeMapImportanceSampledDir(randomSeed, pdfCubeMap);
-    glm::vec4 color(0, 0, 0, 1);
+    glm::vec4 color(0, 0, 0, 0);
     float NdotL;
 
     NdotL = glm::dot(filterDir, lightDir);
@@ -623,8 +624,9 @@ static glm::vec4 sampleCubeMap(const glm::vec2& randomSeed, const nvtt::CubeSurf
         weight = pdfGGX*pdfGGX*ggxWeight + pdfCubeMap*pdfCubeMap*cubeMapWeight;
         if (weight > 0.0) {
             // pdfGGX is the GGX NDF
-            color = sample(sourceCubeMap, lightDir) * NdotL * pdfGGX;
-            color *= float(pdfCubeMap*config.sampleCountForEnvironment() / weight);
+            color = sample(sourceCubeMap, lightDir) * pdfGGX * NdotL;
+            color *= float(pdfCubeMap*cubeMapWeight / weight);
+            color.a = NdotL;
         }
     }
     return color;
@@ -632,30 +634,41 @@ static glm::vec4 sampleCubeMap(const glm::vec2& randomSeed, const nvtt::CubeSurf
 
 static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, const glm::vec3& filterDir, const float roughness, const ConvolutionConfig& config,
     std::vector<glm::vec2>::const_iterator randomSeedBegin) {
-    glm::vec4 filteredColor{ 0,0,0,1 };
+    glm::vec4 filteredColor1{ 0,0,0,0 };
+    glm::vec4 filteredColor2{ 0,0,0,0 };
     std::vector<glm::vec2>::const_iterator randomSeedIt;
     glm::vec2 randomSeed;
     uint i;
 
-    // First generate a samples based on the GGX distribution
+    // First generate samples based on the GGX distribution
     randomSeedIt = randomSeedBegin;
-    for (uint i = 0; i < config.sampleCountForBRDF(); i++) {
+    for (i = 0; i < config.sampleCountForBRDF(); i++) {
         randomSeed = *randomSeedIt;
         ++randomSeedIt;
 
-        filteredColor += sampleBRDF(randomSeed, sourceCubeMap, filterDir, roughness, config);
+        filteredColor1 += sampleBRDF(randomSeed, sourceCubeMap, filterDir, roughness, config);
+    }
+    // The alpha channel stores the sum of NdotLs and we divide the result by this
+    // to normalize the total GGX * NdotL PDF to 1.
+    if (filteredColor1.a > 0.f) {
+        filteredColor1 /= filteredColor1.a;
     }
 
     // Then other samples based on the cubemap distribution
     randomSeedIt = randomSeedBegin;
-    for (uint i = 0; i < config.sampleCountForEnvironment(); i++) {
+    for ( i = 0; i < config.sampleCountForEnvironment(); i++) {
         randomSeed = *randomSeedIt;
         ++randomSeedIt;
 
-        filteredColor += sampleCubeMap(randomSeed, sourceCubeMap, filterDir, roughness, config);
+        filteredColor2 += sampleCubeMap(randomSeed, sourceCubeMap, filterDir, roughness, config);
+    }
+    // The alpha channel stores the sum of NdotLs and we divide the result by this
+    // to normalize the total GGX * NdotL PDF to 1.
+    if (filteredColor2.a > 0.f) {
+        filteredColor2 /= filteredColor2.a;
     }
 
-    return filteredColor;
+    return filteredColor1+filteredColor2;
 }
 
 #endif
@@ -758,7 +771,7 @@ namespace image {
         // act as low pass filters.
 
 #if SPECULAR_CONVOLUTION_METHOD == SPECULAR_CONVOLUTION_MONTE_CARLO
-            ConvolutionConfig config( 200U, 100U, cubeMap );
+            ConvolutionConfig config( 200U, 50U, cubeMap );
 #endif
         // First level is always RAW
 //        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
