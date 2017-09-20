@@ -100,16 +100,13 @@ inline float pixel(const nvtt::Surface& image, uint c, int x, int y) {
     return image.channel(c)[x + y*image.width()];
 }
 
-static float bilerp(const nvtt::Surface& image, uint c, int ix0, int iy0, int ix1, int iy1, float fx, float fy) {
-    float f1 = pixel(image, c, ix0, iy0);
-    float f2 = pixel(image, c, ix1, iy0);
-    float f3 = pixel(image, c, ix0, iy1);
-    float f4 = pixel(image, c, ix1, iy1);
-
-    float i1 = glm::mix(f1, f2, fx);
-    float i2 = glm::mix(f3, f4, fx);
-
-    return glm::mix(i1, i2, fy);
+static glm::vec4 gather(const nvtt::Surface& image, uint c, int ix0, int iy0, int ix1, int iy1) {
+    glm::vec4 result;
+    result.x = pixel(image, c, ix0, iy0);
+    result.y = pixel(image, c, ix1, iy0);
+    result.z = pixel(image, c, ix0, iy1);
+    result.w = pixel(image, c, ix1, iy1);
+    return result;
 }
 
 static glm::vec4 sampleLinearClamp(const nvtt::Surface& image, float x, float y) {
@@ -127,15 +124,22 @@ static glm::vec4 sampleLinearClamp(const nvtt::Surface& image, float x, float y)
     const int ix1 = glm::clamp(int(x) + 1, 0, w - 1);
     const int iy1 = glm::clamp(int(y) + 1, 0, h - 1);
 
-    glm::vec4 color;
-    color.r = bilerp(image, 0, ix0, iy0, ix1, iy1, fracX, fracY);
-    color.g = bilerp(image, 1, ix0, iy0, ix1, iy1, fracX, fracY);
-    color.b = bilerp(image, 2, ix0, iy0, ix1, iy1, fracX, fracY);
-    color.a = 1.f;
-    return color;
+    glm::vec4 samplesR = gather(image, 0, ix0, iy0, ix1, iy1);
+    glm::vec4 samplesG = gather(image, 1, ix0, iy0, ix1, iy1);
+    glm::vec4 samplesB = gather(image, 2, ix0, iy0, ix1, iy1);
+
+    glm::vec3 colorX0Y0(samplesR.x, samplesG.x, samplesB.x);
+    glm::vec3 colorX1Y0(samplesR.y, samplesG.y, samplesB.y);
+    glm::vec3 colorX0Y1(samplesR.z, samplesG.z, samplesB.z);
+    glm::vec3 colorX1Y1(samplesR.w, samplesG.w, samplesB.w);
+
+    glm::vec3 i1 = glm::mix(colorX0Y0, colorX1Y0, fracX);
+    glm::vec3 i2 = glm::mix(colorX0Y1, colorX1Y1, fracX);
+
+    return glm::vec4(glm::mix(i1, i2, fracY), 1.f);
 }
 
-static glm::vec4 sample(const nvtt::CubeSurface& cubeMap, glm::vec3 dir) {
+static glm::vec4 sampleCubeMap(const nvtt::CubeSurface& cubeMap, glm::vec3 dir) {
     int f = -1;
     glm::vec3 absDir = glm::abs(dir);
 
@@ -422,7 +426,8 @@ class ConvolutionConfig
 public:
    
     ConvolutionConfig(uint sampleCountBRDF, uint sampleCountEnv, const nvtt::CubeSurface& cubeMap) :
-        _sampleCountBRDF(sampleCountBRDF), _sampleCountEnv(sampleCountEnv) {
+        _sampleCountBRDF(sampleCountBRDF), _sampleCountEnv(sampleCountEnv),
+        _sampleCountBRDFSquared(sampleCountBRDF*sampleCountBRDF), _sampleCountEnvSquared(sampleCountEnv*sampleCountEnv) {
         glm::vec3 dir;
         glm::vec4 color;
         float pdf;
@@ -475,7 +480,7 @@ public:
                 // compute the probability density of each direction. We weight it
                 // by the sine of the elevation because the solid angle of that pixel
                 // becomes smaller with the elevation.
-                color = sample(cubeMap, dir);
+                color = sampleCubeMap(cubeMap, dir);
                 pdf = (color.r + color.g + color.b) * sinElevation;
                 *pdfIterator = pdf;
                 ++pdfIterator;
@@ -530,6 +535,14 @@ public:
         return _sampleCountEnv;
     }
 
+    inline uint sampleCountForBRDFSquared() const {
+        return _sampleCountBRDFSquared;
+    }
+
+    inline uint sampleCountForEnvironmentSquared() const {
+        return _sampleCountEnvSquared;
+    }
+
     glm::vec3 getCubeMapImportanceSampledDir(const glm::vec2& random, float& pdf) const {
         auto rowIndex = (int)floorf(random.y * (_cdfSize.y-1) + 0.5f);
         auto columnIndex = (int)floorf(random.x * (_cdfSize.x-1) + 0.5f);
@@ -570,6 +583,8 @@ private:
 
     uint _sampleCountBRDF;
     uint _sampleCountEnv;
+    uint _sampleCountBRDFSquared;
+    uint _sampleCountEnvSquared;
     UIntVector _inverseCDFX;
     UIntVector _inverseCDFY;
     FloatVector _pdf;
@@ -666,17 +681,15 @@ static glm::vec4 sampleBRDF(const glm::vec4& randomSample, const nvtt::CubeSurfa
     float NdotL = glm::dot(filterDir, lightDir);
 
     if (NdotL > 0.f) {
-        const double ggxWeight = config.sampleCountForBRDF() * config.sampleCountForBRDF();
-        const double cubeMapWeight = config.sampleCountForEnvironment() * config.sampleCountForEnvironment();
         double weight;
 
         pdfCubeMap = config.getProbabilityDensityOfDir(lightDir);
         // Combine the two for multiple importance sampling based on the power heuristic
-        weight = pdfGGX*pdfGGX*ggxWeight + pdfCubeMap*pdfCubeMap*cubeMapWeight;
+        weight = pdfGGX*pdfGGX*config.sampleCountForBRDFSquared() + pdfCubeMap*pdfCubeMap*config.sampleCountForEnvironmentSquared();
         if (weight > 0.0) {
             // The pdfGGX is the GGX NDF
-            color = sample(sourceCubeMap, lightDir) * pdfGGX * NdotL;
-            color *= float(pdfGGX*ggxWeight / weight);
+            color = sampleCubeMap(sourceCubeMap, lightDir) * pdfGGX * NdotL;
+            color *= float(pdfGGX*config.sampleCountForBRDFSquared() / weight);
             color.a = NdotL;
         }
     }
@@ -694,18 +707,16 @@ static glm::vec4 sampleCubeMap(const glm::vec4& randomSample, const nvtt::CubeSu
 
     NdotL = glm::dot(filterDir, lightDir);
     if (NdotL > 0.f) {
-        const double ggxWeight = config.sampleCountForBRDF() * config.sampleCountForBRDF();
-        const double cubeMapWeight = config.sampleCountForEnvironment() * config.sampleCountForEnvironment();
         double weight;
         glm::vec3 halfDir = glm::normalize(lightDir + viewDir);
 
         pdfGGX = evaluateGGX(roughness, glm::dot(halfDir, filterDir));
         // Combine the two for multiple importance sampling based on the power heuristic
-        weight = pdfGGX*pdfGGX*ggxWeight + pdfCubeMap*pdfCubeMap*cubeMapWeight;
+        weight = pdfGGX*pdfGGX*config.sampleCountForBRDFSquared() + pdfCubeMap*pdfCubeMap*config.sampleCountForEnvironmentSquared();
         if (weight > 0.0) {
             // pdfGGX is the GGX NDF
-            color = sample(sourceCubeMap, lightDir) * pdfGGX * NdotL;
-            color *= float(pdfCubeMap*cubeMapWeight / weight);
+            color = sampleCubeMap(sourceCubeMap, lightDir) * pdfGGX * NdotL;
+            color *= float(pdfCubeMap*config.sampleCountForEnvironmentSquared() / weight);
             color.a = NdotL;
         }
     }
