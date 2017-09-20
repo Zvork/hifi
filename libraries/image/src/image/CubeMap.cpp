@@ -13,6 +13,8 @@
 #include <nvtt/nvtt.h>
 #include <TBBHelpers.h>
 
+#include <chrono>
+
 // Necessary for M_PI definition
 #include <qmath.h>
 
@@ -393,10 +395,12 @@ public:
         float pdf;
         float cdfX;
         float cdfY;
-        std::vector<float>::iterator cdfIterator;
-        std::vector<float>::iterator cdfLineBegin;
-        std::vector<float>::iterator cdfLineIterator;
-        std::vector<float>::iterator pdfIterator;
+        FloatVector cdfXArray;
+        FloatVector cdfYArray;
+        FloatVector::iterator cdfIterator;
+        FloatVector::iterator cdfLineBegin;
+        FloatVector::iterator cdfLineIterator;
+        FloatVector::iterator pdfIterator;
         int x, y;
 
         // We create a cumulative distribution function by integrating probability densities in X and Y
@@ -409,11 +413,13 @@ public:
         // Create a lat / long importance map for importance sampling of the cubemap.
         _cdfSize.x = cubeMap.face(0).width() * 6; // We multiply by 6 to slightly oversample the cube map
         _cdfSize.y = _cdfSize.x / 2;
-        _cdfX.resize(_cdfSize.x*_cdfSize.y);
-        _cdfY.resize(_cdfSize.y);
+        cdfXArray.resize(_cdfSize.x*_cdfSize.y);
+        cdfYArray.resize(_cdfSize.y);
+        _inverseCDFX.resize(_cdfSize.x*_cdfSize.y);
+        _inverseCDFY.resize(_cdfSize.y);
         _pdf.resize(_cdfSize.x*_cdfSize.y);
 
-        cdfIterator = _cdfX.begin();
+        cdfIterator = cdfXArray.begin();
         pdfIterator = _pdf.begin();
         cdfY = 0.f;
         for (y = 0; y < _cdfSize.y; y++) {
@@ -456,7 +462,7 @@ public:
 
             // This is the non normalized CDF for this row
             cdfY += cdfX;
-            _cdfY[y] = cdfY;
+            cdfYArray[y] = cdfY;
         }
 
         // Normalize the PDF by dividing by the total sum of all weighted luminances which happens to be the last element
@@ -469,9 +475,17 @@ public:
 
         // Normalize the CDF in the y direction
         if (cdfY > 0) {
-            for (cdfLineIterator = _cdfY.begin(); cdfLineIterator != _cdfY.end(); ++cdfLineIterator) {
+            for (cdfLineIterator = cdfYArray.begin(); cdfLineIterator != cdfYArray.end(); ++cdfLineIterator) {
                 *cdfLineIterator /= cdfY;
             }
+        }
+
+        // Final step: create the invert of both cdf functions for faster lookup.
+        invertCDF(cdfYArray.begin(), cdfYArray.end(), _inverseCDFY.begin(), _inverseCDFY.end());
+        for (y = 0; y < _cdfSize.y; y++) {
+            auto offset = y*_cdfSize.x;
+            cdfLineBegin = cdfXArray.begin() + y*_cdfSize.x;
+            invertCDF(cdfLineBegin, cdfLineBegin + _cdfSize.x, _inverseCDFX.begin() + offset, _inverseCDFX.begin() + offset + _cdfSize.x);
         }
     }
 
@@ -484,14 +498,11 @@ public:
     }
 
     glm::vec3 getCubeMapImportanceSampledDir(const glm::vec2& random, float& pdf) const {
-        // Start by choosing the row index
-        auto rowIt = std::lower_bound(_cdfY.begin(), _cdfY.end(), random.y);
-        assert(rowIt != _cdfY.end());
-        auto rowIndex = std::distance(_cdfY.begin(), rowIt);
-        auto rowOffset = rowIndex * _cdfSize.x;
-        auto columnBegin = _cdfX.begin() + rowOffset;
-        auto columnIt = std::lower_bound(columnBegin, columnBegin + _cdfSize.x, random.x);
-        auto columnIndex = std::distance(columnBegin, columnIt);
+        auto rowIndex = (int)floorf(random.y * (_cdfSize.y-1) + 0.5f);
+        auto columnIndex = (int)floorf(random.x * (_cdfSize.x-1) + 0.5f);
+
+        rowIndex = _inverseCDFY[rowIndex];
+        columnIndex = _inverseCDFX[columnIndex + rowIndex*_cdfSize.x];
 
         const float elevation = (rowIndex * M_PI) / (_cdfSize.y - 1);
         const float sinElevation = sinf(elevation);
@@ -521,17 +532,34 @@ public:
 
 private:
 
+    typedef std::vector<uint>  UIntVector;
+    typedef std::vector<float> FloatVector;
+
     uint _sampleCountBRDF;
     uint _sampleCountEnv;
-    std::vector<float> _cdfX;
-    std::vector<float> _cdfY;
-    std::vector<float> _pdf;
+    UIntVector _inverseCDFX;
+    UIntVector _inverseCDFY;
+    FloatVector _pdf;
     glm::ivec2 _cdfSize;
 
     inline float getProbabilityDensity(int x, int y) const {
         return _pdf[x + y*_cdfSize.x];
     }
 
+    void invertCDF(FloatVector::const_iterator beginCDF, FloatVector::const_iterator endCDF, 
+                   UIntVector::iterator beginInverseCDF, UIntVector::iterator endInverseCDF) {
+        size_t size = std::distance(beginInverseCDF, endInverseCDF);
+        float probability = 0.f;
+        float deltaProbability = 1.f / (size -1);
+
+        for (UIntVector::iterator invertIt = beginInverseCDF; invertIt != endInverseCDF; ++invertIt) {
+            auto cdfIt = std::lower_bound(beginCDF, endCDF, probability);
+            auto index = std::distance(beginCDF, cdfIt);
+            assert(cdfIt != endCDF);
+            *invertIt = index;
+            probability += deltaProbability;
+        }
+    }
 };
 
 // Code taken from https://learnopengl.com/#!PBR/IBL/Specular-IBL
@@ -674,10 +702,10 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
 #endif
 
 static void generateHammersleySequence(std::vector<glm::vec2>& sequence) {
-    int i = 1;
+    uint i = 1;
 
     for(auto& value : sequence) {
-        value = generateHammersley(i++, sequence.size()+1);
+        value = generateHammersley(i++, (uint)sequence.size()+1);
     }
 }
 
@@ -751,6 +779,8 @@ namespace image {
 #if SPECULAR_CONVOLUTION_METHOD==SPECULAR_CONVOLUTION_NORMAL
         std::auto_ptr<TexelTable> texelTable( new TexelTable(size) );
 #endif
+        std::chrono::steady_clock::time_point   start = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point   end;
 
         // First pass: convert cube map to vec4 for faster access
         {
@@ -771,7 +801,7 @@ namespace image {
         // act as low pass filters.
 
 #if SPECULAR_CONVOLUTION_METHOD == SPECULAR_CONVOLUTION_MONTE_CARLO
-            ConvolutionConfig config( 200U, 50U, cubeMap );
+        ConvolutionConfig config( 128U, 64U, cubeMap );
 #endif
         // First level is always RAW
 //        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
@@ -792,5 +822,8 @@ namespace image {
             compressHDRCubeMap(texture, filteredCubeMap, mipLevel++);
             qCInfo(imagelogging) << "Cube map " << QString(srcImageName.c_str()) << " mip level " << (mipLevel - 1) << " has been processed.";
         }
+
+        end = std::chrono::steady_clock::now();
+        qCInfo(imagelogging) << "Cube map " << QString(srcImageName.c_str()) << " processed in " << std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count() << " seconds.";
     }
 }
