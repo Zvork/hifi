@@ -44,6 +44,8 @@ bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 
+static const auto HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
+
 bool needsSparseRectification(const glm::uvec2& size) {
     // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
     if (glm::any(glm::lessThan(size, SPARSE_PAGE_SIZE))) {
@@ -67,6 +69,10 @@ glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
 
 
 namespace image {
+
+enum {
+    QIMAGE_HDR_FORMAT = QImage::Format_RGB30
+};
 
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
     switch (type) {
@@ -207,7 +213,7 @@ void setCubeTexturesCompressionEnabled(bool enabled) {
 }
 
 static float denormalize(float value, const float minValue) {
-    return value < minValue ? 0.f : value;
+    return value < minValue ? 0.0f : value;
 }
 
 uint32 packR11G11B10F(const glm::vec3& color) {
@@ -320,17 +326,18 @@ struct OutputHandler : public nvtt::OutputHandler {
         _data = static_cast<gpu::Byte*>(malloc(size));
         _current = _data;
     }
+
     virtual bool writeData(const void* data, int size) override {
         assert(_current + size <= _data + _size);
         memcpy(_current, data, size);
         _current += size;
         return true;
     }
+
     virtual void endImage() override {
         if (_face >= 0) {
             _texture->assignStoredMipFace(_miplevel, _face, _size, static_cast<const gpu::Byte*>(_data));
-        }
-        else {
+        } else {
             _texture->assignStoredMip(_miplevel, _size, static_cast<const gpu::Byte*>(_data));
         }
         free(_data);
@@ -395,8 +402,6 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
     }
 };
 
-static const auto cubeMapHDRFormat = gpu::Element::COLOR_R11G11B10;
-
 void convertQImageToVec4s(const QImage& image, const gpu::Element format, std::vector<glm::vec4>& vec4s) {
     const int width = image.width(), height = image.height();
     std::vector<glm::vec4>::iterator dataIt;
@@ -417,11 +422,11 @@ void convertQImageToVec4s(const QImage& image, const gpu::Element format, std::v
     vec4s.resize(width*height);
     dataIt = vec4s.begin();
     for (auto lineNb = 0; lineNb < height; lineNb++) {
-        const uint32* srcPixelIt = (const uint32*)image.constScanLine(lineNb);
+        const uint32* srcPixelIt = reinterpret_cast<const uint32*>( image.constScanLine(lineNb) );
         const uint32* srcPixelEnd = srcPixelIt + width;
 
         while (srcPixelIt < srcPixelEnd) {
-            *dataIt = glm::vec4(unpackFunc(*srcPixelIt), 1.f);
+            *dataIt = glm::vec4(unpackFunc(*srcPixelIt), 1.0f);
             ++srcPixelIt;
             ++dataIt;
         }
@@ -456,7 +461,7 @@ void compressHDRMip(gpu::Texture* texture, const nvtt::Surface& surface, int fac
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
-    std::auto_ptr<nvtt::OutputHandler> outputHandler;
+    std::unique_ptr<nvtt::OutputHandler> outputHandler;
     MyErrorHandler errorHandler;
     outputOptions.setErrorHandler(&errorHandler);
     nvtt::Context context;
@@ -487,7 +492,7 @@ void generateHDRMips(gpu::Texture* texture, const QImage& image, int face) {
     nvtt::RoundMode roundMode = nvtt::RoundMode_None;
     nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
 
-    convertQImageToVec4s(image, cubeMapHDRFormat, data);
+    convertQImageToVec4s(image, HDR_FORMAT, data);
 
     nvtt::Surface surface;
     surface.setImage(inputFormat, width, height, 1, &(*data.begin()));
@@ -1114,29 +1119,29 @@ QImage convertToHDRFormat(QImage srcImage, gpu::Element format) {
 #endif
 
     switch (format.getSemantic()) {
-    case gpu::R11G11B10:
-        packFunc = packR11G11B10F;
+        case gpu::R11G11B10:
+            packFunc = packR11G11B10F;
 #ifdef DEBUG_COLOR_PACKING
-        unpackFunc = glm::unpackF2x11_1x10;
+            unpackFunc = glm::unpackF2x11_1x10;
 #endif
-        break;
-    case gpu::RGB9E5:
-        packFunc = glm::packF3x9_E1x5;
+            break;
+        case gpu::RGB9E5:
+            packFunc = glm::packF3x9_E1x5;
 #ifdef DEBUG_COLOR_PACKING
-        unpackFunc = glm::unpackF3x9_E1x5;
+            unpackFunc = glm::unpackF3x9_E1x5;
 #endif
-        break;
-    default:
-        qCWarning(imagelogging) << "Unsupported HDR format";
-        Q_UNREACHABLE();
-        return srcImage;
+            break;
+        default:
+            qCWarning(imagelogging) << "Unsupported HDR format";
+            Q_UNREACHABLE();
+            return srcImage;
     }
 
     srcImage = srcImage.convertToFormat(QImage::Format_ARGB32);
     for (auto y = 0; y < srcImage.height(); y++) {
-        const QRgb* srcLineIt = (const QRgb*) srcImage.constScanLine(y);
+        const QRgb* srcLineIt = reinterpret_cast<const QRgb*>( srcImage.constScanLine(y) );
         const QRgb* srcLineEnd = srcLineIt + srcImage.width();
-        uint32* hdrLineIt = (uint32*) hdrImage.scanLine(y);
+        uint32* hdrLineIt = reinterpret_cast<uint32*>( hdrImage.scanLine(y) );
         glm::vec3 color;
 
         while (srcLineIt < srcLineEnd) {
@@ -1144,7 +1149,7 @@ QImage convertToHDRFormat(QImage srcImage, gpu::Element format) {
             color.g = qGreen(*srcLineIt);
             color.b = qBlue(*srcLineIt);
             // Normalize and apply gamma
-            color /= 255.f;
+            color /= 255.0f;
             color.r = powf(color.r, 2.2f);
             color.g = powf(color.g, 2.2f);
             color.b = powf(color.b, 2.2f);
@@ -1173,12 +1178,12 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             formatMip = gpu::Element::COLOR_COMPRESSED_HDR_RGB;
             formatGPU = gpu::Element::COLOR_COMPRESSED_HDR_RGB;
         } else {
-            formatMip = cubeMapHDRFormat;
-            formatGPU = cubeMapHDRFormat;
+            formatMip = HDR_FORMAT;
+            formatGPU = HDR_FORMAT;
         }
 
         if (image.format() != QIMAGE_HDR_FORMAT) {
-            image = convertToHDRFormat(image, cubeMapHDRFormat);
+            image = convertToHDRFormat(image, HDR_FORMAT);
         }
 
         // Find the layout of the cubemap in the 2D image
@@ -1219,14 +1224,14 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             theTexture->setSource(srcImageName);
             theTexture->setStoredMipFormat(formatMip);
 
-            generateSpecularFilteredMips(theTexture.get(), faces, cubeMapHDRFormat, srcImageName);
+            generateSpecularFilteredMips(theTexture.get(), faces, HDR_FORMAT, srcImageName);
 
             // Generate irradiance while we are at it
             if (generateIrradiance) {
                 PROFILE_RANGE(resource_parse, "generateIrradiance");
-                auto irradianceTexture = gpu::Texture::createCube(cubeMapHDRFormat, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+                auto irradianceTexture = gpu::Texture::createCube(HDR_FORMAT, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
                 irradianceTexture->setSource(srcImageName);
-                irradianceTexture->setStoredMipFormat(cubeMapHDRFormat);
+                irradianceTexture->setStoredMipFormat(HDR_FORMAT);
                 for (uint8 face = 0; face < faces.size(); ++face) {
                     irradianceTexture->assignStoredMipFace(0, face, faces[face].byteCount(), faces[face].constBits());
                 }

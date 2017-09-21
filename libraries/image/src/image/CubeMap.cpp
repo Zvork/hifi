@@ -136,7 +136,7 @@ static glm::vec4 sampleLinearClamp(const nvtt::Surface& image, float x, float y)
     glm::vec3 i1 = glm::mix(colorX0Y0, colorX1Y0, fracX);
     glm::vec3 i2 = glm::mix(colorX0Y1, colorX1Y1, fracX);
 
-    return glm::vec4(glm::mix(i1, i2, fracY), 1.f);
+    return glm::vec4(glm::mix(i1, i2, fracY), 1.0f);
 }
 
 static glm::vec4 sampleCubeMap(const nvtt::CubeSurface& cubeMap, glm::vec3 dir) {
@@ -167,13 +167,13 @@ static glm::vec4 sampleCubeMap(const nvtt::CubeSurface& cubeMap, glm::vec3 dir) 
 }
 
 static float evaluateGGX(float roughness, const float cosAngle) {
-    if (cosAngle > 0.f) {
+    if (cosAngle > 0.0f) {
         float denom;
         roughness *= roughness;
         denom = (roughness - 1)*cosAngle*cosAngle + 1;
         return roughness / (M_PI*denom*denom);
     } else {
-        return 0.f;
+        return 0.0f;
     }
 }
 
@@ -314,8 +314,8 @@ static float solidAngleTerm(uint x, uint y, float inverseEdgeLength) {
 static float findSpecularCosLimitAngle(const float roughness, const float eps) {
     // Do a simple dichotomy search for the moment. We can switch to Newton-Raphson later on or even
     // a closed solution if we can find one...
-    float minCosAngle = 0.f;
-    float maxCosAngle = 1.f;
+    float minCosAngle = 0.0f;
+    float maxCosAngle = 1.0f;
     float midCosAngle;
     float x;
 
@@ -459,14 +459,14 @@ public:
 
         cdfIterator = cdfXArray.begin();
         pdfIterator = _pdf.begin();
-        cdfY = 0.f;
+        cdfY = 0.0f;
         for (y = 0; y < _cdfSize.y; y++) {
             const float elevation = (y * M_PI) / (_cdfSize.y - 1);
             const float sinElevation = sinf(elevation);
             const float cosElevation = cosf(elevation);
 
             cdfLineBegin = cdfIterator;
-            cdfX = 0.f;
+            cdfX = 0.0f;
             for (x = 0; x < _cdfSize.x; x++) {
                 const float azimuth = (x * 2 * M_PI) / _cdfSize.x;
                 const float sinAzimuth = sinf(azimuth);
@@ -492,7 +492,7 @@ public:
             }
 
             // Normalize the CDF in the x direction
-            if (cdfX > 0.f) {
+            if (cdfX > 0.0f) {
                 for (cdfLineIterator = cdfLineBegin; cdfLineIterator != cdfIterator; ++cdfLineIterator) {
                     *cdfLineIterator /= cdfX;
                 }
@@ -570,7 +570,7 @@ public:
     float getProbabilityDensityOfDir(const glm::vec3& dir) const {
         int y = std::min<int>(acosf(dir.y) * (_cdfSize.y - 1) / M_PI, _cdfSize.y - 1);
         float azimuth = atan2f(dir.x, dir.z) + M_PI;
-        assert(azimuth >= 0.f && azimuth <= 2 * M_PI);
+        assert(azimuth >= 0.0f && azimuth <= 2 * M_PI);
         int x = int(azimuth * _cdfSize.x / (2*M_PI)) % _cdfSize.x;
         assert(y >= 0);
         return getProbabilityDensity(x, y);
@@ -680,7 +680,7 @@ static glm::vec4 sampleBRDF(const glm::vec4& randomSample, const nvtt::CubeSurfa
     glm::vec4 color(0, 0, 0, 0);
     float NdotL = glm::dot(filterDir, lightDir);
 
-    if (NdotL > 0.f) {
+    if (NdotL > 0.0f) {
         double weight;
 
         pdfCubeMap = config.getProbabilityDensityOfDir(lightDir);
@@ -706,7 +706,7 @@ static glm::vec4 sampleCubeMap(const glm::vec4& randomSample, const nvtt::CubeSu
     float NdotL;
 
     NdotL = glm::dot(filterDir, lightDir);
-    if (NdotL > 0.f) {
+    if (NdotL > 0.0f) {
         double weight;
         glm::vec3 halfDir = glm::normalize(lightDir + viewDir);
 
@@ -735,7 +735,7 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
     }
     // The alpha channel stores the sum of NdotLs and we divide the result by this
     // to normalize the total GGX * NdotL PDF to 1.
-    if (filteredColor1.a > 0.f) {
+    if (filteredColor1.a > 0.0f) {
         filteredColor1 /= filteredColor1.a;
     }
 
@@ -745,7 +745,7 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
     }
     // The alpha channel stores the sum of NdotLs and we divide the result by this
     // to normalize the total GGX * NdotL PDF to 1.
-    if (filteredColor2.a > 0.f) {
+    if (filteredColor2.a > 0.0f) {
         filteredColor2 /= filteredColor2.a;
     }
 
@@ -807,7 +807,7 @@ static float computeGGXRoughnessFromMipLevel(const int size, int mipLevel, float
     float mipCount = ceilf(log2f(size));
 
     alpha = glm::clamp(mipCount - mipLevel - bias, 26 / 15.f, 13.f);
-    alpha = glm::clamp(2.f / alpha - 2.f / 13.f, 0.f, 1.f);
+    alpha = glm::clamp(2.f / alpha - 2.f / 13.f, 0.0f, 1.0f);
     return alpha*alpha;
 }
 
