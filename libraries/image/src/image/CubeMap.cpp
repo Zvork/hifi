@@ -460,10 +460,23 @@ public:
         cdfIterator = cdfXArray.begin();
         pdfIterator = _pdf.begin();
         cdfY = 0.0f;
+
+        const float sinHalfDeltaElevation = (float)sin(M_PI_2 / (_cdfSize.y - 1));
+        const float cosHalfDeltaElevation = (float)cos(M_PI_2 / (_cdfSize.y - 1));
+        const float deltaAzimuth = (float)(2 * M_PI / _cdfSize.x);
+
         for (y = 0; y < _cdfSize.y; y++) {
             const float elevation = (y * M_PI) / (_cdfSize.y - 1);
             const float sinElevation = sinf(elevation);
             const float cosElevation = cosf(elevation);
+            float solidAngle;
+
+            if (y > 0 && y < (_cdfSize.y - 1)) {
+                solidAngle = 2 * sinElevation*sinHalfDeltaElevation;
+            } else {
+                solidAngle = cosHalfDeltaElevation - 1.f;
+            }
+            solidAngle *= deltaAzimuth;
 
             cdfLineBegin = cdfIterator;
             cdfX = 0.0f;
@@ -478,10 +491,10 @@ public:
 
                 // Start by sampling the cubeMap's weighted luminance values to
                 // compute the probability density of each direction. We weight it
-                // by the sine of the elevation because the solid angle of that pixel
-                // becomes smaller with the elevation.
+                // by the solid angle of that pixel which becomes smaller with the elevation.
                 color = sampleCubeMap(cubeMap, dir);
-                pdf = (color.r + color.g + color.b) * sinElevation;
+                pdf = (color.r + color.g + color.b) * solidAngle;
+                
                 *pdfIterator = pdf;
                 ++pdfIterator;
 
