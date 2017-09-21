@@ -540,19 +540,19 @@ public:
         }
     }
 
-    inline uint sampleCountForBRDF() const {
+    inline uint getSampleCountForBRDF() const {
         return _sampleCountBRDF;
     }
 
-    inline uint sampleCountForEnvironment() const {
+    inline uint getSampleCountForEnvironment() const {
         return _sampleCountEnv;
     }
 
-    inline uint sampleCountForBRDFSquared() const {
+    inline uint getSampleCountForBRDFSquared() const {
         return _sampleCountBRDFSquared;
     }
 
-    inline uint sampleCountForEnvironmentSquared() const {
+    inline uint getSampleCountForEnvironmentSquared() const {
         return _sampleCountEnvSquared;
     }
 
@@ -627,21 +627,29 @@ class SampleSource
 {
 public:
 
-    SampleSource(const ConvolutionConfig& config, float roughness, int count) {
-        _BRDFValues.resize(count);
-        _EnvValues.resize(count);
+    SampleSource(const ConvolutionConfig& config, float roughness) {
+        glm::vec3 dir;
+        float pdf;
 
-        for (auto i = 0; i < count; i++) {
-            glm::vec2 random = generateHammersley(i + 1, count + 1);
-            glm::vec3 dir;
-            float pdf;
+        if (config.getSampleCountForBRDF()) {
+            _BRDFValues.resize(config.getSampleCountForBRDF());
+            for (auto i = 0; i < config.getSampleCountForBRDF(); i++) {
+                glm::vec2 random = generateHammersley(i + 1, config.getSampleCountForBRDF() + 1);
 
-            dir = getGGXImportanceSampledHalfDir(random, roughness, pdf);
-            _BRDFValues[i] = glm::vec4(dir, pdf);
-
-            dir = config.getCubeMapImportanceSampledDir(random, pdf);
-            _EnvValues[i] = glm::vec4(dir, pdf);
+                dir = getGGXImportanceSampledHalfDir(random, roughness, pdf);
+                _BRDFValues[i] = glm::vec4(dir, pdf);
+            }
         }
+        if (config.getSampleCountForEnvironment()) {
+            _EnvValues.resize(config.getSampleCountForEnvironment());
+            for (auto i = 0; i < config.getSampleCountForEnvironment(); i++) {
+                glm::vec2 random = generateHammersley(i + 1, config.getSampleCountForEnvironment() + 1);
+
+                dir = config.getCubeMapImportanceSampledDir(random, pdf);
+                _EnvValues[i] = glm::vec4(dir, pdf);
+            }
+        }
+
         _nextBRDFValue = _BRDFValues.begin();
         _nextEnvValue = _EnvValues.begin();
     }
@@ -696,13 +704,18 @@ static glm::vec4 sampleBRDF(const glm::vec4& randomSample, const nvtt::CubeSurfa
     if (NdotL > 0.0f) {
         double weight;
 
-        pdfCubeMap = config.getProbabilityDensityOfDir(lightDir);
         // Combine the two for multiple importance sampling based on the power heuristic
-        weight = pdfGGX*pdfGGX*config.sampleCountForBRDFSquared() + pdfCubeMap*pdfCubeMap*config.sampleCountForEnvironmentSquared();
+        weight = pdfGGX*pdfGGX*config.getSampleCountForBRDFSquared();
+        if (config.getSampleCountForEnvironment()) {
+            pdfCubeMap = config.getProbabilityDensityOfDir(lightDir);
+            // Combine the two for multiple importance sampling based on the power heuristic
+            weight += pdfCubeMap*pdfCubeMap*config.getSampleCountForEnvironmentSquared();
+        }
+
         if (weight > 0.0) {
             // The pdfGGX is the GGX NDF
             color = sampleCubeMap(sourceCubeMap, lightDir) * pdfGGX * NdotL;
-            color *= float(pdfGGX*config.sampleCountForBRDFSquared() / weight);
+            color *= float(pdfGGX*config.getSampleCountForBRDFSquared() / weight);
             color.a = NdotL;
         }
     }
@@ -725,11 +738,11 @@ static glm::vec4 sampleCubeMap(const glm::vec4& randomSample, const nvtt::CubeSu
 
         pdfGGX = evaluateGGX(roughness, glm::dot(halfDir, filterDir));
         // Combine the two for multiple importance sampling based on the power heuristic
-        weight = pdfGGX*pdfGGX*config.sampleCountForBRDFSquared() + pdfCubeMap*pdfCubeMap*config.sampleCountForEnvironmentSquared();
+        weight = pdfGGX*pdfGGX*config.getSampleCountForBRDFSquared() + pdfCubeMap*pdfCubeMap*config.getSampleCountForEnvironmentSquared();
         if (weight > 0.0) {
             // pdfGGX is the GGX NDF
             color = sampleCubeMap(sourceCubeMap, lightDir) * pdfGGX * NdotL;
-            color *= float(pdfCubeMap*config.sampleCountForEnvironmentSquared() / weight);
+            color *= float(pdfCubeMap*config.getSampleCountForEnvironmentSquared() / weight);
             color.a = NdotL;
         }
     }
@@ -743,7 +756,7 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
     uint i;
 
     // First generate samples based on the GGX distribution
-    for (i = 0; i < config.sampleCountForBRDF(); i++) {
+    for (i = 0; i < config.getSampleCountForBRDF(); i++) {
         filteredColor1 += sampleBRDF(samples.getBRDF(), sourceCubeMap, filterDir, roughness, config);
     }
     // The alpha channel stores the sum of NdotLs and we divide the result by this
@@ -753,7 +766,7 @@ static glm::vec4 applySpecularFilter(const nvtt::CubeSurface& sourceCubeMap, con
     }
 
     // Then other samples based on the cubemap distribution
-    for ( i = 0; i < config.sampleCountForEnvironment(); i++) {
+    for ( i = 0; i < config.getSampleCountForEnvironment(); i++) {
         filteredColor2 += sampleCubeMap(samples.getEnvironment(), sourceCubeMap, filterDir, roughness, config);
     }
     // The alpha channel stores the sum of NdotLs and we divide the result by this
@@ -778,7 +791,7 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
 #if 0
     // Sequential version for debugging
     std::vector<glm::vec4>::iterator filteredDataIt = filteredData.begin();
-    SampleSource samples(config, roughness, std::max(config.sampleCountForBRDF(), config.sampleCountForEnvironment()));
+    SampleSource samples(config, roughness);
 
     for (uint y = 0; y < size; y++) {
         for (uint x = 0; x < size; x++) {
@@ -792,7 +805,7 @@ static void convolveWithSpecularLobe(const nvtt::CubeSurface& sourceCubeMap, nvt
 #else
     // Parallel version for performance
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size*size), [&](const tbb::blocked_range<size_t>& range) {
-        SampleSource samples(config, roughness, std::max(config.sampleCountForBRDF(), config.sampleCountForEnvironment()));
+        SampleSource samples(config, roughness);
 
         for (size_t i = range.begin(); i != range.end(); i++) {
             int x = int(i % size);
@@ -858,7 +871,9 @@ namespace image {
         // act as low pass filters.
 
 #if SPECULAR_CONVOLUTION_METHOD == SPECULAR_CONVOLUTION_MONTE_CARLO
-        ConvolutionConfig config( 150U, 75U, cubeMap );
+        // No samples for the environment because for the moment we have a bug with the environment
+        // importance map.
+        ConvolutionConfig config( 150U, 0U, cubeMap );
 #endif
         // First level is always RAW
 //        roughness = computeGGXRoughnessFromMipLevel(size, mipLevel, bias);
