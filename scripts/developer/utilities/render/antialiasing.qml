@@ -103,6 +103,13 @@ Rectangle {
             Separator {}          
             HifiControls.CheckBox {
                 boxSize: 20
+                text: "Anti-Flickering"
+                checked: Render.getConfig("RenderMainView.Antialiasing")["antiFlickering"]
+                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["antiFlickering"] = checked }
+            }
+            Separator {}          
+            HifiControls.CheckBox {
+                boxSize: 20
                 text: "Feedback history color"
                 checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
                 onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }

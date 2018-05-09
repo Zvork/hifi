@@ -92,6 +92,7 @@ class AntialiasingConfig : public render::Job::Config {
 
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
     Q_PROPERTY(bool feedbackColor MEMBER feedbackColor NOTIFY dirty)
+    Q_PROPERTY(bool antiFlickering MEMBER antiFlickering NOTIFY dirty)
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
@@ -109,9 +110,10 @@ public:
     float blend{ 0.25f };
     float sharpen{ 0.05f };
 
-    bool constrainColor{ true };
     float covarianceGamma{ 0.65f };
+    bool constrainColor{ true };
     bool feedbackColor{ false };
+    bool antiFlickering{ true };
 
     float debugX{ 0.0f };
     float debugFXAAX{ 1.0f };
@@ -147,7 +149,10 @@ struct TAAParams {
     bool isFeedbackColor() const { return (bool)GET_BIT(flags.y, 4); }
 
     void setDebug(bool enabled) { SET_BIT(flags.x, 0, enabled); }
-    bool isDebug() const { return (bool) GET_BIT(flags.x, 0); }
+    bool isDebug() const { return (bool)GET_BIT(flags.x, 0); }
+
+    void setAntiFlickeringEnabled(bool enabled) { SET_BIT(flags.x, 2, enabled); }
+    bool isAntiFlickeringEnabled() const { return (bool)GET_BIT(flags.x, 2); }
 
     void setShowDebugCursor(bool enabled) { SET_BIT(flags.x, 1, enabled); }
     bool showDebugCursor() const { return (bool)GET_BIT(flags.x, 1); }

@@ -46,6 +46,10 @@ bool taa_showDebugCursor() {
     return GET_BIT(params.flags.x, 1);
 }
 
+bool taa_isAntiFlickeringEnabled() {
+    return GET_BIT(params.flags.x, 2);
+}
+
 bool taa_showClosestFragment() {
     return GET_BIT(params.flags.x, 3);
 }
@@ -410,13 +414,22 @@ vec3 taa_clampColor(vec3 colorMin, vec3 colorMax, vec3 colorSource, vec3 color) 
 		return q;// point inside aabb		
 }
 
-vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec3 candidateColor) {
+vec4 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec3 candidateColor) {
     mat3 colorMinMaxAvg;
 
     colorMinMaxAvg = taa_evalNeighbourColorVariance(sourceColor, sourceUV, sourceVel);
-     
-	// clamp history to neighbourhood of current sample
-    return taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], sourceColor, candidateColor);
+    
+    float blendAdjust = 1.0;
+    if (taa_isAntiFlickeringEnabled()) {
+        // Anti-flickering, based on Brian Karis talk @Siggraph 2014
+        // https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+        // Reduce blend factor when history is near clamping
+        float distToClamp = min(abs(colorMinMaxAvg[0].x - candidateColor.x), abs(colorMinMaxAvg[1].x - candidateColor.x));
+        blendAdjust = distToClamp / (distToClamp + colorMinMaxAvg[1].x - colorMinMaxAvg[0].x);
+    }
+
+    candidateColor = taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], sourceColor, candidateColor);
+    return vec4(candidateColor, blendAdjust);
 }
 
 vec3 taa_evalFeedbackColor(vec3 sourceColor, vec3 historyColor, float blendFactor) {
