@@ -46,9 +46,6 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    float roughness = getMaterialRoughness(mat);
-    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
-
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
     vec3 fresnel = getFresnelF0(metallic, albedo);
@@ -58,6 +55,9 @@ void main(void) {
 
     vec3 fragPosition = _positionES.xyz;
     vec3 fragNormal = normalize(_normalWS);
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(fragNormal, roughnessTex, roughness, matKey, roughness)$>;
 
     TransformCamera cam = getTransformCamera();
 

@@ -58,7 +58,7 @@ class JitterSample {
 public:
 
     enum {
-        SEQUENCE_LENGTH = 64 
+        SEQUENCE_LENGTH = 16 
     };
 
     using Config = JitterSampleConfig;
@@ -97,7 +97,9 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
     Q_PROPERTY(float debugFXAAX MEMBER debugFXAAX NOTIFY dirty)
-    Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
+    
+
+        Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
     Q_PROPERTY(float debugOrbZoom MEMBER debugOrbZoom NOTIFY dirty)
@@ -110,7 +112,7 @@ public:
     float blend{ 0.25f };
     float sharpen{ 0.05f };
 
-    float covarianceGamma{ 0.65f };
+    float covarianceGamma{ 0.75f };
     bool constrainColor{ true };
     bool feedbackColor{ false };
     bool antiFlickering{ true };

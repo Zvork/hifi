@@ -273,9 +273,25 @@ vec3 fetchLightmapMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func evalMaterialRoughness(fetchedRoughness, materialRoughness, matKey, roughness)@>
+<@func evalMaterialRoughness(normal, fetchedRoughness, materialRoughness, matKey, roughness)@>
 {
     <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? <$fetchedRoughness$> : <$materialRoughness$>);
+#if 1
+	{
+	// Isotropic normal distribution function filtering as proposed by Yusuke Tokuyoshi. This is used to limit aliasing of
+	// specular points.
+	// http://jp.square-enix.com/tech/library/pdf/Error%20Reduction%20and%20Simplification%20for%20Shading%20Anti-Aliasing.pdf
+	vec3 deltaU = dFdx(<$normal$>);
+	vec3 deltaV = dFdy(<$normal$>);
+	// Magic constants
+	float VARIANCE_SCALE = 0.3;
+	float KERNEL_ROUGHNESS_THRESHOLD = 1.0;
+
+	float variance = VARIANCE_SCALE * (dot(deltaU, deltaU) + dot(deltaV, deltaV));
+	float kernelSquaredRoughness = min(2.0 * variance, KERNEL_ROUGHNESS_THRESHOLD);
+	<$roughness$> = sqrt(clamp(<$roughness$> * <$roughness$> + kernelSquaredRoughness, 0.0, 1.0));
+	}
+#endif
 }
 <@endfunc@>
 

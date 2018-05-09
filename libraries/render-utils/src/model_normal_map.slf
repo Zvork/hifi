@@ -40,14 +40,14 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    float roughness = getMaterialRoughness(mat);
-    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
-
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 fragNormalWS;
     <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(fragNormalWS, roughnessTex, roughness, matKey, roughness)$>;
 
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
