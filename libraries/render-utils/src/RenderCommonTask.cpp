@@ -44,9 +44,10 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
-    const auto& inItems = inputs.get0();
-    const auto& lightingModel = inputs.get1();
-	const auto jitter = inputs.get2();
+    const auto& frameTransform = inputs.get0();
+    const auto& inItems = inputs.get1();
+    const auto& lightingModel = inputs.get2();
+	const auto jitter = inputs.get3();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
@@ -81,6 +82,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+            //batch.setUniformBuffer(render::ShapePipeline::Slot::FRAME_TRANSFORM, frameTransform->getFrameTransformBuffer());
 
             renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;

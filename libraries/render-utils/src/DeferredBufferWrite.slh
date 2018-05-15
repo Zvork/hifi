@@ -13,6 +13,8 @@
 
 <@include DeferredBuffer.slh@>
 
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
 
 layout(location = 0) out vec4 _fragColor0;
 layout(location = 1) out vec4 _fragColor1;
@@ -26,9 +28,24 @@ float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
     return mix(alpha, 1.0 - alpha, step(mapAlpha, alphaThreshold));
 }
 
+vec2 packVelocity(vec3 positionWS) {
+    ivec2 pixelPos;
+    vec2 texcoordPos;
+    ivec4 stereoSide;
+    ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
+
+    vec3 prevEyePos = (getPreviousView() * vec4(positionWS, 1.0)).xyz;
+    vec4 prevClipPos = (getUnjitteredProjection(stereoSide.x) * vec4(prevEyePos, 1.0));
+    vec2 prevUV =  0.5 * (prevClipPos.xy / prevClipPos.w) + vec2(0.5);
+
+    vec2 deltaUV = texcoordPos - prevUV;
+
+    return clamp(deltaUV*0.5/FRAG_PACK_VELOCITY_SCALE+vec2(0.5), vec2(0), vec2(1));
+}
+
 <@include DefaultMaterials.slh@>
 
-void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 emissive, float occlusion, float scattering) {
+void packDeferredFragment(vec3 positionWS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 emissive, float occlusion, float scattering) {
     if (alpha != 1.0) {
         discard;
     }
@@ -39,7 +56,7 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness
     _fragColor3 = vec4(emissive, 1.0);
 }
 
-void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 fresnel, vec3 lightmap) {
+void packDeferredFragmentLightmap(vec3 positionWS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 fresnel, vec3 lightmap) {
     if (alpha != 1.0) {
         discard;
     }
@@ -51,7 +68,7 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float r
     _fragColor3 = vec4(lightmap * albedo, 1.0);
 }
 
-void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
+void packDeferredFragmentUnlit(vec3 positionWS, vec3 normal, float alpha, vec3 color) {
     if (alpha != 1.0) {
         discard;
     }

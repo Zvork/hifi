@@ -2262,6 +2262,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             gpu::Shader::BindingSet slotBindings;
             slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
+            slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), render::ShapePipeline::Slot::BUFFER::FRAME_TRANSFORM));
             slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
             slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT));
@@ -2282,6 +2283,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             gpu::Shader::BindingSet slotBindings;
             slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
+            slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), render::ShapePipeline::Slot::BUFFER::FRAME_TRANSFORM));
             slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
             slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT));

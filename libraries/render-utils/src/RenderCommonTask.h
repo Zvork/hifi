@@ -12,6 +12,7 @@
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
+#include "DeferredFrameTransform.h"
 
 class BeginGPURangeTimer {
 public:
@@ -60,7 +61,7 @@ protected:
 
 class DrawOverlay3D {
 public:
-    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, render::ItemBounds, LightingModelPointer, glm::vec2>;
 
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;

@@ -24,6 +24,7 @@ out vec4 _color;
 out vec2 _texCoord0;
 out vec4 _positionMS;
 out vec4 _positionES;
+out vec4 _positionWS;
 
 void main(void) {
     _color = color_sRGBAToLinear(inColor);
@@ -36,4 +37,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
 }

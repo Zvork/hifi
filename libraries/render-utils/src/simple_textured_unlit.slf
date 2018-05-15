@@ -22,6 +22,7 @@ uniform sampler2D originalTexture;
 in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
+in vec4 _positionWS;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
@@ -41,6 +42,7 @@ void main(void) {
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(
+            _positionWS.xyz,
             normalize(_normalWS),
             1.0,
             _color.rgb * texel.rgb);

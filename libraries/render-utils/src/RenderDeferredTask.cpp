@@ -116,7 +116,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Render opaque objects in DeferredBuffer
-    const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel, jitter).asVarying();
+    const auto opaqueInputs = DrawStateSortDeferred::Inputs(deferredFrameTransform, opaques, lightingModel, jitter).asVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
@@ -178,7 +178,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel, lightClusters, jitter).asVarying();
+    const auto transparentsInputs = DrawDeferred::Inputs(deferredFrameTransform, transparents, lightingModel, lightClusters, jitter).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // Light Cluster Grid Debuging job
@@ -205,8 +205,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
     const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
 
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, jitter).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, jitter).asVarying();
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontOpaque, lightingModel, jitter).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontTransparent, lightingModel, jitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
 
@@ -291,8 +291,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlaysHUDTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(1);
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
 
-    const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(overlaysHUDOpaque, lightingModel, nullJitter).asVarying();
-    const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(overlaysHUDTransparent, lightingModel, nullJitter).asVarying();
+    const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysHUDOpaque, lightingModel, nullJitter).asVarying();
+    const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysHUDTransparent, lightingModel, nullJitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayHUDOpaque", overlayHUDOpaquesInputs, true);
     task.addJob<DrawOverlay3D>("DrawOverlayHUDTransparent", overlayHUDTransparentsInputs, false);
 
@@ -313,10 +313,11 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
-    const auto& inItems = inputs.get0();
-    const auto& lightingModel = inputs.get1();
-    const auto& lightClusters = inputs.get2();
-    const auto jitter = inputs.get3();
+    const auto& frameTransform = inputs.get0();
+    const auto& inItems = inputs.get1();
+    const auto& lightingModel = inputs.get2();
+    const auto& lightClusters = inputs.get3();
+    const auto jitter = inputs.get4();
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
     RenderArgs* args = renderContext->args;
@@ -339,6 +340,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        //batch.setUniformBuffer(render::ShapePipeline::Slot::FRAME_TRANSFORM, frameTransform->getFrameTransformBuffer());
 
         deferredLightingEffect->setupLocalLightsBatch(batch, 
                                                       render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
@@ -384,9 +386,10 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
-    const auto& inItems = inputs.get0();
-    const auto& lightingModel = inputs.get1();
-    const auto jitter = inputs.get2();
+    const auto& frameTransform = inputs.get0();
+    const auto& inItems = inputs.get1();
+    const auto& lightingModel = inputs.get2();
+    const auto jitter = inputs.get3();
 
     RenderArgs* args = renderContext->args;
 
@@ -408,6 +411,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        //batch.setUniformBuffer(render::ShapePipeline::Slot::FRAME_TRANSFORM, frameTransform->getFrameTransformBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;

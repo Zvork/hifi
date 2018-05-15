@@ -21,6 +21,7 @@
 <$declareMaterialTexMapArrayBuffer()$>
 
 out vec4 _positionES;
+out vec4 _positionWS;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
 out vec3 _normalWS;
@@ -40,4 +41,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
 }
