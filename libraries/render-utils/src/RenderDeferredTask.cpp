@@ -34,7 +34,6 @@
 #include "DeferredFramebuffer.h"
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
-#include "VelocityBufferPass.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
@@ -145,11 +144,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
-    // Velocity
-    const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
-    const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
-    const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
-
     // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
@@ -215,7 +209,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // AA job before bloom to limit flickering
-    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, lightingFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
@@ -256,7 +250,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, deferredFrameTransform));
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,

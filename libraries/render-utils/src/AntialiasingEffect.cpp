@@ -313,9 +313,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     RenderArgs* args = renderContext->args;
 
     auto& deferredFrameTransform = inputs.get0();
-    auto& sourceBuffer = inputs.get1();
-    auto& linearDepthBuffer = inputs.get2();
-    auto& velocityBuffer = inputs.get3();
+    const auto& deferredFrameBuffer = inputs.get1();
+    const auto& sourceBuffer = deferredFrameBuffer->getLightingFramebuffer();
+    const auto& linearDepthBuffer = inputs.get2();
+    const auto& velocityTexture = deferredFrameBuffer->getDeferredVelocityTexture();
     
     int width = sourceBuffer->getWidth();
     int height = sourceBuffer->getHeight();
@@ -349,7 +350,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         getAntialiasingPipeline();
         batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_HistoryMapSlot, _antialiasingBuffers, 0);
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
-        batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
+        batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityTexture);
         // This is only used during debug
         batch.setResourceTexture(AntialiasingPass_DepthMapSlot, linearDepthBuffer->getLinearDepthTexture());
 

@@ -16,8 +16,8 @@
 
 #include "render/DrawTask.h"
 #include "DeferredFrameTransform.h"
-#include "VelocityBufferPass.h"
-
+#include "DeferredFrameBuffer.h"
+#include "SurfaceGeometryPass.h"
 
 class JitterSampleConfig : public render::Job::Config {
     Q_OBJECT
@@ -165,7 +165,7 @@ using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 
 class Antialiasing {
 public:
-    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, VelocityFramebufferPointer > ;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer> ;
     using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
 

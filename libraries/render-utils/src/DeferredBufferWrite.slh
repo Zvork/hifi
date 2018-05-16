@@ -12,12 +12,14 @@
 <@def DEFERRED_BUFFER_WRITE_SLH@>
 
 <@include DeferredBuffer.slh@>
+<@include DeferredBufferWrite_shared.slh@>
 
-layout(location = 0) out vec4 _fragColor0;
-layout(location = 1) out vec4 _fragColor1;
-layout(location = 2) out vec4 _fragColor2;
+layout(location = DEFERRED_COLOR_SLOT) out vec4 _fragColor0;
+layout(location = DEFERRED_NORMAL_SLOT) out vec4 _fragColor1;
+layout(location = DEFERRED_SPECULAR_SLOT) out vec4 _fragColor2;
+layout(location = DEFERRED_VELOCITY_SLOT) out vec4 _fragColor3;
 
-layout(location = 3) out vec4 _fragColor3;
+layout(location = DEFERRED_LIGHTING_SLOT) out vec4 _lighting;
 
 // the alpha threshold
 const float alphaThreshold = 0.5;
@@ -40,7 +42,7 @@ vec2 packVelocity(vec3 positionWS) {
 
     vec2 deltaUV = texcoordPos - prevUV;
 
-    return clamp(deltaUV*0.5/FRAG_PACK_VELOCITY_SCALE+vec2(0.5), vec2(0), vec2(1));
+    return deltaUV;
 }
 
 <@include DefaultMaterials.slh@>
@@ -51,9 +53,10 @@ void packDeferredFragment(vec3 positionWS, vec3 normal, float alpha, vec3 albedo
     }
     _fragColor0 = vec4(albedo, ((scattering > 0.0) ? packScatteringMetallic(metallic) : packShadedMetallic(metallic)));
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
-    _fragColor2 = vec4(scattering, packVelocity(positionWS), occlusion);
+    _fragColor2 = vec4(((scattering > 0.0) ? vec3(scattering) : emissive), occlusion);
+    _fragColor3 = vec4(packVelocity(positionWS), 0.0, 0.0);
     
-    _fragColor3 = vec4(emissive, 1.0);
+    _lighting = vec4(emissive, 1.0);
 }
 
 void packDeferredFragmentLightmap(vec3 positionWS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 fresnel, vec3 lightmap) {
@@ -63,9 +66,10 @@ void packDeferredFragmentLightmap(vec3 positionWS, vec3 normal, float alpha, vec
 
     _fragColor0 = vec4(albedo, packLightmappedMetallic(metallic));
     _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
-    _fragColor2 = vec4(0.0, packVelocity(positionWS), 1.0);
+    _fragColor2 = vec4(lightmap, 1.0);
+    _fragColor3 = vec4(packVelocity(positionWS), 0.0, 0.0);
 
-    _fragColor3 = vec4(lightmap * albedo, 1.0);
+    _lighting = vec4(lightmap * albedo, 1.0);
 }
 
 void packDeferredFragmentUnlit(vec3 positionWS, vec3 normal, float alpha, vec3 color) {
@@ -74,8 +78,8 @@ void packDeferredFragmentUnlit(vec3 positionWS, vec3 normal, float alpha, vec3 c
     }
     _fragColor0 = vec4(color, packUnlit());
     _fragColor1 = vec4(packNormal(normal), 1.0);
-    _fragColor2 = vec4(0.0, packVelocity(positionWS), 1.0);
-    _fragColor3 = vec4(color, 1.0);
+    _fragColor3 = vec4(packVelocity(positionWS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3 fresnel, float roughness) {

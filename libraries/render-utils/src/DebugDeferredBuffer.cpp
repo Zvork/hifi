@@ -449,8 +449,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& linearDepthTarget = inputs.get1();
     auto& surfaceGeometryFramebuffer = inputs.get2();
     auto& ambientOcclusionFramebuffer = inputs.get3();
-    auto& velocityFramebuffer = inputs.get4();
-    auto& frameTransform = inputs.get5();
+    auto& frameTransform = inputs.get4();
 
     gpu::doInBatch("DebugDeferredBuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -478,9 +477,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Specular, deferredFramebuffer->getDeferredSpecularTexture());
             batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
             batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
-        }
-        if (velocityFramebuffer) {
-            batch.setResourceTexture(Velocity, velocityFramebuffer->getVelocityTexture());
+            batch.setResourceTexture(Velocity, deferredFramebuffer->getDeferredVelocityTexture());
         }
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();

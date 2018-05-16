@@ -27,6 +27,7 @@ public:
     gpu::TexturePointer getDeferredColorTexture();
     gpu::TexturePointer getDeferredNormalTexture();
     gpu::TexturePointer getDeferredSpecularTexture();
+    gpu::TexturePointer getDeferredVelocityTexture();
 
     gpu::FramebufferPointer getLightingFramebuffer();
     gpu::TexturePointer getLightingTexture();
@@ -47,6 +48,7 @@ protected:
     gpu::TexturePointer _deferredColorTexture;
     gpu::TexturePointer _deferredNormalTexture;
     gpu::TexturePointer _deferredSpecularTexture;
+    gpu::TexturePointer _deferredVelocityTexture;
 
     gpu::TexturePointer _lightingTexture;
     gpu::FramebufferPointer _lightingFramebuffer;

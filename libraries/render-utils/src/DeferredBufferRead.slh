@@ -162,21 +162,6 @@ DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform
     return frag;
 }
 
-
-<@func declareUnpackDeferredFragmentVelocity(vec2 texcoord)@>
-
-vec2 unpackVelocity(vec2 packedVel) {
-    return (packedVel-vec2(0.5))*FRAG_PACK_VELOCITY_SCALE*2.0;
-}
-
-vec2 unpackDeferredFragmentVelocity(vec2 texcoord) {
-    vec2 packed = texture(specularMap, texcoord).gb;
-    return unpackVelocity(packed);
-}
-
-<@endfunc@>
-
-
 <@func declareDeferredCurvature()@>
 
 // the curvature texture
