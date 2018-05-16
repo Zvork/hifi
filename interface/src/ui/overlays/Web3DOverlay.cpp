@@ -335,7 +335,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     batch.setModelTransform(renderTransform);
 
     // Turn off jitter for these entities
-    batch.pushProjectionJitter();
+    batch.pushProjectionJitterEnabled(false);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
@@ -345,7 +345,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
     vec2 halfSize = vec2(size.x, size.y) / 2.0f;
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
-    batch.popProjectionJitter(); // Restore jitter
+    batch.popProjectionJitterEnabled(); // Restore jitter
     batch.setResourceTexture(0, nullptr); // restore default white color after me
 
 }
