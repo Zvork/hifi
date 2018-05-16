@@ -235,6 +235,8 @@ public:
             MATERIAL,
             TEXMAPARRAY,
             LIGHTING_MODEL,
+            CAMERA_CORRECTION,
+            FRAME_TRANSFORM,
             KEY_LIGHT,
             LIGHT,
             LIGHT_AMBIENT_BUFFER,
@@ -243,7 +245,6 @@ public:
             LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
             LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
             LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            FRAME_TRANSFORM,
 
         };
 

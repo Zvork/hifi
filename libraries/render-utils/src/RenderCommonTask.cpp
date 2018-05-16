@@ -82,7 +82,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
-            //batch.setUniformBuffer(render::ShapePipeline::Slot::FRAME_TRANSFORM, frameTransform->getFrameTransformBuffer());
+            batch.setUniformBuffer(render::ShapePipeline::Slot::FRAME_TRANSFORM, frameTransform->getFrameTransformBuffer());
 
             renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;
