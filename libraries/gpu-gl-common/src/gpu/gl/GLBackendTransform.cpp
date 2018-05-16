@@ -29,8 +29,7 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
 }
 
 void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
-	_transform._projectionJitter.x = batch._params[paramOffset]._float;
-	_transform._projectionJitter.y = batch._params[paramOffset+1]._float;
+	_transform._isProjectionJitterEnabled = batch._params[paramOffset]._int != 0;
 	_transform._invalidProj = true;
 }
 
@@ -123,8 +122,10 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
-		Vec2 finalJitter = _projectionJitter / Vec2(framebufferSize);
+		Vec2 finalJitter = Vec2(float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
+
+        finalJitter *= _projectionJitterOffsets[_currentProjectionJitterIndex];
 
         if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER

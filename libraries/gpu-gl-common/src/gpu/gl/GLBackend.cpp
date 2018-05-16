@@ -25,8 +25,12 @@
 #include "GLTexture.h"
 #include "GLShader.h"
 
+#include "RandomAndNoise.h"
+
 using namespace gpu;
 using namespace gpu::gl;
+
+#define GPU_JITTER_SEQUENCE_LENGTH	16
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -100,6 +104,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_popProfileRange),
 };
 
+std::vector<Vec2> GLBackend::_projectionJitterOffsets;
+
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
@@ -124,6 +130,11 @@ void GLBackend::init() {
         GLVariableAllocationSupport::TransferJob::startBufferingThread();
 #endif
 
+        _projectionJitterOffsets.reserve(GPU_JITTER_SEQUENCE_LENGTH);
+        // Fill in with jitter samples
+        for (int i = 0; i < GPU_JITTER_SEQUENCE_LENGTH; i++) {
+            _projectionJitterOffsets.emplace_back( glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f) );
+        }
     });
 }
 
@@ -173,7 +184,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 					if (_output._framebuffer) {
 						outputSize.x = _output._framebuffer->getWidth();
 						outputSize.y = _output._framebuffer->getHeight();
-					} else if (glm::dot(_transform._projectionJitter, _transform._projectionJitter)>0.0f) {
+					} else if (_transform._isProjectionJitterEnabled) {
 						qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
 					}
 
@@ -269,7 +280,7 @@ void GLBackend::render(const Batch& batch) {
         _stereo._enable = false;
     }
 	// Reset jitter
-	_transform._projectionJitter = Vec2(0.0f, 0.0f);
+	_transform._isProjectionJitterEnabled = false;
     
     {
         PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
@@ -742,7 +753,8 @@ void GLBackend::updatePresentFrame(const Mat4& correction, const Mat4& prevRende
     _transform._presentFrame.prevViewInverse = (reset ? Mat4() : invPrevView);
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
-    _transform._presentFrame.jitterIndex++;
     _pipeline._presentFrameBuffer._buffer->setSubData(0, _transform._presentFrame);
     _pipeline._presentFrameBuffer._buffer->flush();
+
+    _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % GPU_JITTER_SEQUENCE_LENGTH;
 }

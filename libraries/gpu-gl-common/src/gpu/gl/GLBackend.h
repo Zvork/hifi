@@ -330,8 +330,9 @@ protected:
         mat4 correctionInverse;
         mat4 prevView;
         mat4 prevViewInverse;
-        ivec4 jitterIndex;
     };
+
+    static std::vector<Vec2> _projectionJitterOffsets;
 
     struct TransformStageState {
 #ifdef GPU_STEREO_CAMERA_BUFFER
@@ -365,11 +366,11 @@ protected:
         PresentFrame _presentFrame;
         bool _viewCorrectionEnabled{ true };
 
-
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };
-        Vec2 _projectionJitter{ 0.0f, 0.0f };
+        int _currentProjectionJitterIndex{ 0 };
+        bool _isProjectionJitterEnabled{ false };
         bool _invalidView { false };
         bool _invalidProj { false };
         bool _invalidViewport { false };

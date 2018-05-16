@@ -174,7 +174,7 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
-        batch.setProjectionJitter(jitter.x, jitter.y);
+        batch.setProjectionJitterEnabled(true);
         batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 

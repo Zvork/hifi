@@ -1,15 +1,11 @@
 // glsl / C++ compatible source as interface for DeferredFrameTransform layout
 #ifdef __cplusplus
 #   define DFT_VEC4 glm::vec4
-#   define DFT_VEC2 glm::vec2
 #   define DFT_MAT4 glm::mat4
 #else
 #   define DFT_VEC4 vec4
-#   define DFT_VEC2 vec2
 #   define DFT_MAT4 mat4
 #endif
-
-#define JITTER_SEQUENCE_LENGTH	16
 
 struct _DeferredFrameTransform {
     // Pixel info is { viewport width height}
@@ -33,10 +29,6 @@ struct _DeferredFrameTransform {
 	DFT_MAT4 projectionUnjittered[2];
 	// Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
 	DFT_MAT4 invProjectionUnjittered[2];
-	// Jitter intensity
-	DFT_VEC2 jitterIntensity;
-	// Jitter samples
-	DFT_VEC2 jitterSamples[JITTER_SEQUENCE_LENGTH];
 };
 
     // <@if 1@>

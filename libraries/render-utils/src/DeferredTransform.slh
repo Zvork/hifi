@@ -19,8 +19,6 @@ struct PresentFrame {
     
     mat4 _prevView;
     mat4 _prevViewInverse;
-
-    ivec4 _jitterIndex;
 };
  
 uniform presentFrameBuffer {

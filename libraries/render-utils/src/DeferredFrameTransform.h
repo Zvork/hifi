@@ -37,7 +37,7 @@ protected:
 #include "DeferredTransform_shared.slh"
     class FrameTransform : public _DeferredFrameTransform {
     public:
-        FrameTransform() { stereoInfo = glm::vec4(0.0f); jitterIntensity = glm::vec2(0.0f); }
+        FrameTransform() { stereoInfo = glm::vec4(0.0f); }
     };
 
     UniformBufferView _frameTransformBuffer;

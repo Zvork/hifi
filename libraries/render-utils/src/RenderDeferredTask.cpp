@@ -329,7 +329,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
-        batch.setProjectionJitter(jitter.x, jitter.y);
+        batch.setProjectionJitterEnabled(true);
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
@@ -400,7 +400,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
-        batch.setProjectionJitter(jitter.x, jitter.y);
+        batch.setProjectionJitterEnabled(true);
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;

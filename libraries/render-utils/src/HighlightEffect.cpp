@@ -184,7 +184,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionTransform(projMat);
-            batch.setProjectionJitter(jitter.x, jitter.y);
+            batch.setProjectionJitterEnabled(true);
             batch.setViewTransform(viewMat);
 
             std::vector<ShapeKey> skinnedShapeKeys{};
@@ -371,7 +371,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
             args->getViewFrustum().evalProjectionMatrix(projMat);
             args->getViewFrustum().evalViewTransform(viewMat);
             batch.setProjectionTransform(projMat);
-            batch.setProjectionJitter(jitter.x, jitter.y);
+            batch.setProjectionJitterEnabled(true);
             batch.setViewTransform(viewMat, true);
             batch.setModelTransform(Transform());
 

@@ -247,10 +247,10 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
 
     // Turn off jitter for these entities
-    batch.pushProjectionJitter();
+    batch.pushProjectionJitterEnabled(false);
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
-    batch.popProjectionJitter();
+    batch.popProjectionJitterEnabled();
 }
 
 bool WebEntityRenderer::hasWebSurface() {
