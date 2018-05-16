@@ -13,8 +13,15 @@
 #include "gpu/Context.h"
 #include "render/Engine.h"
 
+#include "RandomAndNoise.h"
+
 DeferredFrameTransform::DeferredFrameTransform() {
     FrameTransform frameTransform;
+    // Fill in with jitter samples
+    for (int i = 0; i < JITTER_SEQUENCE_LENGTH; i++) {
+        frameTransform.jitterSamples[i] = glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i));
+        frameTransform.jitterSamples[i] -= vec2(0.5f);
+    }
     _frameTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(FrameTransform), (const gpu::Byte*) &frameTransform));
 }
 

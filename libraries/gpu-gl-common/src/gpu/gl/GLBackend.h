@@ -330,7 +330,7 @@ protected:
         mat4 correctionInverse;
         mat4 prevView;
         mat4 prevViewInverse;
-        ivec4 frameIndex;
+        ivec4 jitterIndex;
     };
 
     struct TransformStageState {

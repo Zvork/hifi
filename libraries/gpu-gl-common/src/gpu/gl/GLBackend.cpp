@@ -742,7 +742,7 @@ void GLBackend::updatePresentFrame(const Mat4& correction, const Mat4& prevRende
     _transform._presentFrame.prevViewInverse = (reset ? Mat4() : invPrevView);
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
-    _transform._presentFrame.frameIndex++;
+    _transform._presentFrame.jitterIndex++;
     _pipeline._presentFrameBuffer._buffer->setSubData(0, _transform._presentFrame);
     _pipeline._presentFrameBuffer._buffer->flush();
 }
