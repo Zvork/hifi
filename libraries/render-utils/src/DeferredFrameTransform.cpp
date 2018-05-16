@@ -50,7 +50,7 @@ void DeferredFrameTransform::update(RenderArgs* args, glm::vec2 jitter) {
         frameTransformBuffer.invProjectionUnjittered[0] = glm::inverse(frameTransformBuffer.projectionUnjittered[0]);
 
         frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
-        frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.invPixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
 
 		frameTransformBuffer.projection[0] = frameTransformBuffer.projectionUnjittered[0];
 		frameTransformBuffer.projection[0][2][0] += jitter.x;
@@ -78,7 +78,7 @@ void DeferredFrameTransform::update(RenderArgs* args, glm::vec2 jitter) {
 		}
 
         frameTransformBuffer.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
-        frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.invPixelInfo = glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
     }
 }
 
