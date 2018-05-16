@@ -79,7 +79,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), Slot::BUFFER::FRAME_TRANSFORM));
-        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), Slot::BUFFER::CAMERA_CORRECTION));
+        slotBindings.insert(gpu::Shader::Binding(std::string("presentFrameBuffer"), Slot::BUFFER::PRESENT_FRAME));
         slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
         slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));

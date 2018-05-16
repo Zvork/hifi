@@ -235,7 +235,7 @@ public:
             MATERIAL,
             TEXMAPARRAY,
             LIGHTING_MODEL,
-            CAMERA_CORRECTION,
+            PRESENT_FRAME,
             FRAME_TRANSFORM,
             KEY_LIGHT,
             LIGHT,

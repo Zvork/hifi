@@ -51,7 +51,7 @@ GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
     // Special case for view correction matrices, any pipeline that declares the correction buffer
     // uniform will automatically have it provided without any client code necessary.
     // Required for stable lighting in the HMD.
-    object->_cameraCorrection = shader->getUniformBuffers().findLocation("cameraCorrectionBuffer");
+    object->_presentFrame = shader->getUniformBuffers().findLocation("presentFrameBuffer");
     object->_program = programObject;
     object->_state = stateObject;
 

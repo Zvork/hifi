@@ -361,7 +361,7 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 
-    getGLBackend()->setCameraCorrection(mat4(), mat4(), true);
+    getGLBackend()->updatePresentFrame(mat4(), mat4(), true);
 
     for (auto& cursorValue : _cursorsData) {
         auto& cursorData = cursorValue.second;
@@ -697,7 +697,7 @@ void OpenGLDisplayPlugin::present() {
 
     if (_currentFrame) {
         auto correction = getViewCorrection();
-        getGLBackend()->setCameraCorrection(correction, _prevRenderView);
+        getGLBackend()->updatePresentFrame(correction, _prevRenderView);
         _prevRenderView = correction * _currentFrame->view;
         {
             withPresentThreadLock([&] {

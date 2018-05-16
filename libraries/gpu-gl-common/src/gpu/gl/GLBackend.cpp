@@ -128,7 +128,7 @@ void GLBackend::init() {
 }
 
 GLBackend::GLBackend() {
-    _pipeline._cameraCorrectionBuffer._buffer->flush();
+    _pipeline._presentFrameBuffer._buffer->flush();
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
 }
 
@@ -735,13 +735,14 @@ void GLBackend::recycle() const {
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
-void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset) {
+void GLBackend::updatePresentFrame(const Mat4& correction, const Mat4& prevRenderView, bool reset) {
     auto invCorrection = glm::inverse(correction);
     auto invPrevView = glm::inverse(prevRenderView);
-    _transform._correction.prevView = (reset ? Mat4() : prevRenderView);
-    _transform._correction.prevViewInverse = (reset ? Mat4() : invPrevView);
-    _transform._correction.correction = correction;
-    _transform._correction.correctionInverse = invCorrection;
-    _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
-    _pipeline._cameraCorrectionBuffer._buffer->flush();
+    _transform._presentFrame.prevView = (reset ? Mat4() : prevRenderView);
+    _transform._presentFrame.prevViewInverse = (reset ? Mat4() : invPrevView);
+    _transform._presentFrame.correction = correction;
+    _transform._presentFrame.correctionInverse = invCorrection;
+    _transform._presentFrame.frameIndex++;
+    _pipeline._presentFrameBuffer._buffer->setSubData(0, _transform._presentFrame);
+    _pipeline._presentFrameBuffer._buffer->flush();
 }

@@ -58,7 +58,7 @@ enum TextureSlot {
 };
 
 enum ParamSlot {
-    CameraCorrection = 0,
+    PresentFrame = 0,
     DeferredFrameTransform,
     ShadowTransform
 };
@@ -393,7 +393,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         const auto program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("cameraCorrectionBuffer", CameraCorrection));
+        slotBindings.insert(gpu::Shader::Binding("presentFrameBuffer", PresentFrame));
         slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", DeferredFrameTransform));
         slotBindings.insert(gpu::Shader::Binding("shadowTransformBuffer", ShadowTransform));
 

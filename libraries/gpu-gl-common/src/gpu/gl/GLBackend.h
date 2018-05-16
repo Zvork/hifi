@@ -71,7 +71,7 @@ public:
 
     virtual ~GLBackend();
 
-    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false);
+    void updatePresentFrame(const Mat4& correction = Mat4(), const Mat4& prevRenderView = Mat4(), bool reset = false);
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -325,11 +325,12 @@ protected:
     // between the time when a was recorded and the time(s) when it is 
     // executed
     // Prev is the previous correction used at previous frame
-    struct CameraCorrection {
+    struct PresentFrame {
         mat4 correction;
         mat4 correctionInverse;
         mat4 prevView;
         mat4 prevViewInverse;
+        ivec4 frameIndex;
     };
 
     struct TransformStageState {
@@ -361,7 +362,7 @@ protected:
         bool _viewIsCamera{ false };
         bool _skybox { false };
         Transform _view;
-        CameraCorrection _correction;
+        PresentFrame _presentFrame;
         bool _viewCorrectionEnabled{ true };
 
 
@@ -431,12 +432,12 @@ protected:
         PipelinePointer _pipeline;
 
         GLuint _program { 0 };
-        GLint _cameraCorrectionLocation { -1 };
+        GLint _presentFrameLocation { -1 };
         GLShader* _programShader { nullptr };
         bool _invalidProgram { false };
 
-        BufferView _cameraCorrectionBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
-        BufferView _cameraCorrectionBufferIdentity { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
+        BufferView _presentFrameBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(PresentFrame), nullptr )) };
+        BufferView _presentFrameBufferIdentity { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(PresentFrame), nullptr )) };
 
         State::Data _stateCache{ State::DEFAULT };
         State::Signature _stateSignatureCache { 0 };
@@ -445,9 +446,9 @@ protected:
         bool _invalidState { false };
 
         PipelineStageState() {
-            _cameraCorrectionBuffer.edit<CameraCorrection>() = CameraCorrection();
-            _cameraCorrectionBufferIdentity.edit<CameraCorrection>() = CameraCorrection();
-            _cameraCorrectionBufferIdentity._buffer->flush();
+            _presentFrameBuffer.edit<PresentFrame>() = PresentFrame();
+            _presentFrameBufferIdentity.edit<PresentFrame>() = PresentFrame();
+            _presentFrameBufferIdentity._buffer->flush();
         }
     } _pipeline;
 

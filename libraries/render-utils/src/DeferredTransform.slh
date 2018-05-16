@@ -13,16 +13,18 @@
 
 <@func declareDeferredFrameTransform()@>
 
-struct CameraCorrection {
+struct PresentFrame {
     mat4 _correction;
     mat4 _correctionInverse;
     
     mat4 _prevView;
     mat4 _prevViewInverse;
+
+    ivec4 _frameIndex;
 };
  
-uniform cameraCorrectionBuffer {
-    CameraCorrection cameraCorrection;
+uniform presentFrameBuffer {
+    PresentFrame presentFrame;
 };
 
 struct DeferredFrameTransform {
@@ -84,19 +86,19 @@ float getPosLinearDepthFar() {
 }
 
 mat4 getViewInverse() {
-    return frameTransform._viewInverse * cameraCorrection._correctionInverse;
+    return frameTransform._viewInverse * presentFrame._correctionInverse;
 }
 
 mat4 getView() {
-    return cameraCorrection._correction * frameTransform._view;
+    return presentFrame._correction * frameTransform._view;
 }
 
 mat4 getPreviousView() {
-    return cameraCorrection._prevView;
+    return presentFrame._prevView;
 }
 
 mat4 getPreviousViewInverse() {
-    return cameraCorrection._prevViewInverse;
+    return presentFrame._prevViewInverse;
 }
 
 DeferredFrameTransform getDeferredFrameTransform() {

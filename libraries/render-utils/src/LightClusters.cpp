@@ -38,7 +38,7 @@ enum LightClusterGridShader_MapSlot {
 
 enum LightClusterGridShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
-    CAMERA_CORRECTION_BUFFER_SLOT = 1,
+    PRESENT_FRAME_BUFFER_SLOT = 1,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
     LIGHT_INDEX_GPU_SLOT = 7,
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT = 8,
@@ -644,7 +644,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
 
-        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("presentFrameBuffer"), PRESENT_FRAME_BUFFER_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
 
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -676,7 +676,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterContentPipeline() {
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
 
-        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("presentFrameBuffer"), PRESENT_FRAME_BUFFER_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
 
         gpu::Shader::makeProgram(*program, slotBindings);
