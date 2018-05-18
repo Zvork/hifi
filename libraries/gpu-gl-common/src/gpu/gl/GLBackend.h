@@ -356,6 +356,7 @@ protected:
 
         struct ViewProjectionState {
             Transform _view;
+            Transform _correctedView;
             Mat4 _projection;
             bool _viewIsCamera;
         };

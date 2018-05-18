@@ -101,16 +101,16 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._view, finalJitter), _camera.getEyeCamera(1, stereo, _viewProjectionState._view, finalJitter)));
+        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, finalJitter), _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, finalJitter)));
 #else
-        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._view, finalJitter)));
-        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._view, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, finalJitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._view, finalJitter)));
+        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._correctedView, finalJitter)));
 #else
-        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._view, finalJitter)));
+        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._correctedView, finalJitter)));
 #endif
     }
 }
@@ -129,15 +129,15 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         // Apply the correction
         if (_viewProjectionState._viewIsCamera && (_viewCorrectionEnabled && _presentFrame.correction != glm::mat4())) {
             // FIXME should I switch to using the camera correction buffer in Transform.slf and leave this out?
-            Transform result;
-            _viewProjectionState._view.mult(result, _viewProjectionState._view, _presentFrame.correctionInverse);
+            _viewProjectionState._view.mult(_viewProjectionState._correctedView, _viewProjectionState._view, _presentFrame.correctionInverse);
             if (_skybox) {
-                result.setTranslation(vec3());
+                _viewProjectionState._correctedView.setTranslation(vec3());
             }
-            _viewProjectionState._view = result;
+        } else {
+            _viewProjectionState._correctedView = _viewProjectionState._view;
         }
         // This is when the _view matrix gets assigned
-        _viewProjectionState._view.getInverseMatrix(_camera._view);
+        _viewProjectionState._correctedView.getInverseMatrix(_camera._view);
     }
 
     if (_invalidView || _invalidProj || _invalidViewport) {
