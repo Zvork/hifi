@@ -62,7 +62,7 @@ public:
     };
 
     using Config = JitterSampleConfig;
-	using Output = glm::vec2;
+    using Output = glm::vec2;
     using JobModel = render::Job::ModelO<JitterSample, Output, Config>;
 
     void configure(const Config& config);
@@ -96,10 +96,8 @@ class AntialiasingConfig : public render::Job::Config {
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
-    Q_PROPERTY(float debugFXAAX MEMBER debugFXAAX NOTIFY dirty)
-    
-
-        Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
+    Q_PROPERTY(bool fxaaOnOff READ debugFXAA WRITE setDebugFXAA NOTIFY dirty)
+    Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
     Q_PROPERTY(float debugOrbZoom MEMBER debugOrbZoom NOTIFY dirty)
@@ -108,6 +106,10 @@ class AntialiasingConfig : public render::Job::Config {
 
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
+
+    void setDebugFXAA(bool debug) { debugFXAAX = (debug ? 0.0f : 1.0f); emit dirty();}
+    bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
+
 
     float blend{ 0.25f };
     float sharpen{ 0.05f };
