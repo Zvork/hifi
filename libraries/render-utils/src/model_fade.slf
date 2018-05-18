@@ -27,6 +27,7 @@ in vec2 _texCoord1;
 in vec3 _normalWS;
 in vec3 _color;
 in vec4 _positionWS;
+in vec4 _prevPositionES;
 
 void main(void) {
     vec3 fadeEmissive;
@@ -60,13 +61,13 @@ void main(void) {
     float scattering = getMaterialScattering(mat);
 
     packDeferredFragment(
-        _positionWS.xyz,
+        _prevPositionES.xyz,
         normalize(_normalWS), 
         opacity,
         albedo,
         roughness,
         metallic,
-        emissive+fadeEmissive,
+        emissive + fadeEmissive,
         occlusionTex,
         scattering);
 }

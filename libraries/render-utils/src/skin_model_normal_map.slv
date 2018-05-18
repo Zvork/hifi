@@ -24,7 +24,7 @@
 <$declareMaterialTexMapArrayBuffer()$>
 
 out vec4 _positionES;
-out vec4 _positionWS;
+out vec4 _prevPositionES;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
 out vec3 _normalWS;
@@ -53,10 +53,9 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, position, _positionES, gl_Position)$>
+    <$transformModelToEyePreviousEyeAndClipPos(cam, obj, position, _positionES, _prevPositionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
     <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
-    <$transformModelToWorldPos(obj, position, _positionWS)$>
 
     _normalWS = interpolatedNormal.xyz;
     _tangentWS = interpolatedTangent.xyz;

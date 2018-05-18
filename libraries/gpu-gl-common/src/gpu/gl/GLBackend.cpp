@@ -182,18 +182,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_drawIndexedInstanced:
                 case Batch::COMMAND_multiDrawIndirect:
                 case Batch::COMMAND_multiDrawIndexedIndirect:
-				{
-					Vec2u outputSize{ 1,1 };
-
-					if (_output._framebuffer) {
-						outputSize.x = _output._framebuffer->getWidth();
-						outputSize.y = _output._framebuffer->getHeight();
-					} else if (_transform._isProjectionJitterEnabled) {
-						qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
-					}
-
-					_transform.preUpdate(_commandIndex, _stereo, outputSize);
-				}
+                    preUpdateTransform();
                     break;
 
                 case Batch::COMMAND_disableContextStereo:
@@ -204,6 +193,8 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                     _stereo._contextDisable = false;
                     break;
 
+                case Batch::COMMAND_saveViewProjectionTransform:
+                    preUpdateTransform();
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
 				case Batch::COMMAND_setProjectionTransform:
@@ -246,6 +237,8 @@ void GLBackend::renderPassDraw(const Batch& batch) {
             case Batch::COMMAND_setModelTransform:
             case Batch::COMMAND_setViewTransform:
             case Batch::COMMAND_setProjectionTransform:
+            case Batch::COMMAND_saveViewProjectionTransform:
+            case Batch::COMMAND_setSavedViewProjectionTransform:
                 break;
 
             case Batch::COMMAND_draw:
@@ -751,15 +744,15 @@ void GLBackend::recycle() const {
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
-void GLBackend::updatePresentFrame(const Mat4& correction, const Mat4& prevRenderView, bool reset) {
+void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     auto invCorrection = glm::inverse(correction);
-    auto invPrevView = glm::inverse(prevRenderView);
-    _transform._presentFrame.prevView = (reset ? Mat4() : prevRenderView);
-    _transform._presentFrame.prevViewInverse = (reset ? Mat4() : invPrevView);
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
-    _pipeline._presentFrameBuffer._buffer->setSubData(0, _transform._presentFrame);
-    _pipeline._presentFrameBuffer._buffer->flush();
 
     _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % GPU_JITTER_SEQUENCE_LENGTH;
+
+    // Update previous views of saved transforms
+    for (auto& viewProjState : _transform._savedTransforms) {
+        viewProjState._previousCorrectedView = viewProjState._correctedView;
+    }
 }

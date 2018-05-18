@@ -19,6 +19,8 @@ void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
     _transform._viewProjectionState._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    // View history is only supported with saved transforms
+    _transform._viewProjectionState._previousCorrectedView = _transform._viewProjectionState._view;
     _transform._viewProjectionState._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
 }
@@ -101,18 +103,33 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, finalJitter), _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, finalJitter)));
+        cameras.push_back(CameraBufferElement(
+            _camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter),
+            _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
 #else
-        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, finalJitter)));
-        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._correctedView, finalJitter)));
+        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
 #else
-        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._correctedView, finalJitter)));
+        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
 #endif
     }
+}
+
+void GLBackend::preUpdateTransform() {
+    Vec2u outputSize{ 1,1 };
+
+    if (_output._framebuffer) {
+        outputSize.x = _output._framebuffer->getWidth();
+        outputSize.y = _output._framebuffer->getHeight();
+    } else if (_transform._isProjectionJitterEnabled) {
+        qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
+    }
+
+    _transform.preUpdate(_commandIndex, _stereo, outputSize);
 }
 
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize) {

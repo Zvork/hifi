@@ -204,14 +204,16 @@ double Context::getFrameTimerBatchAverage() const {
     return 0.0;
 }
 
-const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
+const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& view, const Transform& previousView) const {
     _projectionInverse = glm::inverse(_projection);
 
     // Get the viewEyeToWorld matrix form the transformView as passed to the gpu::Batch
     // this is the "_viewInverse" fed to the shader
     // Genetrate the "_view" matrix as well from the xform
-    xformView.getMatrix(_viewInverse);
+    view.getMatrix(_viewInverse);
     _view = glm::inverse(_viewInverse);
+    previousView.getMatrix(_previousViewInverse);
+    _previousView = glm::inverse(_previousViewInverse);
 
     Mat4 viewUntranslated = _view;
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -222,11 +224,14 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     return *this;
 }
 
-Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, const Transform& xformView, Vec2 normalizedJitter) const {
+Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, 
+                                                                const Transform& view, const Transform& previousView, Vec2 normalizedJitter) const {
     TransformCamera result = *this;
-    Transform offsetTransform = xformView;
+    Transform eyeView = view;
+    Transform eyePreviousView = previousView;
     if (!_stereo._skybox) {
-        offsetTransform.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
+        eyeView.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
+        eyePreviousView.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
     } else {
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
@@ -234,18 +239,18 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
     normalizedJitter.x *= 2.0f;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    result.recomputeDerived(offsetTransform);
+    result.recomputeDerived(eyeView, eyePreviousView);
 
     result._stereoInfo = Vec4(1.0f, (float)eye, 0.0f, 0.0f);
 
     return result;
 }
 
-Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& xformView, Vec2 normalizedJitter) const {
+Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& view, const Transform& previousView, Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    result.recomputeDerived(xformView);
+    result.recomputeDerived(view, previousView);
     return result;
 }
 

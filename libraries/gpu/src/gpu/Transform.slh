@@ -187,6 +187,28 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformModelToPreviousEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, eyeWorldAlignedPos)@>
+    <!// Bring the model pos in the world aligned space centered on the eye axis !>
+    { // _transformModelToEyeWorldAlignedPos
+        highp mat4 _mv = <$objectTransform$>._model;
+        _mv[3].xyz -= <$cameraTransform$>._previousViewInverse[3].xyz;
+        highp vec4 _eyeWApos = (_mv * <$modelPos$>);
+        <$eyeWorldAlignedPos$> = _eyeWApos;
+    }
+<@endfunc@>
+
+<@func transformModelToEyeAndPreviousEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, eyeWAPos, prevEyeWAPos)@>
+    <!// Bring the model pos in the world aligned space centered on the eye axis !>
+    { // transformModelToEyeAndPreviousEyeWorldAlignedPos
+        highp mat4 _mv = <$objectTransform$>._model;
+        highp mat4 _pmv = <$objectTransform$>._model;
+        _mv[3].xyz -= <$cameraTransform$>._viewInverse[3].xyz;
+        _pmv[3].xyz -= <$cameraTransform$>._previousViewInverse[3].xyz;
+        <$eyeWAPos$> = (_mv * <$modelPos$>);
+        <$prevEyeWAPos$> = (_pmv * <$modelPos$>);
+    }
+<@endfunc@>
+
 <@func transformModelToMonoClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
     { // transformModelToMonoClipPos
         vec4 eyeWAPos;
@@ -213,11 +235,54 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformModelToEyePreviousEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, prevEyePos, clipPos)@>
+    { // transformModelToEyeAndClipPos
+        vec4 eyeWAPos;
+        vec4 prevEyeWAPos;
+        <$transformModelToEyeAndPreviousEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        <$prevEyePos$> = vec4((<$cameraTransform$>._previousView * vec4(prevEyeWAPos.xyz, 0.0)).xyz, 1.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
+    }
+<@endfunc@>
+
+<@func transformModelToPreviousEyeAndClipPos(cameraTransform, objectTransform, modelPos, prevEyePos, clipPos)@>
+    { // transformModelToEyeAndClipPos
+        vec4 eyeWAPos;
+        vec4 prevEyeWAPos;
+        <$transformModelToEyeAndPreviousEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
+        <$prevEyePos$> = vec4((<$cameraTransform$>._previousView * vec4(prevEyeWAPos.xyz, 0.0)).xyz, 1.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
+    }
+<@endfunc@>
+
 <@func transformModelToEyePos(cameraTransform, objectTransform, modelPos, eyePos)@>
     { // transformModelToEyePos
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
         <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+    }
+<@endfunc@>
+
+<@func transformModelToPreviousEyePos(cameraTransform, objectTransform, modelPos, eyePos)@>
+    { // transformModelToPreviousEyePos
+        vec4 eyeWAPos;
+        <$transformModelToPreviousEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+    }
+<@endfunc@>
+
+<@func transformModelToEyeAndPreviousEyePos(cameraTransform, objectTransform, modelPos, eyePos, prevEyePos)@>
+    { // transformModelToEyeAndPreviousEyePos
+        vec4 eyeWAPos;
+        vec4 prevEyeWAPos;
+        <$transformModelToEyeAndPreviousEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        <$prevEyePos$> = vec4((<$cameraTransform$>._previousView * vec4(prevEyeWAPos.xyz, 0.0)).xyz, 1.0);
     }
 <@endfunc@>
 

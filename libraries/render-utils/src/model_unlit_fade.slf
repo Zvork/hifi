@@ -27,6 +27,7 @@ in vec3 _normalWS;
 in vec3 _color;
 in float _alpha;
 in vec4 _positionWS;
+in vec4 _prevPositionES;
 
 void main(void) {
     vec3 fadeEmissive;
@@ -48,7 +49,7 @@ void main(void) {
     albedo *= _color;
     albedo += fadeEmissive;
     packDeferredFragmentUnlit(
-        _positionWS.xyz,
+        _prevPositionES.xyz,
         normalize(_normalWS), 
         opacity,
         albedo * isUnlitEnabled());

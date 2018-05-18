@@ -12,6 +12,8 @@
 struct _TransformCamera {
     TC_MUTABLE TC_MAT4 _view;
     TC_MUTABLE TC_MAT4 _viewInverse;
+    TC_MUTABLE TC_MAT4 _previousView;
+    TC_MUTABLE TC_MAT4 _previousViewInverse;
     TC_MUTABLE TC_MAT4 _projectionViewUntranslated;
     TC_MAT4 _projection;
     TC_MUTABLE TC_MAT4 _projectionInverse;

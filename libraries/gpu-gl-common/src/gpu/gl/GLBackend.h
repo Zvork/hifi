@@ -72,7 +72,7 @@ public:
     virtual ~GLBackend();
 
 
-    void updatePresentFrame(const Mat4& correction = Mat4(), const Mat4& prevRenderView = Mat4(), bool reset = false);
+    void updatePresentFrame(const Mat4& correction = Mat4(), bool reset = false);
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -357,6 +357,7 @@ protected:
         struct ViewProjectionState {
             Transform _view;
             Transform _correctedView;
+            Transform _previousCorrectedView;
             Mat4 _projection;
             bool _viewIsCamera;
         };
@@ -399,6 +400,7 @@ protected:
         void bindCurrentCamera(int stereoSide) const;
     } _transform;
 
+    void preUpdateTransform();
     virtual void transferTransformState(const Batch& batch) const = 0;
 
     struct UniformStageState {
