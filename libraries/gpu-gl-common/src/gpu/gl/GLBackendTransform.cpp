@@ -18,13 +18,13 @@ void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
-    _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
-    _transform._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
+    _transform._viewProjectionState._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._viewProjectionState._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
 }
 
 void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset) {
-    memcpy(&_transform._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
+    memcpy(&_transform._viewProjectionState._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
     _transform._invalidProj = true;
 }
 
@@ -89,7 +89,7 @@ void GLBackend::syncTransformStateCache() {
 
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
-    _transform._view.evalFromRawMatrix(modelViewInv);
+    _transform._viewProjectionState._view.evalFromRawMatrix(modelViewInv);
 
     glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
     _transform._enabledDrawcallInfoBuffer = false;
@@ -101,16 +101,16 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view, finalJitter), _camera.getEyeCamera(1, stereo, _view, finalJitter)));
+        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._view, finalJitter), _camera.getEyeCamera(1, stereo, _viewProjectionState._view, finalJitter)));
 #else
-        cameras.push_back((_camera.getEyeCamera(0, stereo, _view, finalJitter)));
-        cameras.push_back((_camera.getEyeCamera(1, stereo, _view, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._view, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._view, finalJitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_view, finalJitter)));
+        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._view, finalJitter)));
 #else
-        cameras.push_back((_camera.getMonoCamera(_view, finalJitter)));
+        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._view, finalJitter)));
 #endif
     }
 }
@@ -122,22 +122,22 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     }
 
     if (_invalidProj) {
-        _camera._projection = _projection;
+        _camera._projection = _viewProjectionState._projection;
     }
 
     if (_invalidView) {
         // Apply the correction
-        if (_viewIsCamera && (_viewCorrectionEnabled && _presentFrame.correction != glm::mat4())) {
+        if (_viewProjectionState._viewIsCamera && (_viewCorrectionEnabled && _presentFrame.correction != glm::mat4())) {
             // FIXME should I switch to using the camera correction buffer in Transform.slf and leave this out?
             Transform result;
-            _view.mult(result, _view, _presentFrame.correctionInverse);
+            _viewProjectionState._view.mult(result, _viewProjectionState._view, _presentFrame.correctionInverse);
             if (_skybox) {
                 result.setTranslation(vec3());
             }
-            _view = result;
+            _viewProjectionState._view = result;
         }
         // This is when the _view matrix gets assigned
-        _view.getInverseMatrix(_camera._view);
+        _viewProjectionState._view.getInverseMatrix(_camera._view);
     }
 
     if (_invalidView || _invalidProj || _invalidViewport) {
@@ -185,18 +185,14 @@ void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramO
     auto cameraId = batch._params[paramOffset + 0]._uint;
     cameraId = std::min<gpu::uint32>(cameraId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
 
-    auto& savedTransform = _transform._savedTransforms[cameraId];
-    savedTransform._view = _transform._view;
-    savedTransform._projection = _transform._projection;
+    _transform._savedTransforms[cameraId] = _transform._viewProjectionState;
 }
 
 void GLBackend::do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) {
     auto cameraId = batch._params[paramOffset + 0]._uint;
     cameraId = std::min<gpu::uint32>(cameraId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
 
-    auto& savedTransform = _transform._savedTransforms[cameraId];
-    _transform._view = savedTransform._view;
-    _transform._projection = savedTransform._projection;
+    _transform._viewProjectionState = _transform._savedTransforms[cameraId];
     _transform._invalidView = true;
     _transform._invalidProj = true;
 }

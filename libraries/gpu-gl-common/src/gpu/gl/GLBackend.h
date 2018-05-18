@@ -354,14 +354,15 @@ protected:
 #endif
         using TransformCameras = std::vector<CameraBufferElement>;
 
-        struct ViewProjection {
+        struct ViewProjectionState {
             Transform _view;
             Mat4 _projection;
+            bool _viewIsCamera;
         };
 
         TransformCamera _camera;
         TransformCameras _cameras;
-        std::array<ViewProjection, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT> _savedTransforms;
+        std::array<ViewProjectionState, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT> _savedTransforms;
 
         mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
 
@@ -370,13 +371,11 @@ protected:
         GLuint _drawCallInfoBuffer { 0 };
         GLuint _objectBufferTexture { 0 };
         size_t _cameraUboSize { 0 };
-        bool _viewIsCamera{ false };
+        ViewProjectionState _viewProjectionState;
         bool _skybox { false };
-        Transform _view;
         PresentFrame _presentFrame;
         bool _viewCorrectionEnabled{ true };
 
-        Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };
         int _currentProjectionJitterIndex{ 0 };
