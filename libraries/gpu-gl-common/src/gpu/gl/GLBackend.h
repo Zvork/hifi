@@ -25,7 +25,7 @@
 #include <gl/Config.h>
 
 #include <gpu/Forward.h>
-#include <gpu/Context.h>
+#include <gpu/Backend.h>
 
 #include "GLShared.h"
 
