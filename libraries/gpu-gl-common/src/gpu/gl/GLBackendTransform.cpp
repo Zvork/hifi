@@ -95,6 +95,26 @@ void GLBackend::syncTransformStateCache() {
     _transform._enabledDrawcallInfoBuffer = false;
 }
 
+void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, Vec2u framebufferSize, TransformCameras& cameras) const {
+    Vec2 finalJitter = Vec2(float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
+    finalJitter *= _projectionJitterOffsets[_currentProjectionJitterIndex];
+
+    if (stereo.isStereo()) {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view, finalJitter), _camera.getEyeCamera(1, stereo, _view, finalJitter)));
+#else
+        cameras.push_back((_camera.getEyeCamera(0, stereo, _view, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(1, stereo, _view, finalJitter)));
+#endif
+    } else {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_view, finalJitter)));
+#else
+        cameras.push_back((_camera.getMonoCamera(_view, finalJitter)));
+#endif
+    }
+}
+
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize) {
     // Check all the dirty flags and update the state accordingly
     if (_invalidViewport) {
@@ -122,25 +142,8 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
-		Vec2 finalJitter = Vec2(float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-
-        finalJitter *= _projectionJitterOffsets[_currentProjectionJitterIndex];
-
-        if (stereo.isStereo()) {
-#ifdef GPU_STEREO_CAMERA_BUFFER
-        _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view, finalJitter), _camera.getEyeCamera(1, stereo, _view, finalJitter)));
-#else
-        _cameras.push_back((_camera.getEyeCamera(0, stereo, _view, finalJitter)));
-        _cameras.push_back((_camera.getEyeCamera(1, stereo, _view, finalJitter)));
-#endif
-        } else {
-#ifdef GPU_STEREO_CAMERA_BUFFER
-            _cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_view, finalJitter)));
-#else
-            _cameras.push_back((_camera.getMonoCamera(_view, finalJitter)));
-#endif
-        }
+        pushCameraBufferElement(stereo, framebufferSize, _cameras);
     }
 
     // Flags are clean
@@ -176,4 +179,24 @@ void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
 void GLBackend::resetTransformStage() {
     glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
     _transform._enabledDrawcallInfoBuffer = false;
+}
+
+void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramOffset) {
+    auto cameraId = batch._params[paramOffset + 0]._uint;
+    cameraId = std::min<gpu::uint32>(cameraId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
+
+    auto& savedTransform = _transform._savedTransforms[cameraId];
+    savedTransform._view = _transform._view;
+    savedTransform._projection = _transform._projection;
+}
+
+void GLBackend::do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) {
+    auto cameraId = batch._params[paramOffset + 0]._uint;
+    cameraId = std::min<gpu::uint32>(cameraId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
+
+    auto& savedTransform = _transform._savedTransforms[cameraId];
+    _transform._view = savedTransform._view;
+    _transform._projection = savedTransform._projection;
+    _transform._invalidView = true;
+    _transform._invalidProj = true;
 }

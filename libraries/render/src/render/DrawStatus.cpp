@@ -167,15 +167,9 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
 
     // Allright, something to render let's do it
     gpu::doInBatch("DrawStatus::run", args->_context, [&](gpu::Batch& batch) {
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setViewportTransform(args->_viewport);
 
-        batch.setProjectionTransform(projMat);
-        batch.setProjectionJitterEnabled(true);
-        batch.setViewTransform(viewMat, true);
+        batch.setSavedViewProjectionTransform(0);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need

@@ -70,7 +70,6 @@ void GL41Backend::transferTransformState(const Batch& batch) const {
     _transform._currentCameraOffset = INVALID_OFFSET;
 }
 
-
 void GL41Backend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
 

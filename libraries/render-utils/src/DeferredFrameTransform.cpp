@@ -87,4 +87,22 @@ void GenerateDeferredFrameTransform::run(const render::RenderContextPointer& ren
         frameTransform = std::make_shared<DeferredFrameTransform>();
     }
     frameTransform->update(renderContext->args, jitter);
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch("GenerateDeferredFrameTransform::run", args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        // Setup camera, projection and viewport for all items
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        // This is the main view / projection transform that will be reused later on
+        batch.saveViewProjectionTransform(0);
+    });
 }

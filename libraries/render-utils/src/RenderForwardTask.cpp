@@ -192,12 +192,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
 
 
         // Setup projection
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+        batch.setSavedViewProjectionTransform(0);
         batch.setModelTransform(Transform());
 
         // Setup lighting model for all items;

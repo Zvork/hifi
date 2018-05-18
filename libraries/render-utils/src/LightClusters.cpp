@@ -714,12 +714,7 @@ void DebugLightClusters::run(const render::RenderContextPointer& renderContext, 
 
     // Assign the camera transform
     batch.setViewportTransform(args->_viewport);
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->getViewFrustum().evalProjectionMatrix(projMat);
-    args->getViewFrustum().evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat, true);
+    batch.setSavedViewProjectionTransform(0);
 
 
     // Then the actual ClusterGrid attributes

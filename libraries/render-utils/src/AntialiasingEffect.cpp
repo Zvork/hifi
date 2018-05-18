@@ -125,12 +125,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         // float tMin = args->_viewport.y / fbHeight;
         // float tHeight = args->_viewport.w / fbHeight;
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, true);
+        batch.setSavedViewProjectionTransform(0);
         batch.setModelTransform(Transform());
 
         // FXAA step

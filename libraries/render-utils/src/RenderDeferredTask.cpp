@@ -323,14 +323,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
         batch.setProjectionJitterEnabled(true);
-        batch.setViewTransform(viewMat);
+        batch.setSavedViewProjectionTransform(0);
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
@@ -394,14 +388,8 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
         batch.setProjectionJitterEnabled(true);
-        batch.setViewTransform(viewMat);
+        batch.setSavedViewProjectionTransform(0);
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());

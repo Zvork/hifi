@@ -53,6 +53,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 	(&::gpu::gl::GLBackend::do_setViewportTransform),
     (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
+    (&::gpu::gl::GLBackend::do_saveViewProjectionTransform),
+    (&::gpu::gl::GLBackend::do_setSavedViewProjectionTransform),
+
     (&::gpu::gl::GLBackend::do_setPipeline),
     (&::gpu::gl::GLBackend::do_setStateBlendFactor),
     (&::gpu::gl::GLBackend::do_setStateScissorRect),
@@ -132,7 +135,8 @@ void GLBackend::init() {
 
         _projectionJitterOffsets.reserve(GPU_JITTER_SEQUENCE_LENGTH);
         // Fill in with jitter samples
-        for (int i = 0; i < GPU_JITTER_SEQUENCE_LENGTH; i++) {
+        _projectionJitterOffsets.emplace_back(glm::vec2(0.f));
+        for (int i = 1; i < GPU_JITTER_SEQUENCE_LENGTH; i++) {
             _projectionJitterOffsets.emplace_back( glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f) );
         }
     });

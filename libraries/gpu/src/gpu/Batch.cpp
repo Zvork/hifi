@@ -292,6 +292,22 @@ void Batch::setDepthRangeTransform(float nearDepth, float farDepth) {
     _params.emplace_back(nearDepth);
 }
 
+void Batch::saveViewProjectionTransform(uint32 cameraId) {
+    ADD_COMMAND(saveViewProjectionTransform);
+    if (cameraId >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
+        qCWarning(gpulogging) << "CameraId" << cameraId << "exceeds max named camera count of" << MAX_TRANSFORM_SAVE_SLOT_COUNT;
+    }
+    _params.emplace_back(cameraId);
+}
+
+void Batch::setSavedViewProjectionTransform(uint32 cameraId) {
+    ADD_COMMAND(setSavedViewProjectionTransform);
+    if (cameraId >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
+        qCWarning(gpulogging) << "CameraId" << cameraId << "exceeds max named camera count of" << MAX_TRANSFORM_SAVE_SLOT_COUNT;
+    }
+    _params.emplace_back(cameraId);
+}
+
 void Batch::setPipeline(const PipelinePointer& pipeline) {
     ADD_COMMAND(setPipeline);
 

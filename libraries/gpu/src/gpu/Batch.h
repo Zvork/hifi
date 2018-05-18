@@ -45,6 +45,9 @@ class Batch {
 public:
     typedef Stream::Slot Slot;
 
+    enum {
+        MAX_TRANSFORM_SAVE_SLOT_COUNT = 4
+    };
 
     class DrawCallInfo {
     public:
@@ -175,6 +178,9 @@ public:
     void setViewportTransform(const Vec4i& viewport);
     void setDepthRangeTransform(float nearDepth, float farDepth);
 
+    void saveViewProjectionTransform(uint32 saveSlot);
+    void setSavedViewProjectionTransform(uint32 saveSlot);
+
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
 
@@ -296,10 +302,13 @@ public:
 
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
-		COMMAND_setProjectionTransform,
-		COMMAND_setProjectionJitter,
-		COMMAND_setViewportTransform,
+        COMMAND_setProjectionTransform,
+        COMMAND_setProjectionJitter,
+        COMMAND_setViewportTransform,
         COMMAND_setDepthRangeTransform,
+
+        COMMAND_saveViewProjectionTransform,
+        COMMAND_setSavedViewProjectionTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,

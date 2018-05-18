@@ -71,6 +71,7 @@ public:
 
     virtual ~GLBackend();
 
+
     void updatePresentFrame(const Mat4& correction = Mat4(), const Mat4& prevRenderView = Mat4(), bool reset = false);
     void render(const Batch& batch) final override;
 
@@ -129,6 +130,9 @@ public:
     virtual void do_setProjectionJitter(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewportTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) final;
+
+    virtual void do_saveViewProjectionTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) final;
 
     // Uniform Stage
     virtual void do_setUniformBuffer(const Batch& batch, size_t paramOffset) final;
@@ -350,8 +354,14 @@ protected:
 #endif
         using TransformCameras = std::vector<CameraBufferElement>;
 
+        struct ViewProjection {
+            Transform _view;
+            Mat4 _projection;
+        };
+
         TransformCamera _camera;
         TransformCameras _cameras;
+        std::array<ViewProjection, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT> _savedTransforms;
 
         mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
 
@@ -383,6 +393,7 @@ protected:
         mutable List::const_iterator _camerasItr;
         mutable size_t _currentCameraOffset{ INVALID_OFFSET };
 
+        void pushCameraBufferElement(const StereoState& stereo, Vec2u framebufferSize, TransformCameras& cameras) const;
         void preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize);
         void update(size_t commandIndex, const StereoState& stereo) const;
         void bindCurrentCamera(int stereoSide) const;

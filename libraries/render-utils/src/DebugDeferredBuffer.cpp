@@ -458,12 +458,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, true);
+        batch.setSavedViewProjectionTransform(0);
         batch.setModelTransform(Transform());
 
         // TODO REMOVE: Temporary until UI

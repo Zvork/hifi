@@ -101,13 +101,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
                 batch.setViewportTransform(args->_viewport);
                 batch.setStateScissorRect(args->_viewport);
 
-                glm::mat4 projMat;
-                Transform viewMat;
-                args->getViewFrustum().evalProjectionMatrix(projMat);
-                args->getViewFrustum().evalViewTransform(viewMat);
-
-                batch.setProjectionTransform(projMat);
-                batch.setViewTransform(viewMat);
+                batch.setSavedViewProjectionTransform(0);
 
                 skybox->render(batch, args->getViewFrustum());
             });

@@ -71,14 +71,8 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
-            glm::mat4 projMat;
-            Transform viewMat;
-            args->getViewFrustum().evalProjectionMatrix(projMat);
-            args->getViewFrustum().evalViewTransform(viewMat);
-
-            batch.setProjectionTransform(projMat);
 			batch.setProjectionJitterEnabled(true);
-			batch.setViewTransform(viewMat);
+            batch.setSavedViewProjectionTransform(0);
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
@@ -102,12 +96,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     // Grab the HUD texture
 #if !defined(DISABLE_QML)
     gpu::doInBatch("CompositeHUD", renderContext->args->_context, [&](gpu::Batch& batch) {
-        glm::mat4 projMat;
-        Transform viewMat;
-        renderContext->args->getViewFrustum().evalProjectionMatrix(projMat);
-        renderContext->args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, true);
+        batch.setSavedViewProjectionTransform(0);
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }

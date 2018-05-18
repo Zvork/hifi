@@ -95,14 +95,8 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
 
 
     gpu::doInBatch("DrawSceneOctree::run", args->_context, [&](gpu::Batch& batch) {
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setViewportTransform(args->_viewport);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, true);
+        batch.setSavedViewProjectionTransform(0);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need
@@ -202,14 +196,9 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
     auto& scene = renderContext->_scene;
 
     gpu::doInBatch("DrawItemSelection::run", args->_context, [&](gpu::Batch& batch) {
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setViewportTransform(args->_viewport);
 
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, true);
+        batch.setSavedViewProjectionTransform(0);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need
