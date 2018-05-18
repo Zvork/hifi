@@ -104,16 +104,13 @@ void DrawStatus::configure(const Config& config) {
     _showNetwork = config.showNetwork;
 }
 
-void DrawStatus::run(const RenderContextPointer& renderContext, const Input& input) {
+void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = renderContext->_scene;
     const int NUM_STATUS_VEC4_PER_ITEM = 2;
     const int VEC4_LENGTH = 4;
-
-    const auto& inItems = input.get0();
-    const auto jitter = input.get1();
 
     // FIrst thing, we collect the bound and the status for all the items we want to render
     int nbItems = 0;

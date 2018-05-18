@@ -142,6 +142,12 @@ namespace MenuOption {
     const QString Pair = "Pair";
     const QString PhysicsShowHulls = "Draw Collision Shapes";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
+    const QString VerboseLogging = "Verbose Logging";
+    const QString PhysicsShowBulletWireframe = "Show Bullet Collision";
+    const QString PhysicsShowBulletAABBs = "Show Bullet Bounding Boxes";
+    const QString PhysicsShowBulletContactPoints = "Show Bullet Contact Points";
+    const QString PhysicsShowBulletConstraints = "Show Bullet Constraints";
+    const QString PhysicsShowBulletConstraintLimits = "Show Bullet Constraint Limits";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "General...";
     const QString Quit =  "Quit";
@@ -187,7 +193,6 @@ namespace MenuOption {
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
     const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
-    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString SparseTextureManagement = "Enable Sparse Texture Management";
@@ -210,6 +215,7 @@ namespace MenuOption {
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
     const QString Shadows = "Shadows";
+    const QString AntiAliasing = "Temporal Antialiasing (FXAA if disabled)";
     const QString AmbientOcclusion = "Ambient Occlusion";
 }
 

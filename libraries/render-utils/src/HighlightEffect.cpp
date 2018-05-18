@@ -167,7 +167,6 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             batch.clearDepthStencilFramebuffer(1.0f, 0);
         });
 
-        const auto jitter = inputs.get2();
         render::ItemBounds itemBounds;
 
         gpu::doInBatch("DrawHighlightMask::run", args->_context, [&](gpu::Batch& batch) {
@@ -352,7 +351,6 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
         assert(renderContext->args);
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
-        const auto jitter = input.get2();
 
         gpu::doInBatch("DebugHighlight::run", args->_context, [&](gpu::Batch& batch) {
             batch.setViewportTransform(args->_viewport);
@@ -473,7 +471,6 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
     const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
     const auto primaryFramebuffer = inputs.getN<Inputs>(2);
     const auto deferredFrameTransform = inputs.getN<Inputs>(3);
-    const auto jitter = inputs.getN<Inputs>(4);
 
     // Prepare the ShapePipeline
     auto shapePlumber = std::make_shared<ShapePlumber>();
@@ -509,7 +506,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
             stream << "HighlightMask" << i;
             name = stream.str();
         }
-        const auto drawMaskInputs = DrawHighlightMask::Inputs(sortedBounds, highlightRessources, jitter).asVarying();
+        const auto drawMaskInputs = DrawHighlightMask::Inputs(sortedBounds, highlightRessources).asVarying();
         const auto highlightedRect = task.addJob<DrawHighlightMask>(name, drawMaskInputs, i, shapePlumber, sharedParameters);
         if (i == 0) {
             highlight0Rect = highlightedRect;
@@ -526,7 +523,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
     }
 
     // Debug highlight
-    const auto debugInputs = DebugHighlight::Inputs(highlightRessources, const_cast<const render::Varying&>(highlight0Rect), jitter).asVarying();
+    const auto debugInputs = DebugHighlight::Inputs(highlightRessources, const_cast<const render::Varying&>(highlight0Rect)).asVarying();
     task.addJob<DebugHighlight>("HighlightDebug", debugInputs);
 }
 

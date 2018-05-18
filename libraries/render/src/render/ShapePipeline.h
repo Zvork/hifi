@@ -238,7 +238,7 @@ public:
             PRESENT_FRAME,
             FRAME_TRANSFORM,
             KEY_LIGHT,
-            LIGHT,
+            LIGHT_ARRAY_BUFFER,
             LIGHT_AMBIENT_BUFFER,
             HAZE_MODEL,
             FADE_PARAMETERS,
@@ -256,8 +256,9 @@ public:
             ROUGHNESS,
             OCCLUSION,
             SCATTERING,
-            LIGHT_AMBIENT,
             FADE_MASK,
+
+            LIGHT_AMBIENT_MAP = 10,
         };
     };
 

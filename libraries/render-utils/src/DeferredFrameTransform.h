@@ -25,7 +25,7 @@ public:
 
     DeferredFrameTransform();
 
-    void update(RenderArgs* args, glm::vec2 jitter);
+    void update(RenderArgs* args);
 
     UniformBufferView getFrameTransformBuffer() const { return _frameTransformBuffer; }
 
@@ -47,18 +47,15 @@ protected:
 using DeferredFrameTransformPointer = std::shared_ptr<DeferredFrameTransform>;
 
 
-
-
 class GenerateDeferredFrameTransform {
 public:
 
-    using Input = glm::vec2;
     using Output = DeferredFrameTransformPointer;
-    using JobModel = render::Job::ModelIO<GenerateDeferredFrameTransform, Input, Output>;
+    using JobModel = render::Job::ModelO<GenerateDeferredFrameTransform, Output>;
 
     GenerateDeferredFrameTransform() {}
 
-    void run(const render::RenderContextPointer& renderContext, const Input& jitter, Output& frameTransform);
+    void run(const render::RenderContextPointer& renderContext, Output& frameTransform);
 
 private:
 };

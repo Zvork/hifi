@@ -47,7 +47,6 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     const auto& frameTransform = inputs.get0();
     const auto& inItems = inputs.get1();
     const auto& lightingModel = inputs.get2();
-	const auto jitter = inputs.get3();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();

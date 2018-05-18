@@ -59,6 +59,8 @@ namespace gpu {
         virtual void recycle() const = 0;
         virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
+        virtual bool supportedTextureFormat(const gpu::Element& format) = 0;
+
         // Shared header between C++ and GLSL
 #include "TransformCamera_shared.slh"
 

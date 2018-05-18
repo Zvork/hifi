@@ -2265,7 +2265,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), render::ShapePipeline::Slot::BUFFER::FRAME_TRANSFORM));
             slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
-            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT_MAP));
             gpu::Shader::makeProgram(*_simpleShader, slotBindings);
             gpu::Shader::makeProgram(*_transparentShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitShader, slotBindings);
@@ -2286,7 +2286,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), render::ShapePipeline::Slot::BUFFER::FRAME_TRANSFORM));
             slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
-            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT_MAP));
             slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
             gpu::Shader::makeProgram(*_simpleFadeShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitFadeShader, slotBindings);
