@@ -19,14 +19,11 @@ layout(std140) uniform transformCameraBuffer {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
     TransformCamera _camera[2];
-    TransformCamera _previousCamera[2];
 #else
     TransformCamera _camera;
-    TransformCamera _previousCamera;
 #endif
 #else
     TransformCamera _camera;
-    TransformCamera _previousCamera;
 #endif
 };
 
