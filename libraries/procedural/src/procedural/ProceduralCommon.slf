@@ -1,6 +1,8 @@
 <@include gpu/Config.slh@>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  <$_SCRIBE_TARGET$>
+//
 //  Created by Bradley Austin Davis on 2015/09/05
 //  Copyright 2013-2015 High Fidelity, Inc.
 //

@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  sdf_text3D.frag
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Bradley Austin Davis on 2015-02-04

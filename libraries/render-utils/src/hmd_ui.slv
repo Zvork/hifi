@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  hmd_ui.vert
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Sam Gondelman on 9/28/17.

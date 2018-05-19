@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_shadow_fade.vert
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Olivier Prat on 06/045/17.

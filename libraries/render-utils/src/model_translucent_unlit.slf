@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_translucent_unlit.frag
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Zach Pomerantz on 2/3/2016.

@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model_translucent_normal_map.slv
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Olivier Prat on 23/01/18.

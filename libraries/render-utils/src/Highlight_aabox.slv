@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  Draw and transform the fed vertex position with the standard MVP stack
+//  <$_SCRIBE_TARGET$> : Draw and transform the fed vertex position with the standard MVP stack
 //  and offset the vertices by a certain amount in the vertex direction
 //
 //  Created by Olivier Prat on 11/02/2017

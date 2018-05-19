@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  Draw texture 0 fetched at texcoord.xy, Blend with color uniform
+//  <$_SCRIBE_TARGET$> : Draw texture 0 fetched at texcoord.xy, Blend with color uniform
 //
 //  Created by Sam Gateau on 7/12/2015
 //  Copyright 2015 High Fidelity, Inc.

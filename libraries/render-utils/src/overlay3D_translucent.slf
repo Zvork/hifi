@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  overlay3D_translucent.slf
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Sam Gateau on 6/16/15.

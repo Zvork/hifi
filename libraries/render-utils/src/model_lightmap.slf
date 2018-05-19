@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_lightmap_specular_map.frag
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Samuel Gateau on 11/19/14.

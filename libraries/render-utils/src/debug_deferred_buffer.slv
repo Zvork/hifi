@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  debug_deferred_buffer.slv
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Clement on 12/3

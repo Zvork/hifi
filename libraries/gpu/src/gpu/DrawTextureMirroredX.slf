@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  Draw texture 0 fetched at (1.0 - texcoord.x, texcoord.y)
+//  <$_SCRIBE_TARGET$> : Draw texture 0 fetched at (1.0 - texcoord.x, texcoord.y)
 //
 //  Created by Sam Gondelman on 10/24/2017
 //  Copyright 2017 High Fidelity, Inc.

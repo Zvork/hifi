@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  deferred_light_limited.vert
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Sam Gateau on 6/16/16.

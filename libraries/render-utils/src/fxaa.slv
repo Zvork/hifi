@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  fxaa.vert
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Raffi Bedikian on 8/30/15

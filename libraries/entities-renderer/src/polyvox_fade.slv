@@ -1,8 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  polyvox_fade.vert
-//  vertex shader
+//
+//  <$_SCRIBE_TARGET$>
 //
 //  Created by Seth Alves on 2015-8-3
 //  Copyright 2015 High Fidelity, Inc.

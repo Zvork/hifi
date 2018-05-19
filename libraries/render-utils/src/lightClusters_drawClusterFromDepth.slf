@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  lightClusters_drawClusterFro Depth.slf
+//  <$_SCRIBE_TARGET$>
 //
 //  Created by Sam Gateau on 9/8/2016.
 //  Copyright 2015 High Fidelity, Inc.

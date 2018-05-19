@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  directional_ambient_light.frag
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 9/3/14.

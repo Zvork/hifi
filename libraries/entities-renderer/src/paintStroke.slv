@@ -2,8 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  paintStroke.vert
-//  vertex shader
+//  <$_SCRIBE_TARGET$>
 //
 //  Created by Eric Levin on 7/20/15.
 //  Copyright 2014 High Fidelity, Inc.

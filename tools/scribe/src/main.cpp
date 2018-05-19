@@ -185,6 +185,7 @@ int main (int argc, char** argv) {
     time_t endTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
     std::string endTimStr(ctime(&endTime));
     vars["_SCRIBE_DATE"] = endTimStr.substr(0, endTimStr.length() - 1);
+    vars["_SCRIBE_TARGET"] = targetName;
 
     // List vars?
     if (listVars) {

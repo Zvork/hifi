@@ -1,7 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  fragment shader
+//
+//  <$_SCRIBE_TARGET$>
 //
 //  Copyright 2015 High Fidelity, Inc.
 //

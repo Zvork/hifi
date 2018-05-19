@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  stencil_drawMask.slf
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Sam Gateau on 5/31/17.

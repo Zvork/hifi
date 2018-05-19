@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  local_lights_shading.frag
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Sam Gateau on 9/6/2016.

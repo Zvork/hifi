@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  overlay3D_model_transparent.slf
+//  <$_SCRIBE_TARGET$>
 //
 //  Created by Sam Gateau on 2/27/2017.
 //  Copyright 2017 High Fidelity, Inc.

@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_normal_map.vert
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Andrzej Kapolka on 10/14/13.

@@ -1,6 +1,6 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  BloomThreshold.slf
+//  <$_SCRIBE_TARGET$>
 //  Perform a soft threshold on an input texture and downsample to half size in one go.
 //
 //  Created by Olivier Prat on 09/26/2017

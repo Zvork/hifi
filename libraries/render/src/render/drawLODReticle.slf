@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  Draw the LOD reticle used to visualize the current LOD angle
+//  <$_SCRIBE_TARGET$> : Draw the LOD reticle used to visualize the current LOD angle
 //
 //  Created by Sam Gateau on 2/4/16
 //  Copyright 2015 High Fidelity, Inc.

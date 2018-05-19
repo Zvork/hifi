@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  hmd_ui.frag
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Sam Gondelman on 9/28/17.

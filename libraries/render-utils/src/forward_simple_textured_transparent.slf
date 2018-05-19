@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  forward_simple_textured_transparent.slf
+//  <$_SCRIBE_TARGET$>
 //  fragment shader
 //
 //  Created by Clément Brisset on 5/29/15.

@@ -1,8 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  skybox.frag
-//  fragment shader
+//
+//  <$_SCRIBE_TARGET$>
 //
 //  Created by Sam Gateau on 5/5/2015.
 //  Copyright 2015 High Fidelity, Inc.

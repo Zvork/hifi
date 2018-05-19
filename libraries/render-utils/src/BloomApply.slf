@@ -1,6 +1,6 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  BloomApply.slf
+//  <$_SCRIBE_TARGET$>
 //  Mix the three gaussian blur textures.
 //
 //  Created by Olivier Prat on 10/09/2017

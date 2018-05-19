@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-// Draw the fed vertex position, pass straight as clip pos
+// <$_SCRIBE_TARGET$> : Draw the fed vertex position, pass straight as clip pos
 // Output the clip position
 //
 //  Created by Sam Gateau on 5/30/2017

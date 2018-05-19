@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model.slv
+//  <$_SCRIBE_TARGET$>
 //  vertex shader
 //
 //  Created by Andrzej Kapolka on 10/14/13.
