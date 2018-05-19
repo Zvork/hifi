@@ -18,7 +18,7 @@
 
 // the interpolated normal
 out vec3 _normalWS;
-out vec4 _prevPositionES;
+out vec4 _prevPositionCS;
 out vec2 _texCoord0;
 
 void main() {
@@ -27,7 +27,7 @@ void main() {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToPreviousEyeAndClipPos(cam, obj, inPosition, _prevPositionES, gl_Position)$>
+    <$transformModelToClipPosAndPreviousClipPos(cam, obj, inPosition, gl_Position, _prevPositionCS)$>
     const vec3 normal = vec3(0, 0, 1);
     <$transformModelToWorldDir(cam, obj, normal, _normalWS)$>
 }

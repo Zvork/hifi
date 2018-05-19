@@ -16,7 +16,9 @@ struct _TransformCamera {
     TC_MUTABLE TC_MAT4 _previousViewInverse;
     TC_MUTABLE TC_MAT4 _projectionViewUntranslated;
     TC_MAT4 _projection;
+    TC_MAT4 _previousProjection;
     TC_MUTABLE TC_MAT4 _projectionInverse;
+    TC_MUTABLE TC_MAT4 _previousProjectionViewUntranslated;
     TC_VEC4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
     TC_MUTABLE TC_VEC4 _stereoInfo;
 };

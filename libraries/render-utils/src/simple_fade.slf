@@ -24,7 +24,7 @@ in vec4 _color;
 in vec2 _texCoord0;
 in vec4 _positionMS;
 in vec4 _positionES;
-in vec4 _prevPositionES;
+in vec4 _prevPositionCS;
 in vec4 _positionWS;
 
 // For retro-compatibility
@@ -85,7 +85,7 @@ void main(void) {
     } else {
         if (emissiveAmount > 0.0) {
             packDeferredFragmentLightmap(
-                _prevPositionES.xyz,
+                _prevPositionCS,
                 normal,
                 1.0,
                 diffuse+fadeEmissive,
@@ -95,7 +95,7 @@ void main(void) {
                 specular);
         } else {
             packDeferredFragment(
-                _prevPositionES.xyz,
+                _prevPositionCS,
                 normal,
                 1.0,
                 diffuse,

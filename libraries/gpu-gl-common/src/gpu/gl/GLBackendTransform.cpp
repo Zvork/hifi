@@ -98,23 +98,24 @@ void GLBackend::syncTransformStateCache() {
 }
 
 void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, Vec2u framebufferSize, TransformCameras& cameras) const {
-    Vec2 finalJitter = Vec2(float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
-    finalJitter *= _projectionJitterOffsets[_currentProjectionJitterIndex];
+    const Vec2 jitterScale = Vec2(float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
+    const Vec2 jitter = jitterScale * _jitterOffset;
+    const Vec2 previousJitter = jitterScale * _prevJitterOffset;
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         cameras.push_back(CameraBufferElement(
-            _camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter),
-            _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
+            _camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter, previousJitter),
+            _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
 #else
-        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
-        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
+        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
+        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
+        cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
 #else
-        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, finalJitter)));
+        cameras.push_back((_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
 #endif
     }
 }

@@ -749,7 +749,9 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
 
-    _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % GPU_JITTER_SEQUENCE_LENGTH;
+    _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % _projectionJitterOffsets.size();
+    _transform._prevJitterOffset = _transform._jitterOffset;
+    _transform._jitterOffset = _projectionJitterOffsets[_transform._currentProjectionJitterIndex];
 
     // Update previous views of saved transforms
     for (auto& viewProjState : _transform._savedTransforms) {

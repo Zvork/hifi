@@ -17,7 +17,7 @@
 <$declareStandardTransform()$>
 
 out vec4 _positionWS;
-out vec4 _prevPositionES;
+out vec4 _prevPositionCS;
 out vec3 _normal;
 
 void main(void) {
@@ -26,7 +26,7 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyePreviousEyeAndClipPos(cam, obj, inPosition, positionES, _prevPositionES, gl_Position)$>
+    <$transformModelToEyeClipPosAndPreviousClipPos(cam, obj, inPosition, positionES, gl_Position, _prevPositionCS)$>
     <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
     _positionWS = inPosition;
 }

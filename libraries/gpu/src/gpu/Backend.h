@@ -68,9 +68,9 @@ namespace gpu {
         public:
             const Backend::TransformCamera& recomputeDerived(const Transform& view, const Transform& previousView) const;
             // Jitter should be divided by framebuffer size
-            TransformCamera getMonoCamera(const Transform& view, const Transform& previousView, Vec2 normalizedJitter) const;
+            TransformCamera getMonoCamera(const Transform& view, const Transform& previousView, Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const;
             // Jitter should be divided by framebuffer size
-            TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& view, const Transform& previousView, Vec2 normalizedJitter) const;
+            TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& view, const Transform& previousView, Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const;
         };
 
 

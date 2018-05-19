@@ -380,6 +380,8 @@ protected:
 
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };
+        Vec2 _jitterOffset{ 0.0f };
+        Vec2 _prevJitterOffset{ 0.0f };
         int _currentProjectionJitterIndex{ 0 };
         bool _isProjectionJitterEnabled{ false };
         bool _invalidView { false };

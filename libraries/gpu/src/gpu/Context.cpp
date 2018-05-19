@@ -219,13 +219,18 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
     _projectionViewUntranslated = _projection * viewUntranslated;
 
+    viewUntranslated = _previousView;
+    viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    _previousProjectionViewUntranslated = _previousProjection * viewUntranslated;
+
     _stereoInfo = Vec4(0.0f);
 
     return *this;
 }
 
 Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, 
-                                                                const Transform& view, const Transform& previousView, Vec2 normalizedJitter) const {
+                                                                const Transform& view, const Transform& previousView, 
+                                                                Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const {
     TransformCamera result = *this;
     Transform eyeView = view;
     Transform eyePreviousView = previousView;
@@ -236,21 +241,32 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
+    result._previousProjection = result._projection;
+    // Apply jitter to projections
     normalizedJitter.x *= 2.0f;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
+    normalizedPrevJitter.x *= 2.0f;
+    result._previousProjection[2][0] += normalizedPrevJitter.x;
+    result._previousProjection[2][1] += normalizedPrevJitter.y;
+
     result.recomputeDerived(eyeView, eyePreviousView);
 
-    result._stereoInfo = Vec4(1.0f, (float)eye, 0.0f, 0.0f);
+    result._stereoInfo = Vec4(1.0f, (float)eye, 2.0f / result._viewport.z, 2.0f / result._viewport.w);
 
     return result;
 }
 
-Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& view, const Transform& previousView, Vec2 normalizedJitter) const {
+Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& view, const Transform& previousView, 
+                                                                 Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const {
     TransformCamera result = *this;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
+    result._previousProjection[2][0] += normalizedPrevJitter.x;
+    result._previousProjection[2][1] += normalizedPrevJitter.y;
     result.recomputeDerived(view, previousView);
+
+    result._stereoInfo = Vec4(0.0f, 0.0f, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
     return result;
 }
 
