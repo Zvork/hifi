@@ -27,8 +27,10 @@ float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
     return mix(alpha, 1.0 - alpha, step(mapAlpha, alphaThreshold));
 }
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
+<@endif@>
 
 vec2 packVelocity(vec4 prevPositionCS) {
     vec2 uv = cam_getTexcoordPos(gl_FragCoord.xy);

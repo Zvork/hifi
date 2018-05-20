@@ -18,8 +18,10 @@
 <@include DeferredGlobalLight.slh@>
 <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
+<@endif@>
 
 <@include Fade.slh@>
 

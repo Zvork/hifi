@@ -21,8 +21,10 @@
 <@include LightDirectional.slh@>
 <$declareLightingDirectional()$>
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
+<@endif@>
 
 vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness, float opacity) {
 

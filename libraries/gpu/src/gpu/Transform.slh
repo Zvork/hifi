@@ -11,6 +11,7 @@
 <@def GPU_TRANSFORM_STATE_SLH@>
 
 <@func declareStandardCameraTransform()@>
+
 <@include gpu/TransformCamera_shared.slh@>
 
 #define TransformCamera _TransformCamera
