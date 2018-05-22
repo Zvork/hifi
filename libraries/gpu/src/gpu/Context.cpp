@@ -262,6 +262,8 @@ Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform
     TransformCamera result = *this;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
+    // We suppose that the projection, except for jitter, hasn't changed from previous frame
+    result._previousProjection = _projection;
     result._previousProjection[2][0] += normalizedPrevJitter.x;
     result._previousProjection[2][1] += normalizedPrevJitter.y;
     result.recomputeDerived(view, previousView);
