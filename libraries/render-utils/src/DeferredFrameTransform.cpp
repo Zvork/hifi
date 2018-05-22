@@ -25,20 +25,21 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     auto farZ = args->getViewFrustum().getFarClip();
 
     auto& frameTransformBuffer = _frameTransformBuffer.edit<FrameTransform>();
-    frameTransformBuffer.depthInfo = glm::vec4(nearZ*farZ, farZ - nearZ, -farZ, 0.0f);
+    frameTransformBuffer.infos.depthInfo = glm::vec4(nearZ*farZ, farZ - nearZ, -farZ, 0.0f);
 
-    frameTransformBuffer.pixelInfo = args->_viewport;
+    frameTransformBuffer.infos.pixelInfo = args->_viewport;
 
-    args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.projectionMono);
+    args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.infos.projectionMono);
 
     // Running in stereo ?
     bool isStereo = args->isStereo();
     if (!isStereo) {
-        frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
-        frameTransformBuffer.invPixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.infos.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
+        frameTransformBuffer.infos.invPixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
     } else {
-        frameTransformBuffer.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
-        frameTransformBuffer.invPixelInfo = glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.infos.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
+        frameTransformBuffer.infos.invPixelInfo =
+            glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
     }
 }
 
@@ -64,5 +65,8 @@ void GenerateDeferredFrameTransform::run(const render::RenderContextPointer& ren
         batch.setViewTransform(viewMat);
         // This is the main view / projection transform that will be reused later on
         batch.saveViewProjectionTransform(0);
+        // Copy it to the deferred transform for the lighting pass
+        batch.copySavedViewProjectionTransformToBuffer(0, frameTransform->getFrameTransformBuffer()._buffer,
+                                                       sizeof(DeferredFrameTransform::DeferredFrameInfo));
     });
 }

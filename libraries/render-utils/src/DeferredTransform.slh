@@ -30,24 +30,16 @@ uniform presentFrameBuffer {
 #define DeferredFrameTransform _DeferredFrameTransform
 #define TransformCamera _TransformCamera
 
-uniform deferredFrameTransformBuffer {
+layout(std140) uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 
 vec2 getWidthHeight(int resolutionLevel) {
-    return vec2(ivec2(frameTransform.pixelInfo.zw) >> resolutionLevel);
+    return vec2(ivec2(frameTransform.infos.pixelInfo.zw) >> resolutionLevel);
 }
 
 vec2 getInvWidthHeight() {
-    return frameTransform.invPixelInfo.xy;
-}
-
-float getProjScaleEye() {
-    return frameTransform.projection[0][1][1];
-}
-
-float getProjScale(int resolutionLevel) {
-    return getWidthHeight(resolutionLevel).y * frameTransform.projection[0][1][1] * 0.5;
+    return frameTransform.infos.invPixelInfo.xy;
 }
 
 mat4 getProjection(int side) {
@@ -58,8 +50,16 @@ mat4 getProjectionInverse(int side) {
     return frameTransform.cameras[side]._projectionInverse;
 }
 
+float getProjScaleEye() {
+    return getProjection(0)[1][1];
+}
+
+float getProjScale(int resolutionLevel) {
+    return getWidthHeight(resolutionLevel).y * getProjScaleEye() * 0.5;
+}
+
 mat4 getProjectionMono() {
-    return frameTransform.projectionMono;
+    return frameTransform.infos.projectionMono;
 }
 
 // positive near distance of the projection
@@ -72,7 +72,7 @@ float getProjectionNear() {
 
 // positive far distance of the projection
 float getPosLinearDepthFar() {
-    return -frameTransform.depthInfo.z;
+    return -frameTransform.infos.depthInfo.z;
 }
 
 mat4 getViewInverse() {
@@ -91,26 +91,19 @@ mat4 getPreviousViewInverse() {
     return frameTransform.cameras[0]._previousViewInverse;
 }
 
-DeferredFrameTransform getDeferredFrameTransform() {
-    DeferredFrameTransform result = frameTransform;
-    result.view = getView();  
-    result.invView = getViewInverse();  
-    return result;
-}
-
 bool isStereo() {
-    return frameTransform.stereoInfo.x > 0.0f;
+    return frameTransform.infos.stereoInfo.x > 0.0f;
 }
 
 float getStereoSideWidth(int resolutionLevel) {
-    return float(int(frameTransform.stereoInfo.y) >> resolutionLevel);
+    return float(int(frameTransform.infos.stereoInfo.y) >> resolutionLevel);
 }
 float getStereoSideHeight(int resolutionLevel) {
-    return float(int(frameTransform.pixelInfo.w) >> resolutionLevel);
+    return float(int(frameTransform.infos.pixelInfo.w) >> resolutionLevel);
 }
 
 vec2 getSideImageSize(int resolutionLevel) {
-    return vec2(float(int(frameTransform.stereoInfo.y) >> resolutionLevel), float(int(frameTransform.pixelInfo.w) >> resolutionLevel));
+    return vec2(float(int(frameTransform.infos.stereoInfo.y) >> resolutionLevel), float(int(frameTransform.infos.pixelInfo.w) >> resolutionLevel));
 }
 
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
@@ -119,11 +112,11 @@ ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
 }
 
 float evalZeyeFromZdb(float depth) {
-    return frameTransform.depthInfo.x / (depth * frameTransform.depthInfo.y + frameTransform.depthInfo.z);
+    return frameTransform.infos.depthInfo.x / (depth * frameTransform.infos.depthInfo.y + frameTransform.infos.depthInfo.z);
 }
 
 float evalZdbFromZeye(float Zeye) {
-    return (frameTransform.depthInfo.x - Zeye * frameTransform.depthInfo.z) / (Zeye * frameTransform.depthInfo.y);
+    return (frameTransform.infos.depthInfo.x - Zeye * frameTransform.infos.depthInfo.z) / (Zeye * frameTransform.infos.depthInfo.y);
 }
 
 vec3 evalEyeNormal(vec3 C) {

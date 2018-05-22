@@ -292,20 +292,32 @@ void Batch::setDepthRangeTransform(float nearDepth, float farDepth) {
     _params.emplace_back(nearDepth);
 }
 
-void Batch::saveViewProjectionTransform(uint32 cameraId) {
+void Batch::saveViewProjectionTransform(uint32 saveSlot) {
     ADD_COMMAND(saveViewProjectionTransform);
-    if (cameraId >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
-        qCWarning(gpulogging) << "CameraId" << cameraId << "exceeds max named camera count of" << MAX_TRANSFORM_SAVE_SLOT_COUNT;
+    if (saveSlot >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
+        qCWarning(gpulogging) << "Transform save slot" << saveSlot << "exceeds max save slot count of" << MAX_TRANSFORM_SAVE_SLOT_COUNT;
     }
-    _params.emplace_back(cameraId);
+    _params.emplace_back(saveSlot);
 }
 
-void Batch::setSavedViewProjectionTransform(uint32 cameraId) {
+void Batch::setSavedViewProjectionTransform(uint32 saveSlot) {
     ADD_COMMAND(setSavedViewProjectionTransform);
-    if (cameraId >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
-        qCWarning(gpulogging) << "CameraId" << cameraId << "exceeds max named camera count of" << MAX_TRANSFORM_SAVE_SLOT_COUNT;
+    if (saveSlot >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
+        qCWarning(gpulogging) << "Transform save slot" << saveSlot << "exceeds max save slot count of"
+                              << MAX_TRANSFORM_SAVE_SLOT_COUNT;
     }
-    _params.emplace_back(cameraId);
+    _params.emplace_back(saveSlot);
+}
+
+void Batch::copySavedViewProjectionTransformToBuffer(uint32 saveSlot, const BufferPointer& buffer, Offset offset) {
+    ADD_COMMAND(copySavedViewProjectionTransformToBuffer);
+    if (saveSlot >= MAX_TRANSFORM_SAVE_SLOT_COUNT) {
+        qCWarning(gpulogging) << "Transform save slot" << saveSlot << "exceeds max save slot count of"
+                              << MAX_TRANSFORM_SAVE_SLOT_COUNT;
+    }
+    _params.emplace_back(saveSlot);
+    _params.emplace_back(_buffers.cache(buffer));
+    _params.emplace_back(offset);
 }
 
 void Batch::setPipeline(const PipelinePointer& pipeline) {

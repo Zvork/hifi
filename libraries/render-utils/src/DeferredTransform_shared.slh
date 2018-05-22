@@ -9,7 +9,7 @@
 <@include gpu/TransformCamera_shared.slh@>
 #endif
 
-struct _DeferredFrameTransform {
+struct DeferredFrameInfo {
     // Pixel info is { viewport width height}
     DFT_VEC4 pixelInfo;
     DFT_VEC4 invPixelInfo;
@@ -19,6 +19,10 @@ struct _DeferredFrameTransform {
     DFT_VEC4 stereoInfo;
 	// The mono projection for sure
     DFT_MAT4 projectionMono;
+};
+
+struct _DeferredFrameTransform {
+    DeferredFrameInfo infos;
     // The camera transforms for the two eyes (or only first one if mono, of course)
     _TransformCamera cameras[2];
 };

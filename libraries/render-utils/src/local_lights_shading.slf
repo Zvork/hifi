@@ -28,8 +28,7 @@ void main(void) {
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st;
 
-    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
-    DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
+    DeferredFragment frag = unpackDeferredFragment(texCoord);
     vec4 fragPosition = frag.position;
 
     if (frag.mode == FRAG_MODE_UNLIT) {

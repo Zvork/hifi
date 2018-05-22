@@ -16,8 +16,10 @@
 <@include ForwardGlobalLight.slh@>
 <$declareEvalGlobalLightingAlphaBlended()$>
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
+<@endif@>
 
 // the albedo texture
 uniform sampler2D originalTexture;

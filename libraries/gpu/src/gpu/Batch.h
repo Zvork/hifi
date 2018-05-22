@@ -180,6 +180,7 @@ public:
 
     void saveViewProjectionTransform(uint32 saveSlot);
     void setSavedViewProjectionTransform(uint32 saveSlot);
+    void copySavedViewProjectionTransformToBuffer(uint32 saveSlot, const BufferPointer& buffer, Offset offset);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -309,6 +310,7 @@ public:
 
         COMMAND_saveViewProjectionTransform,
         COMMAND_setSavedViewProjectionTransform,
+        COMMAND_copySavedViewProjectionTransformToBuffer,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,

@@ -20,6 +20,7 @@
 // DeferredFrameTransform is  a helper class gathering in one place the needed camera transform
 // and frame resolution needed for all the deferred rendering passes taking advantage of the Deferred buffers
 class DeferredFrameTransform {
+    friend class GenerateDeferredFrameTransform;
 public:
     using UniformBufferView = gpu::BufferView;
 
@@ -31,13 +32,12 @@ public:
 
 protected:
 
-
     // Class describing the uniform buffer with the transform info common to the AO shaders
     // It s changing every frame
 #include "DeferredTransform_shared.slh"
     class FrameTransform : public _DeferredFrameTransform {
     public:
-        FrameTransform() { stereoInfo = glm::vec4(0.0f); }
+        FrameTransform() { infos.stereoInfo = glm::vec4(0.0f); }
     };
 
     UniformBufferView _frameTransformBuffer;

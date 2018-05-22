@@ -11,9 +11,10 @@
 <@def GPU_TRANSFORM_STATE_SLH@>
 
 <@func declareStandardCameraTransform()@>
+#ifndef GPU_DECLARESTANDARDCAMERATRANSFORM
+#define GPU_DECLARESTANDARDCAMERATRANSFORM
 
 <@include gpu/TransformCamera_shared.slh@>
-
 #define TransformCamera _TransformCamera
 
 layout(std140) uniform transformCameraBuffer {
@@ -128,6 +129,7 @@ vec2 cam_getTexcoordPos(in vec2 glFragCoord) {
     return texCoordPos;
 }
 
+#endif
 <@endfunc@>
 
 <@func declareStandardObjectTransform()@>

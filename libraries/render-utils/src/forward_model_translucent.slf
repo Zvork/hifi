@@ -18,8 +18,10 @@
 
 <$declareEvalGlobalLightingAlphaBlended()$>
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
+<@endif@>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>

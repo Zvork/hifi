@@ -133,6 +133,7 @@ public:
 
     virtual void do_saveViewProjectionTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_copySavedViewProjectionTransformToBuffer(const Batch& batch, size_t paramOffset) = 0;
 
     // Uniform Stage
     virtual void do_setUniformBuffer(const Batch& batch, size_t paramOffset) final;

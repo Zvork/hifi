@@ -21,8 +21,10 @@
 //               https://github.com/ashima/webgl-noise
 //
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
+<@endif@>
 
 float mod289(float x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;

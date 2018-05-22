@@ -55,6 +55,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::gl::GLBackend::do_saveViewProjectionTransform),
     (&::gpu::gl::GLBackend::do_setSavedViewProjectionTransform),
+    (&::gpu::gl::GLBackend::do_copySavedViewProjectionTransformToBuffer),
 
     (&::gpu::gl::GLBackend::do_setPipeline),
     (&::gpu::gl::GLBackend::do_setStateBlendFactor),
@@ -193,12 +194,13 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                     _stereo._contextDisable = false;
                     break;
 
-                case Batch::COMMAND_saveViewProjectionTransform:
+                case Batch::COMMAND_copySavedViewProjectionTransformToBuffer:
                     preUpdateTransform();
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
 				case Batch::COMMAND_setProjectionTransform:
                 case Batch::COMMAND_setProjectionJitter:
+                case Batch::COMMAND_saveViewProjectionTransform:
                 case Batch::COMMAND_setSavedViewProjectionTransform:
                 {
 					CommandCall call = _commandCalls[(*command)];

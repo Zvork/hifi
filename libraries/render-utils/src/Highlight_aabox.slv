@@ -12,9 +12,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
-
-<$declareStandardTransform()$>
+<$declareStandardCameraTransform()$>
+<@endif@>
 
 struct ItemBound {
     vec4 id_boundPos;
