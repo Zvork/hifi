@@ -95,7 +95,8 @@
         nx = (x / Window.innerWidth);
         ny = 1.0 - ((y) / (Window.innerHeight - 32));
 
-         Render.getConfig("RenderMainView").getConfig("Antialiasing").debugCursorTexcoord = { x: nx, y: ny };
+        nx = 2.0*nx - 1.0;
+        Render.getConfig("RenderMainView").getConfig("DebugDeferredBuffer").size = { x: nx, y: -1.0, z:1.0, w:1.0 };
     }
 
 }()); 

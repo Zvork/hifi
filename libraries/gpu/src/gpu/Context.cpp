@@ -241,7 +241,9 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
+    // We suppose that the projection, except for jitter, hasn't changed from previous frame
     result._previousProjection = result._projection;
+
     // Apply jitter to projections
     normalizedJitter.x *= 2.0f;
     result._projection[2][0] += normalizedJitter.x;
@@ -252,7 +254,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
 
     result.recomputeDerived(eyeView, eyePreviousView);
 
-    result._stereoInfo = Vec4(1.0f, (float)eye, 2.0f / result._viewport.z, 2.0f / result._viewport.w);
+    result._stereoInfo = Vec4(1.0f, (float)eye, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
 
     return result;
 }
@@ -260,10 +262,10 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
 Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& view, const Transform& previousView, 
                                                                  Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const {
     TransformCamera result = *this;
+    // We suppose that the projection, except for jitter, hasn't changed from previous frame
+    result._previousProjection = result._projection;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    // We suppose that the projection, except for jitter, hasn't changed from previous frame
-    result._previousProjection = _projection;
     result._previousProjection[2][0] += normalizedPrevJitter.x;
     result._previousProjection[2][1] += normalizedPrevJitter.y;
     result.recomputeDerived(view, previousView);

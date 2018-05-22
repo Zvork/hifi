@@ -26,7 +26,6 @@ void DeferredFrameTransform::update(RenderArgs* args) {
 
     auto& frameTransformBuffer = _frameTransformBuffer.edit<FrameTransform>();
     frameTransformBuffer.infos.depthInfo = glm::vec4(nearZ*farZ, farZ - nearZ, -farZ, 0.0f);
-
     frameTransformBuffer.infos.pixelInfo = args->_viewport;
 
     args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.infos.projectionMono);
@@ -39,7 +38,7 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     } else {
         frameTransformBuffer.infos.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
         frameTransformBuffer.infos.invPixelInfo =
-            glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
+            glm::vec4(2.0f / (float)(args->_viewport.z), 1.0f / args->_viewport.w, 0.0f, 0.0f);
     }
 }
 
@@ -47,15 +46,11 @@ void GenerateDeferredFrameTransform::run(const render::RenderContextPointer& ren
     if (!frameTransform) {
         frameTransform = std::make_shared<DeferredFrameTransform>();
     }
-    frameTransform->update(renderContext->args);
     RenderArgs* args = renderContext->args;
+    frameTransform->update(args);
 
     gpu::doInBatch("GenerateDeferredFrameTransform::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-
-        // Setup camera, projection and viewport for all items
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
 
         glm::mat4 projMat;
         Transform viewMat;

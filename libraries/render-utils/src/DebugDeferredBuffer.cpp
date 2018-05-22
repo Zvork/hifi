@@ -66,14 +66,14 @@ static const std::string DEFAULT_ALBEDO_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_METALLIC_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(pow(frag.metallic, 1.0 / 2.2)), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_ROUGHNESS_SHADER {
@@ -81,13 +81,13 @@ static const std::string DEFAULT_ROUGHNESS_SHADER {
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(pow(frag.roughness, 1.0 / 2.2)), 1.0);"
    // "    return vec4(vec3(pow(colorRamp(frag.roughness), vec3(1.0 / 2.2))), 1.0);"
-    " }"
+    "}"
 };
 static const std::string DEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(0.5) + (frag.normal * 0.5), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_OCCLUSION_SHADER{
@@ -95,47 +95,47 @@ static const std::string DEFAULT_OCCLUSION_SHADER{
  //   "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
  //   "    return vec4(vec3(pow(frag.obscurance, 1.0 / 2.2)), 1.0);"
     "    return vec4(vec3(pow(texture(specularMap, uv).a, 1.0 / 2.2)), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_EMISSIVE_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_UNLIT_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return (frag.mode == FRAG_MODE_UNLIT ? vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_LIGHTMAP_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return (frag.mode == FRAG_MODE_SCATTERING ? vec4(vec3(pow(frag.scattering, 1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_LIGHTING_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_SHADOW_SHADER{
@@ -148,7 +148,7 @@ static const std::string DEFAULT_SHADOW_SHADER{
     "        }"
     "    }"
     "    return vec4(vec3(0.0), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
@@ -181,13 +181,13 @@ static const std::string DEFAULT_LINEAR_DEPTH_SHADER {
 static const std::string DEFAULT_HALF_LINEAR_DEPTH_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(1.0 - texture(halfLinearDepthMap, uv).x * 0.01), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_HALF_NORMAL_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(halfNormalMap, uv).xyz), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_CURVATURE_SHADER{
@@ -195,7 +195,7 @@ static const std::string DEFAULT_CURVATURE_SHADER{
     "    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
    // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_NORMAL_CURVATURE_SHADER{
@@ -203,7 +203,7 @@ static const std::string DEFAULT_NORMAL_CURVATURE_SHADER{
     //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
      "    return vec4(vec3(texture(curvatureMap, uv).xyz), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_DIFFUSED_CURVATURE_SHADER{
@@ -211,7 +211,7 @@ static const std::string DEFAULT_DIFFUSED_CURVATURE_SHADER{
     "    return vec4(pow(vec3(texture(diffusedCurvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
     // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER{
@@ -219,7 +219,7 @@ static const std::string DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER{
     //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
     "    return vec4(vec3(texture(diffusedCurvatureMap, uv).xyz), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_CURVATURE_OCCLUSION_SHADER{
@@ -231,14 +231,14 @@ static const std::string DEFAULT_CURVATURE_OCCLUSION_SHADER{
     "    float ambientOcclusionHF = curvatureAO(midNormalCurvature.a * 8.0f) * 0.5f;"
     "    ambientOcclusion = min(ambientOcclusion, ambientOcclusionHF);"
     "    return vec4(vec3(ambientOcclusion), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
   //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
@@ -246,24 +246,24 @@ static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "    return vec4(vec3(texture(obscuranceMap, uv).x), 1.0);"
     // When drawing color "    return vec4(vec3(texture(occlusionMap, uv).xyz), 1.0);"
     // when drawing normal"    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
-    " }"
+    "}"
 };
 static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(occlusionBlurredMap, uv).xyz), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_VELOCITY_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec2(texture(velocityMap, uv).xy), 0.0, 1.0);"
-    " }"
+    "    return vec4(vec2(texture(velocityMap, uv).xy)*10 + vec2(0.5), 0.0, 1.0);"
+    "}"
 };
 
 static const std::string DEFAULT_CUSTOM_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(1.0, 0.0, 0.0, 1.0);"
-    " }"
+    "}"
 };
 
 static std::string getFileContent(std::string fileName, std::string defaultContent = std::string()) {

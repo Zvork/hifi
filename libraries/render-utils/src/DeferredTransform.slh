@@ -86,6 +86,7 @@ bool isStereo() {
 float getStereoSideWidth(int resolutionLevel) {
     return float(int(frameTransform.infos.stereoInfo.y) >> resolutionLevel);
 }
+
 float getStereoSideHeight(int resolutionLevel) {
     return float(int(frameTransform.infos.pixelInfo.w) >> resolutionLevel);
 }
