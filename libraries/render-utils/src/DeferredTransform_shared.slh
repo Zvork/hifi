@@ -2,9 +2,11 @@
 #ifdef __cplusplus
 #   define DFT_VEC4 glm::vec4
 #   define DFT_MAT4 glm::mat4
+#include "gpu/TransformCamera_shared.slh"
 #else
 #   define DFT_VEC4 vec4
 #   define DFT_MAT4 mat4
+<@include gpu/TransformCamera_shared.slh@>
 #endif
 
 struct _DeferredFrameTransform {
@@ -15,20 +17,10 @@ struct _DeferredFrameTransform {
     DFT_VEC4 depthInfo;
     // Stereo info is { isStereoFrame, halfWidth }
     DFT_VEC4 stereoInfo;
-	// Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
-	DFT_MAT4 projection[2];
-	// Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
-	DFT_MAT4 invProjection[2];
-	// THe mono projection for sure
+	// The mono projection for sure
     DFT_MAT4 projectionMono;
-    // Inv View matrix from eye space (mono) to world space
-    DFT_MAT4 invView;
-    // View matrix from world space to eye space (mono)
-    DFT_MAT4 view;
-	// Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
-	DFT_MAT4 projectionUnjittered[2];
-	// Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
-	DFT_MAT4 invProjectionUnjittered[2];
+    // The camera transforms for the two eyes (or only first one if mono, of course)
+    _TransformCamera cameras[2];
 };
 
     // <@if 1@>

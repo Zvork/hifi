@@ -1,7 +1,7 @@
-// glsl / C++ compatible source as interface for FadeEffect
+// glsl / C++ compatible source as interface for TransformCamera
 #ifdef __cplusplus
-#   define TC_MAT4 Mat4
-#   define TC_VEC4 Vec4
+#   define TC_MAT4 gpu::Mat4
+#   define TC_VEC4 gpu::Vec4
 #	define TC_MUTABLE mutable
 #else
 #   define TC_MAT4 mat4

@@ -23,16 +23,22 @@ void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
     _transform._viewProjectionState._previousCorrectedView = _transform._viewProjectionState._view;
     _transform._viewProjectionState._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
+    // The current view / proj doesn't correspond to a saved camera slot
+    _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
 }
 
 void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset) {
     memcpy(&_transform._viewProjectionState._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
     _transform._invalidProj = true;
+    // The current view / proj doesn't correspond to a saved camera slot
+    _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
 }
 
 void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
 	_transform._isProjectionJitterEnabled = batch._params[paramOffset]._int != 0;
 	_transform._invalidProj = true;
+    // The current view / proj doesn't correspond to a saved camera slot
+    _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
 }
 
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
@@ -162,6 +168,11 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
         pushCameraBufferElement(stereo, framebufferSize, _cameras);
+        if (_currentSavedTransformSlot != INVALID_SAVED_CAMERA_SLOT) {
+            // Save the offset of the saved camera slot in the camera buffer. Can be used to copy
+            // that data, or (in the future) to reuse the offset.
+            _savedTransforms[_currentSavedTransformSlot]._cameraOffset = offset;
+        }
     }
 
     // Flags are clean
@@ -203,14 +214,16 @@ void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramO
     auto cameraId = batch._params[paramOffset + 0]._uint;
     cameraId = std::min<gpu::uint32>(cameraId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
 
-    _transform._savedTransforms[cameraId] = _transform._viewProjectionState;
+    _transform._savedTransforms[cameraId]._state = _transform._viewProjectionState;
+    _transform._savedTransforms[cameraId]._cameraOffset = INVALID_OFFSET;
 }
 
 void GLBackend::do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) {
     auto cameraId = batch._params[paramOffset + 0]._uint;
     cameraId = std::min<gpu::uint32>(cameraId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
 
-    _transform._viewProjectionState = _transform._savedTransforms[cameraId];
+    _transform._viewProjectionState = _transform._savedTransforms[cameraId]._state;
     _transform._invalidView = true;
     _transform._invalidProj = true;
+    _transform._currentSavedTransformSlot = cameraId;
 }

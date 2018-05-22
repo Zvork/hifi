@@ -246,7 +246,8 @@ protected:
     virtual bool supportsBindless() const { return false;  }
 
     static const size_t INVALID_OFFSET = (size_t)-1;
-    bool _inRenderTransferPass { false };
+    static const uint INVALID_SAVED_CAMERA_SLOT = (uint)-1;
+    bool _inRenderTransferPass{ false };
     int32_t _uboAlignment { 0 };
     int _currentDraw { -1 };
 
@@ -362,9 +363,14 @@ protected:
             bool _viewIsCamera;
         };
 
+        struct SaveTransform {
+            ViewProjectionState _state;
+            size_t _cameraOffset{ INVALID_OFFSET };
+        };
+
         TransformCamera _camera;
         TransformCameras _cameras;
-        std::array<ViewProjectionState, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT> _savedTransforms;
+        std::array<SaveTransform, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT> _savedTransforms;
 
         mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
 
@@ -374,6 +380,7 @@ protected:
         GLuint _objectBufferTexture { 0 };
         size_t _cameraUboSize { 0 };
         ViewProjectionState _viewProjectionState;
+        uint _currentSavedTransformSlot{ INVALID_SAVED_CAMERA_SLOT };
         bool _skybox { false };
         PresentFrame _presentFrame;
         bool _viewCorrectionEnabled{ true };

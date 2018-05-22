@@ -755,6 +755,6 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
 
     // Update previous views of saved transforms
     for (auto& viewProjState : _transform._savedTransforms) {
-        viewProjState._previousCorrectedView = viewProjState._correctedView;
+        viewProjState._state._previousCorrectedView = viewProjState._state._correctedView;
     }
 }
