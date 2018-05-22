@@ -108,8 +108,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_popProfileRange),
 };
 
-std::vector<Vec2> GLBackend::_projectionJitterOffsets;
-
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
@@ -133,20 +131,19 @@ void GLBackend::init() {
         // pool a reasonable parent object
         GLVariableAllocationSupport::TransferJob::startBufferingThread();
 #endif
-
-        _projectionJitterOffsets.reserve(GPU_JITTER_SEQUENCE_LENGTH);
-        // Fill in with jitter samples
-        _projectionJitterOffsets.emplace_back(glm::vec2(0.f));
-        for (int i = 1; i < GPU_JITTER_SEQUENCE_LENGTH; i++) {
-            _projectionJitterOffsets.emplace_back( glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f) );
-        }
     });
 }
 
 GLBackend::GLBackend() {
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
-}
 
+    _jitterOffsets.reserve(GPU_JITTER_SEQUENCE_LENGTH+1);
+    // Fill in with jitter samples
+    for (int i = 0; i < GPU_JITTER_SEQUENCE_LENGTH; i++) {
+        _jitterOffsets.emplace_back(glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f));
+    }
+    _jitterOffsets.emplace_back(glm::vec2(0.f));
+}
 
 GLBackend::~GLBackend() {
     killInput();
@@ -750,9 +747,9 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
 
-    _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % _projectionJitterOffsets.size();
+    _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % GPU_JITTER_SEQUENCE_LENGTH;
     _transform._prevJitterOffset = _transform._jitterOffset;
-    _transform._jitterOffset = _projectionJitterOffsets[_transform._currentProjectionJitterIndex];
+    _transform._jitterOffset = _jitterOffsets[_transform._currentProjectionJitterIndex];
 
     // Update previous views of saved transforms
     for (auto& viewProjState : _transform._savedTransforms) {

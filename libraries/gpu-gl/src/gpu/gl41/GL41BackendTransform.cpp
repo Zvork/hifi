@@ -109,10 +109,6 @@ void GL41Backend::do_copySavedViewProjectionTransformToBuffer(const Batch& batch
     slotId = std::min<gpu::uint32>(slotId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
     const auto& savedTransform = _transform._savedTransforms[slotId];
 
-    if (_stereo.isStereo()) {
-        size *= 2;
-    }
-
     if ((dstOffset + size) > buffer->getBufferCPUMemSize()) {
         qCWarning(gpugllogging) << "Copying saved TransformCamera data out of bounds of uniform buffer";
         size = (size_t)std::max<ptrdiff_t>((ptrdiff_t)buffer->getBufferCPUMemSize() - (ptrdiff_t)dstOffset, 0);

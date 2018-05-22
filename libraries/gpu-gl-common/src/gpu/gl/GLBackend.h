@@ -336,7 +336,7 @@ protected:
         mat4 correctionInverse;
     };
 
-    static std::vector<Vec2> _projectionJitterOffsets;
+    std::vector<Vec2> _jitterOffsets;
 
     struct TransformStageState {
 #ifdef GPU_STEREO_CAMERA_BUFFER
