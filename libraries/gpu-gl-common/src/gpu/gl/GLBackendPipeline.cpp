@@ -36,7 +36,6 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
         _pipeline._pipeline.reset();
 
         _pipeline._program = 0;
-        _pipeline._presentFrameLocation = -1;
         _pipeline._programShader = nullptr;
         _pipeline._invalidProgram = true;
 
@@ -62,7 +61,6 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
             _pipeline._program = glprogram;
             _pipeline._programShader = pipelineObject->_program;
             _pipeline._invalidProgram = true;
-            _pipeline._presentFrameLocation = pipelineObject->_presentFrame;
         }
 
         // Now for the state
@@ -78,16 +76,6 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
     // THis should be done on Pipeline::update...
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
-        if (_pipeline._presentFrameLocation != -1) {
-            gl::GLBuffer* presentFrameBuffer = nullptr;
-            if (_transform._viewCorrectionEnabled) {
-                presentFrameBuffer = syncGPUObject(*_pipeline._presentFrameBuffer._buffer);
-            } else {
-                presentFrameBuffer = syncGPUObject(*_pipeline._presentFrameBufferIdentity._buffer);
-            }
-            glBindBufferRange(GL_UNIFORM_BUFFER, _pipeline._presentFrameLocation, presentFrameBuffer->_id, 0, sizeof(PresentFrame));
-
-        }
         (void) CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
     }

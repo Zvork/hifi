@@ -334,8 +334,6 @@ protected:
     struct PresentFrame {
         mat4 correction;
         mat4 correctionInverse;
-        mat4 prevView;
-        mat4 prevViewInverse;
     };
 
     static std::vector<Vec2> _projectionJitterOffsets;
@@ -456,12 +454,8 @@ protected:
         PipelinePointer _pipeline;
 
         GLuint _program { 0 };
-        GLint _presentFrameLocation { -1 };
         GLShader* _programShader { nullptr };
         bool _invalidProgram { false };
-
-        BufferView _presentFrameBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(PresentFrame), nullptr )) };
-        BufferView _presentFrameBufferIdentity { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(PresentFrame), nullptr )) };
 
         State::Data _stateCache{ State::DEFAULT };
         State::Signature _stateSignatureCache { 0 };
@@ -469,11 +463,7 @@ protected:
         GLState* _state { nullptr };
         bool _invalidState { false };
 
-        PipelineStageState() {
-            _presentFrameBuffer.edit<PresentFrame>() = PresentFrame();
-            _presentFrameBufferIdentity.edit<PresentFrame>() = PresentFrame();
-            _presentFrameBufferIdentity._buffer->flush();
-        }
+        PipelineStageState() {}
     } _pipeline;
 
     // Backend dependant compilation of the shader

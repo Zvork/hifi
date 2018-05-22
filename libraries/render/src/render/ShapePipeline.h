@@ -235,7 +235,6 @@ public:
             MATERIAL,
             TEXMAPARRAY,
             LIGHTING_MODEL,
-            PRESENT_FRAME,
             FRAME_TRANSFORM,
             KEY_LIGHT,
             LIGHT_ARRAY_BUFFER,

@@ -11,6 +11,8 @@
 <@def GPU_TRANSFORM_STATE_SLH@>
 
 <@func declareStandardCameraTransform()@>
+// Protection from multiple declare 
+
 #ifndef GPU_DECLARESTANDARDCAMERATRANSFORM
 #define GPU_DECLARESTANDARDCAMERATRANSFORM
 

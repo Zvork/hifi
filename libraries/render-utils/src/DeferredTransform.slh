@@ -13,18 +13,6 @@
 
 <@func declareDeferredFrameTransform()@>
 
-struct PresentFrame {
-    mat4 _correction;
-    mat4 _correctionInverse;
-    
-    mat4 _prevView;
-    mat4 _prevViewInverse;
-};
- 
-uniform presentFrameBuffer {
-    PresentFrame presentFrame;
-};
-
 <@include DeferredTransform_shared.slh@>
 
 #define DeferredFrameTransform _DeferredFrameTransform

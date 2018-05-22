@@ -144,7 +144,6 @@ void GLBackend::init() {
 }
 
 GLBackend::GLBackend() {
-    _pipeline._presentFrameBuffer._buffer->flush();
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
 }
 
