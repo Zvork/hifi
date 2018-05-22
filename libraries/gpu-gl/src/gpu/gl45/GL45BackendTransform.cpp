@@ -126,11 +126,7 @@ void GL45Backend::do_copySavedViewProjectionTransformToBuffer(const Batch& batch
     // Sync BufferObject
     auto* object = syncGPUObject(*buffer);
     if (object) {
-        glBindBuffer(GL_COPY_READ_BUFFER, _transform._cameraBuffer);
-        glBindBuffer(GL_COPY_WRITE_BUFFER, object->_buffer);
-        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, savedTransform._cameraOffset, dstOffset, size);
-        glBindBuffer(GL_COPY_READ_BUFFER, 0);
-        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+        glCopyNamedBufferSubData(_transform._cameraBuffer, object->_buffer, savedTransform._cameraOffset, dstOffset, size);
         (void)CHECK_GL_ERROR();
     }
 }
