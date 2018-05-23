@@ -265,18 +265,19 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     _params.emplace_back(cacheData(sizeof(Mat4), &proj));
 }
 
-void Batch::setProjectionJitterEnabled(bool pIsEnabled) {
-	_isProjectionJitterEnabled = pIsEnabled;
-	pushProjectionJitterEnabled(_isProjectionJitterEnabled);
+void Batch::setProjectionJitterEnabled(bool pIsProjectionEnabled, bool pIsPreviousProjectionEnabled) {
+    _isJitterOnProjectionEnabled = pIsProjectionEnabled;
+    _isJitterOnPreviousProjectionEnabled = pIsPreviousProjectionEnabled;
+    pushProjectionJitterEnabled(_isJitterOnProjectionEnabled, _isJitterOnPreviousProjectionEnabled);
 }
 
-void Batch::pushProjectionJitterEnabled(bool pIsEnabled) {
+void Batch::pushProjectionJitterEnabled(bool pIsProjectionEnabled, bool pIsPreviousProjectionEnabled) {
 	ADD_COMMAND(setProjectionJitter);
-	_params.emplace_back(pIsEnabled & 1);
+    _params.emplace_back((pIsProjectionEnabled & 1) | ((pIsPreviousProjectionEnabled & 1)<<1));
 }
 
 void Batch::popProjectionJitterEnabled() { 
-    pushProjectionJitterEnabled(_isProjectionJitterEnabled);
+    pushProjectionJitterEnabled(_isJitterOnProjectionEnabled, _isJitterOnPreviousProjectionEnabled);
 }
 
 void Batch::setViewportTransform(const Vec4i& viewport) {

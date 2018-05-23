@@ -170,9 +170,9 @@ public:
     void resetViewTransform() { setViewTransform(Transform(), false); }
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
-	void setProjectionJitterEnabled(bool pIsEnabled);
+    void setProjectionJitterEnabled(bool pIsProjectionEnabled, bool pIsPreviousProjectionEnabled = false);
 	// Very simple 1 level stack management of jitter.
-	void pushProjectionJitterEnabled(bool pIsEnabled);
+    void pushProjectionJitterEnabled(bool pIsProjectionEnabled, bool pIsPreviousProjectionEnabled = false);
 	void popProjectionJitterEnabled();
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
@@ -512,7 +512,8 @@ public:
 
     NamedBatchDataMap _namedData;
 
-	bool _isProjectionJitterEnabled{ false };
+	bool _isJitterOnProjectionEnabled{ false };
+    bool _isJitterOnPreviousProjectionEnabled{ false };
     bool _enableStereo{ true };
     bool _enableSkybox { false };
 

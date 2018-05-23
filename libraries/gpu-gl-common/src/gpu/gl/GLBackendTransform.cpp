@@ -35,7 +35,8 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
 }
 
 void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
-    _transform._isProjectionJitterEnabled = batch._params[paramOffset]._int != 0;
+    _transform._isJitterOnProjectionEnabled = (batch._params[paramOffset]._int & 1) != 0;
+    _transform._isJitterOnPreviousProjectionEnabled = (batch._params[paramOffset]._int & 2) != 0;
     _transform._invalidProj = true;
     // The current view / proj doesn't correspond to a saved camera slot
     _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
@@ -106,9 +107,10 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
                                                              Vec2u framebufferSize,
                                                              TransformCameras& cameras) const {
     const float jitterAmplitude = 1.0f;
-    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
+    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isJitterOnProjectionEnabled & 1)) / Vec2(framebufferSize);
+    const Vec2 prevJitterScale = Vec2(jitterAmplitude * float(_isJitterOnPreviousProjectionEnabled & 1)) / Vec2(framebufferSize);
     const Vec2 jitter = jitterScale * _jitterOffset;
-    const Vec2 previousJitter = jitterScale * _prevJitterOffset;
+    const Vec2 previousJitter = prevJitterScale * _prevJitterOffset;
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
@@ -141,7 +143,7 @@ void GLBackend::preUpdateTransform() {
     if (_output._framebuffer) {
         outputSize.x = _output._framebuffer->getWidth();
         outputSize.y = _output._framebuffer->getHeight();
-    } else if (_transform._isProjectionJitterEnabled) {
+    } else if (_transform._isJitterOnProjectionEnabled || _transform._isJitterOnPreviousProjectionEnabled) {
         qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
     }
 
