@@ -12,7 +12,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 <@include taa.slh@>
 
 in vec2 varTexCoord0;
@@ -28,12 +27,11 @@ void main() {
         return;
     }
 
-    vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
-
     vec3 sourceColor;
     vec3 historyColor;
-    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
 
+    vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
+    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
     vec3 nextColor = sourceColor;
  
     if (taa_constrainColor()) {

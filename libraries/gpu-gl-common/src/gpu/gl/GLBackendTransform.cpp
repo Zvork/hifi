@@ -160,9 +160,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     if (_invalidView) {
         // Apply the correction
         if (_viewProjectionState._viewIsCamera && (_viewCorrectionEnabled && _presentFrame.correction != glm::mat4())) {
-            // FIXME should I switch to using the camera correction buffer in Transform.slf and leave this out?
-            _viewProjectionState._view.mult(_viewProjectionState._correctedView, _viewProjectionState._view,
-                                            _presentFrame.correctionInverse);
+            Transform::mult(_viewProjectionState._correctedView, _viewProjectionState._view, _presentFrame.correctionInverse);
             if (_skybox) {
                 _viewProjectionState._correctedView.setTranslation(vec3());
             }
@@ -227,7 +225,7 @@ void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramO
     _transform._savedTransforms[slotId]._cameraOffset = INVALID_OFFSET;
     _transform._currentSavedTransformSlot = slotId;
     preUpdateTransform();
-    _transform._savedTransforms[slotId]._state = _transform._viewProjectionState;
+    _transform._savedTransforms[slotId]._state.copyExceptPrevious( _transform._viewProjectionState );
 }
 
 void GLBackend::do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) {

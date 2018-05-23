@@ -14,7 +14,7 @@
 
 <@if not GPU_TRANSFORM_STATE_SLH@>
 <@include gpu/Transform.slh@>
-<$declareStandardCameraTransform()$>
+<$declareStandardTransform()$>
 <@endif@>
 
 struct ItemBound {
