@@ -27,9 +27,9 @@
 uniform sampler2D colorMap;
 uniform sampler2D linearDepthMap;
 
-vec4 unpackPositionFromZeye(vec2 texcoord) {
+vec4 unpackPositionFromZeyeAndSide(vec2 texcoord, out int side) {
     float Zeye = -texture(linearDepthMap, texcoord).x;
-    int side = 0;
+    side = 0;
     if (isStereo()) {
         if (texcoord.x > 0.5) {
             texcoord.x -= 0.5;
@@ -48,10 +48,11 @@ void main(void) {
         discard;
     }
 
+    int side;
     vec4 fragColor = texture(colorMap, varTexCoord0);
-    vec4 fragPositionES = unpackPositionFromZeye(varTexCoord0);
+    vec4 fragPositionES = unpackPositionFromZeyeAndSide(varTexCoord0, side);
 
-    mat4 viewInverse = getViewInverse();
+    mat4 viewInverse = getViewInverse(side);
     vec4 fragPositionWS = viewInverse * fragPositionES;
     vec4 eyePositionWS = viewInverse[3];
 

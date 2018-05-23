@@ -42,6 +42,7 @@ struct DeferredFragment {
     vec3 fresnel;
     float roughness;
     int mode;
+    int side;
     float scattering;
     float depthVal;
 };
@@ -54,6 +55,9 @@ vec3 getFresnelF0(float metallic, vec3 metalF0) {
     return mix(vec3(0.03), metalF0, metallic);
 }
 <@endif@>
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
 
 DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
     vec4 normalVal;
@@ -84,9 +88,10 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
 
     frag.fresnel = getFresnelF0(frag.metallic, diffuseVal.xyz);
 
+    frag.side = getStereoSideFromUV(texcoord.x);
+
     return frag;
 }
-
 
 DeferredFragment unpackDeferredFragmentNoPositionNoAmbient(vec2 texcoord) {
     vec4 normalVal;
@@ -111,30 +116,23 @@ DeferredFragment unpackDeferredFragmentNoPositionNoAmbient(vec2 texcoord) {
 
     frag.fresnel = getFresnelF0(frag.metallic, diffuseVal.xyz);
 
+    frag.side = getStereoSideFromUV(texcoord.x);
+
     return frag;
 }
 
-
-<@include DeferredTransform.slh@>
-<$declareDeferredFrameTransform()$>
-
-vec4 unpackDeferredPosition(float depthValue, vec2 texcoord) {
-    int side = 0;
+vec4 unpackDeferredPosition(int side, float depthValue, vec2 texcoord) {
     if (isStereo()) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-            side = 1;
-        }
+        texcoord.x -= 0.5 * float(side);
         texcoord.x *= 2.0;
     }
-
     return vec4(evalEyePositionFromZdb(side, depthValue, texcoord), 1.0);
 }
 
 // This method to unpack position is fastesst
 vec4 unpackDeferredPositionFromZdb(vec2 texcoord) {
     float Zdb = texture(depthMap, texcoord).x;
-	return unpackDeferredPosition(Zdb, texcoord);
+	return unpackDeferredPosition(getStereoSideFromUV(texcoord.x), Zdb, texcoord);
 }
 
 vec4 unpackDeferredPositionFromZeye(vec2 texcoord) {
@@ -157,7 +155,7 @@ DeferredFragment unpackDeferredFragment(vec2 texcoord) {
     DeferredFragment frag = unpackDeferredFragmentNoPosition(texcoord);
 
     frag.depthVal = depthValue;
-    frag.position = unpackDeferredPosition(frag.depthVal, texcoord);
+    frag.position = unpackDeferredPosition(frag.side, frag.depthVal, texcoord);
 
     return frag;
 }

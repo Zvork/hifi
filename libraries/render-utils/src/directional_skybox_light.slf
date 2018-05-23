@@ -38,7 +38,7 @@ void main(void) {
             unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
         }
         vec3 color = evalSkyboxGlobalColor(
-                        getViewInverse(),
+                        getViewInverse(frag.side),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.position.xyz,

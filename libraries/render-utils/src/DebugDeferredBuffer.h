@@ -32,7 +32,7 @@ public:
 
     int mode{ 0 };
     glm::vec4 size{ 0.0f, -1.0f, 1.0f, 1.0f };
-    bool fullscreen{ false };
+
 signals:
     void dirty();
 };
@@ -96,7 +96,6 @@ protected:
 private:
     Mode _mode{ Off };
     glm::vec4 _size;
-    bool _isFullScreen{ false };
 
     struct CustomPipeline {
         gpu::PipelinePointer pipeline;

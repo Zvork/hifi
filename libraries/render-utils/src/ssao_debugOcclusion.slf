@@ -75,7 +75,7 @@ void main(void) {
 
     // Let's make noise 
     //float randomPatternRotationAngle = getAngleDithering(ssC);
-    vec3 wCp = (getViewInverse() * vec4(Cp, 1.0)).xyz;
+    vec3 wCp = (getViewInverse(side.x) * vec4(Cp, 1.0)).xyz;
     float randomPatternRotationAngle = getAngleDitheringWorldPos(wCp);
     
 

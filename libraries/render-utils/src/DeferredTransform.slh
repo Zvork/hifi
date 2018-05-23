@@ -63,20 +63,20 @@ float getPosLinearDepthFar() {
     return -frameTransform.infos.depthInfo.z;
 }
 
-mat4 getViewInverse() {
-    return frameTransform.cameras[0]._viewInverse;
+mat4 getViewInverse(int side) {
+    return frameTransform.cameras[side]._viewInverse;
 }
 
-mat4 getView() {
-    return frameTransform.cameras[0]._view;
+mat4 getView(int side) {
+    return frameTransform.cameras[side]._view;
 }
 
-mat4 getPreviousView() {
-    return frameTransform.cameras[0]._previousView;
+mat4 getPreviousView(int side) {
+    return frameTransform.cameras[side]._previousView;
 }
 
-mat4 getPreviousViewInverse() {
-    return frameTransform.cameras[0]._previousViewInverse;
+mat4 getPreviousViewInverse(int side) {
+    return frameTransform.cameras[side]._previousViewInverse;
 }
 
 bool isStereo() {
@@ -93,6 +93,23 @@ float getStereoSideHeight(int resolutionLevel) {
 
 vec2 getSideImageSize(int resolutionLevel) {
     return vec2(float(int(frameTransform.infos.stereoInfo.y) >> resolutionLevel), float(int(frameTransform.infos.pixelInfo.w) >> resolutionLevel));
+}
+
+int getStereoSideFromPixel(int xPos, int resolutionLevel) {
+    int sideWidth = int(getStereoSideWidth(resolutionLevel));
+    return int(xPos >= sideWidth && isStereo()) & 1;
+}
+
+int getStereoSideFromPixel(int xPos) {
+    return getStereoSideFromPixel(xPos, 0);
+}
+
+int getStereoSideFromFragCoord() {
+    return getStereoSideFromPixel(int(gl_FragCoord.x), 0);
+}
+
+int getStereoSideFromUV(float uPos) {
+    return int(uPos >= 0.5 && isStereo()) & 1;
 }
 
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
