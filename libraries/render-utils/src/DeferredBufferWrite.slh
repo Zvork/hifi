@@ -32,9 +32,16 @@ float evalOpaqueFinalAlpha(float alpha, float mapAlpha) {
 <$declareStandardCameraTransform()$>
 <@endif@>
 
+vec2 getEyeTexcoordPos(ivec2 fragCoord) {
+    vec2 texCoordPos = fragCoord + 0.5;
+    texCoordPos *= cam_getInvWidthHeight();
+    texCoordPos.x -= cam_getStereoSide();
+    return texCoordPos;
+}
+
 vec2 packVelocity(vec4 prevPositionCS) {
     // UVs are local to each eye
-    vec2 uv = cam_getEyeTexcoordPos(gl_FragCoord.xy);
+    vec2 uv = getEyeTexcoordPos(ivec2(gl_FragCoord.xy));
     vec2 prevUV =  0.5 * (prevPositionCS.xy / prevPositionCS.w) + vec2(0.5);
 
     vec2 deltaUV = uv - prevUV;

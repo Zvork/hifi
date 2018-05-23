@@ -79,6 +79,14 @@ mat4 getPreviousViewInverse(int side) {
     return frameTransform.cameras[side]._previousViewInverse;
 }
 
+vec2 getJitterUV(int side) {
+    return frameTransform.cameras[side]._jitterUV.xy;
+}
+
+vec2 getPreviousJitterUV(int side) {
+    return frameTransform.cameras[side]._jitterUV.zw;
+}
+
 bool isStereo() {
     return frameTransform.infos.stereoInfo.x > 0.0f;
 }

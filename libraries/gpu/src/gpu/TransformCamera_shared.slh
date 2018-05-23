@@ -21,6 +21,7 @@ struct _TransformCamera {
     TC_MUTABLE TC_MAT4 _previousProjectionViewUntranslated;
     TC_VEC4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
     TC_MUTABLE TC_VEC4 _stereoInfo;
+    TC_MUTABLE TC_VEC4 _jitterUV; // xy has current frame jitter and zw previous frame jitter
 };
 
     // <@if 1@>

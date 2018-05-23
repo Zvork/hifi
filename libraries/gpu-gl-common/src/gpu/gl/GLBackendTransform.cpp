@@ -105,7 +105,8 @@ void GLBackend::syncTransformStateCache() {
 void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo,
                                                              Vec2u framebufferSize,
                                                              TransformCameras& cameras) const {
-    const Vec2 jitterScale = Vec2(float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
+    const float jitterAmplitude = 1.0f;
+    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isProjectionJitterEnabled & 1)) / Vec2(framebufferSize);
     const Vec2 jitter = jitterScale * _jitterOffset;
     const Vec2 previousJitter = jitterScale * _prevJitterOffset;
 

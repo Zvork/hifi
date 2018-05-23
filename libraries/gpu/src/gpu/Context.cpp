@@ -244,11 +244,13 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
     // We suppose that the projection, except for jitter, hasn't changed from previous frame
     result._previousProjection = result._projection;
 
+    result._jitterUV = Vec4(normalizedJitter, normalizedPrevJitter);
+
     // Apply jitter to projections
     normalizedJitter.x *= 2.0f;
+    normalizedPrevJitter.x *= 2.0f;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    normalizedPrevJitter.x *= 2.0f;
     result._previousProjection[2][0] += normalizedPrevJitter.x;
     result._previousProjection[2][1] += normalizedPrevJitter.y;
 
@@ -271,6 +273,7 @@ Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform
     result.recomputeDerived(view, previousView);
 
     result._stereoInfo = Vec4(0.0f, 0.0f, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
+    result._jitterUV = Vec4(normalizedJitter, normalizedPrevJitter);
     return result;
 }
 

@@ -104,11 +104,12 @@ vec2 cam_getInvWidthHeight() {
     return getTransformCamera()._stereoInfo.zw;
 }
 
-vec2 cam_getEyeTexcoordPos(in vec2 glFragCoord) {
-    vec2 texCoordPos = glFragCoord.xy + vec2(0.5);
-    texCoordPos *= cam_getInvWidthHeight();
-    texCoordPos.x -= cam_getStereoSide();
-    return texCoordPos;
+vec2 cam_getJitterUV() {
+    return getTransformCamera()._jitterUV.xy;
+}
+
+vec2 cam_getPreviousJitterUV() {
+    return getTransformCamera()._jitterUV.zw;
 }
 
 #endif

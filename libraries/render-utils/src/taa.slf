@@ -11,6 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#define TAA_UNJITTER_UV
 
 <@include taa.slh@>
 
@@ -29,6 +30,16 @@ void main() {
 
     vec3 sourceColor;
     vec3 historyColor;
+
+    // Unjitter UV
+#ifdef TAA_UNJITTER_UV
+    {
+        int stereoSide = 0;
+        vec2 eyeUV = taa_fromFragUVToEyeUVAndSide(fragUV, stereoSide);
+        eyeUV -= getJitterUV(stereoSide);
+        fragUV = taa_fromEyeUVToFragUV(eyeUV, stereoSide);
+    }
+#endif
 
     vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
     vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);

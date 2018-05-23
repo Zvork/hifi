@@ -436,7 +436,6 @@ vec3 taa_evalFeedbackColor(vec3 sourceColor, vec3 historyColor, float blendFacto
 	float unbiased_weight_sqr = unbiased_weight * unbiased_weight;
 	float k_feedback = mix(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
 
-    
     vec3 nextColor =  mix(historyColor, sourceColor, k_feedback * blendFactor).xyz;
     return nextColor;
 }
