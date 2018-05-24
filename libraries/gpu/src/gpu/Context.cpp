@@ -225,7 +225,18 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
 
     viewUntranslated = _previousView;
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    _previousProjectionViewUntranslated = _previousProjection * viewUntranslated;
+    // We suppose that the projection, including jitter, hasn't changed from previous frame
+    // This may sound counter-intuitive to use the same jitter value but in fact it is needed.
+    // Think of it this way:
+    // If we have no velocity (no camera or object movement) then we wish to reproject to exactly
+    // the same pixel value. The current pixel UV when computing the motion vectoris trivially computed
+    // from the fragment coordinates but the previous UV is computed conceptually with an unjittered
+    // projection * previous view matrix in the vertex shader and sent to the fragment to write in the
+    // motion vector as an interpolated attribute. But since the current projection * view matrix is
+    // jittered, the effectively rasterized interpolated previous UV will be slightly offset. That offset
+    // is exactly the jitter amount. So we add that jitter amount to the projection in the projection * previous
+    // view matrix computation. Hope this makes sense.
+    _previousProjectionViewUntranslated = _projection * viewUntranslated;
 
     _stereoInfo = Vec4(0.0f);
 
@@ -234,7 +245,7 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
 
 Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, 
                                                                 const Transform& view, const Transform& previousView, 
-                                                                Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const {
+                                                                Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     Transform eyeView = view;
     Transform eyePreviousView = previousView;
@@ -245,18 +256,11 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
-    // We suppose that the projection, except for jitter, hasn't changed from previous frame
-    result._previousProjection = result._projection;
-
-    result._jitterUV = Vec4(normalizedJitter, normalizedPrevJitter);
 
     // Apply jitter to projections
     normalizedJitter.x *= 2.0f;
-    normalizedPrevJitter.x *= 2.0f;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    result._previousProjection[2][0] += normalizedPrevJitter.x;
-    result._previousProjection[2][1] += normalizedPrevJitter.y;
 
     result.recomputeDerived(eyeView, eyePreviousView);
 
@@ -266,18 +270,13 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
 }
 
 Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& view, const Transform& previousView, 
-                                                                 Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const {
+                                                                 Vec2 normalizedJitter) const {
     TransformCamera result = *this;
-    // We suppose that the projection, except for jitter, hasn't changed from previous frame
-    result._previousProjection = result._projection;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    result._previousProjection[2][0] += normalizedPrevJitter.x;
-    result._previousProjection[2][1] += normalizedPrevJitter.y;
     result.recomputeDerived(view, previousView);
 
     result._stereoInfo = Vec4(0.0f, 0.0f, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
-    result._jitterUV = Vec4(normalizedJitter, normalizedPrevJitter);
     return result;
 }
 

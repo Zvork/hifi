@@ -256,7 +256,9 @@ static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
 
 static const std::string DEFAULT_VELOCITY_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec2(texture(velocityMap, uv).xy)*10 + vec2(0.5), 0.0, 1.0);"
+    "    vec2 velocity = texture(velocityMap, uv).xy * getWidthHeight(0);"
+    "    vec4 velColor = vec4(velocity/10 + 0.5, 0.0, 1.0);"
+    "    return dot(velocity,velocity)>1e-3 ? velColor : vec4(0,0,1,0);"
     "}"
 };
 

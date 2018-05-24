@@ -48,9 +48,9 @@ void DeferredFramebuffer::allocate() {
     _deferredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("deferred"));
     _deferredFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create("deferredDepthColor"));
 
-    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-    auto linearFormat = gpu::Element::COLOR_RGBA_32;
-    auto halfFormat = gpu::Element{ gpu::VEC2, gpu::HALF, gpu::XY };
+    const auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+    const auto linearFormat = gpu::Element::COLOR_RGBA_32;
+    const auto halfFormat = gpu::Element{ gpu::VEC2, gpu::HALF, gpu::XY };
     auto width = _frameSize.x;
     auto height = _frameSize.y;
 

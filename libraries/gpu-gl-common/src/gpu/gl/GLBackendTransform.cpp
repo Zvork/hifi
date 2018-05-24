@@ -36,7 +36,6 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
 
 void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
     _transform._isJitterOnProjectionEnabled = (batch._params[paramOffset]._int & 1) != 0;
-    _transform._isJitterOnPreviousProjectionEnabled = (batch._params[paramOffset]._int & 2) != 0;
     _transform._invalidProj = true;
     // The current view / proj doesn't correspond to a saved camera slot
     _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
@@ -106,33 +105,31 @@ void GLBackend::syncTransformStateCache() {
 void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo,
                                                              Vec2u framebufferSize,
                                                              TransformCameras& cameras) const {
-    const float jitterAmplitude = 1.0f;
+    const float jitterAmplitude = 2.0f; // One pixel amplitude but since clip space is between -1 and 1...
     const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isJitterOnProjectionEnabled & 1)) / Vec2(framebufferSize);
-    const Vec2 prevJitterScale = Vec2(jitterAmplitude * float(_isJitterOnPreviousProjectionEnabled & 1)) / Vec2(framebufferSize);
     const Vec2 jitter = jitterScale * _jitterOffset;
-    const Vec2 previousJitter = prevJitterScale * _prevJitterOffset;
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         cameras.push_back(
             CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView,
-                                                     _viewProjectionState._previousCorrectedView, jitter, previousJitter),
+                                                     _viewProjectionState._previousCorrectedView, jitter),
                                 _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView,
-                                                     _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
+                                                     _viewProjectionState._previousCorrectedView, jitter)));
 #else
         cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView,
-                                                _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
+                                                _viewProjectionState._previousCorrectedView, jitter)));
         cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView,
-                                                _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
+                                                _viewProjectionState._previousCorrectedView, jitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         cameras.push_back(
             CameraBufferElement(_camera.getMonoCamera(_viewProjectionState._correctedView,
-                                                      _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
+                                                      _viewProjectionState._previousCorrectedView, jitter)));
 #else
         cameras.push_back((_camera.getMonoCamera(_viewProjectionState._correctedView,
-                                                 _viewProjectionState._previousCorrectedView, jitter, previousJitter)));
+                                                 _viewProjectionState._previousCorrectedView, jitter)));
 #endif
     }
 }
@@ -143,7 +140,7 @@ void GLBackend::preUpdateTransform() {
     if (_output._framebuffer) {
         outputSize.x = _output._framebuffer->getWidth();
         outputSize.y = _output._framebuffer->getHeight();
-    } else if (_transform._isJitterOnProjectionEnabled || _transform._isJitterOnPreviousProjectionEnabled) {
+    } else if (_transform._isJitterOnProjectionEnabled) {
         qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
     }
 

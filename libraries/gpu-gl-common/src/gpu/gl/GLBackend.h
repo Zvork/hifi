@@ -394,7 +394,6 @@ protected:
         Vec2 _prevJitterOffset{ 0.0f };
         int _currentProjectionJitterIndex{ 0 };
         bool _isJitterOnProjectionEnabled{ false };
-        bool _isJitterOnPreviousProjectionEnabled{ false };
         bool _invalidView{ false };
         bool _invalidProj{ false };
         bool _invalidViewport{ false };

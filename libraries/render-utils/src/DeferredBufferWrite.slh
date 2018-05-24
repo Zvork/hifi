@@ -40,12 +40,10 @@ vec2 getEyeTexcoordPos(ivec2 fragCoord) {
 }
 
 vec2 packVelocity(vec4 prevPositionCS) {
-    // UVs are local to each eye
     vec2 uv = getEyeTexcoordPos(ivec2(gl_FragCoord.xy));
-    vec2 prevUV =  0.5 * (prevPositionCS.xy / prevPositionCS.w) + vec2(0.5);
-
+    vec2 prevUV =  (prevPositionCS.xy / prevPositionCS.w)*0.5 + 0.5;
     vec2 deltaUV = uv - prevUV;
-
+    // Velocity should be computed without any jitter inside.
     return deltaUV;
 }
 
@@ -84,6 +82,7 @@ void packDeferredFragmentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, ve
     _fragColor0 = vec4(color, packUnlit());
     _fragColor1 = vec4(packNormal(normal), 1.0);
     _fragColor3 = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+
     _lighting = vec4(color, 1.0);
 }
 

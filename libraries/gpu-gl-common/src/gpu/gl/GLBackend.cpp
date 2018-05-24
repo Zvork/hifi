@@ -273,7 +273,6 @@ void GLBackend::render(const Batch& batch) {
     }
 	// Reset jitter
     _transform._isJitterOnProjectionEnabled = false;
-    _transform._isJitterOnPreviousProjectionEnabled = false;
     
     {
         PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
