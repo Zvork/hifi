@@ -29,23 +29,24 @@ class QDebug;
 #define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
 
-enum ReservedSlot {
+enum ReservedSlot
+{
     TRANSFORM_CAMERA_SLOT = 15,
 };
 
-// The named batch data provides a mechanism for accumulating data into buffers over the course 
-// of many independent calls.  For instance, two objects in the scene might both want to render 
+// The named batch data provides a mechanism for accumulating data into buffers over the course
+// of many independent calls.  For instance, two objects in the scene might both want to render
 // a simple box, but are otherwise unaware of each other.  The common code that they call to render
-// the box can create buffers to store the rendering parameters for each box and register a function 
-// that will be called with the accumulated buffer data when the batch commands are finally 
+// the box can create buffers to store the rendering parameters for each box and register a function
+// that will be called with the accumulated buffer data when the batch commands are finally
 // executed against the backend
-
 
 class Batch {
 public:
     typedef Stream::Slot Slot;
 
-    enum {
+    enum
+    {
         MAX_TRANSFORM_SAVE_SLOT_COUNT = 4
     };
 
@@ -55,9 +56,8 @@ public:
 
         DrawCallInfo(Index idx) : index(idx) {}
 
-        Index index { 0 };
-        uint16_t unused { 0 }; // Reserved space for later
-
+        Index index{ 0 };
+        uint16_t unused{ 0 };  // Reserved space for later
     };
     // Make sure DrawCallInfo has no extra padding
     static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
@@ -104,23 +104,31 @@ public:
     void clear();
 
     // Batches may need to override the context level stereo settings
-    // if they're performing framebuffer copy operations, like the 
+    // if they're performing framebuffer copy operations, like the
     // deferred lighting resolution mechanism
     void enableStereo(bool enable = true);
     bool isStereoEnabled() const;
 
-    // Stereo batches will pre-translate the view matrix, but this isn't 
-    // appropriate for skyboxes or other things intended to be drawn at 
-    // infinite distance, so provide a mechanism to render in stereo 
-    // without the pre-translation of the view.  
+    // Stereo batches will pre-translate the view matrix, but this isn't
+    // appropriate for skyboxes or other things intended to be drawn at
+    // infinite distance, so provide a mechanism to render in stereo
+    // without the pre-translation of the view.
     void enableSkybox(bool enable = true);
     bool isSkyboxEnabled() const;
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
     void drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0);
-    void drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0, uint32 startInstance = 0);
-    void drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+    void drawInstanced(uint32 numInstances,
+                       Primitive primitiveType,
+                       uint32 numVertices,
+                       uint32 startVertex = 0,
+                       uint32 startInstance = 0);
+    void drawIndexedInstanced(uint32 numInstances,
+                              Primitive primitiveType,
+                              uint32 numIndices,
+                              uint32 startIndex = 0,
+                              uint32 startInstance = 0);
     void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
@@ -134,33 +142,34 @@ public:
     void setInputFormat(const Stream::FormatPointer& format);
 
     void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
-    void setInputBuffer(Slot channel, const BufferView& buffer); // not a command, just a shortcut from a BufferView
-    void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
+    void setInputBuffer(Slot channel, const BufferView& buffer);  // not a command, just a shortcut from a BufferView
+    void setInputStream(Slot startChannel,
+                        const BufferStream& stream);  // not a command, just unroll into a loop of setInputBuffer
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
-    void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
+    void setIndexBuffer(const BufferView& buffer);  // not a command, just a shortcut from a BufferView
 
     // Indirect buffer is used by the multiDrawXXXIndirect calls
     // The indirect buffer contains the command descriptions to execute multiple drawcalls in a single call
     void setIndirectBuffer(const BufferPointer& buffer, Offset offset = 0, Offset stride = 0);
-    
+
     // multi command desctription for multiDrawIndexedIndirect
     class DrawIndirectCommand {
     public:
-        uint  _count{ 0 };
-        uint  _instanceCount{ 0 };
-        uint  _firstIndex{ 0 };
-        uint  _baseInstance{ 0 };
+        uint _count{ 0 };
+        uint _instanceCount{ 0 };
+        uint _firstIndex{ 0 };
+        uint _baseInstance{ 0 };
     };
 
     // multi command desctription for multiDrawIndexedIndirect
     class DrawIndexedIndirectCommand {
     public:
-        uint  _count{ 0 };
-        uint  _instanceCount{ 0 };
-        uint  _firstIndex{ 0 };
-        uint  _baseVertex{ 0 };
-        uint  _baseInstance{ 0 };
+        uint _count{ 0 };
+        uint _instanceCount{ 0 };
+        uint _firstIndex{ 0 };
+        uint _baseVertex{ 0 };
+        uint _baseInstance{ 0 };
     };
 
     // Transform Stage
@@ -174,9 +183,10 @@ public:
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
     void setProjectionJitterEnabled(bool pIsProjectionEnabled);
-	// Very simple 1 level stack management of jitter.
+    void setProjectionJitterSequence(const Vec2* pSequence, size_t pCount);
+    // Very simple 1 level stack management of jitter.
     void pushProjectionJitterEnabled(bool pIsProjectionEnabled);
-	void popProjectionJitterEnabled();
+    void popProjectionJitterEnabled();
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
     void setDepthRangeTransform(float nearDepth, float farDepth);
@@ -195,14 +205,18 @@ public:
     void setStateScissorRect(const Vec4i& rect);
 
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
-    void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
+    void setUniformBuffer(uint32 slot, const BufferView& view);  // not a command, just a shortcut from a BufferView
 
     void setResourceBuffer(uint32 slot, const BufferPointer& buffer);
 
     void setResourceTexture(uint32 slot, const TexturePointer& texture);
-    void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+    void setResourceTexture(uint32 slot, const TextureView& view);  // not a command, just a shortcut from a TextureView
     void setResourceTextureTable(const TextureTablePointer& table, uint32 slot = 0);
-    void setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swpaChainIndex, unsigned int renderBufferSlot = 0U); // not a command, just a shortcut from a TextureView
+    void setResourceFramebufferSwapChainTexture(
+        uint32 slot,
+        const FramebufferSwapChainPointer& framebuffer,
+        unsigned int swpaChainIndex,
+        unsigned int renderBufferSlot = 0U);  // not a command, just a shortcut from a TextureView
 
     // Ouput Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
@@ -214,10 +228,22 @@ public:
     // Targets can be any of the render buffers contained in the currnetly bound Framebuffer
     // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
     void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
-    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
-    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
-    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
-    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
+    void clearColorFramebuffer(
+        Framebuffer::Masks targets,
+        const Vec4& color,
+        bool enableScissor =
+            false);  // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(
+        float depth,
+        bool enableScissor = false);  // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(
+        int stencil,
+        bool enableScissor = false);  // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(
+        float depth,
+        int stencil,
+        bool enableScissor =
+            false);  // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
 
     // Blit src framebuffer to destination
     // the srcRect and dstRect are the rect region in source and destination framebuffers expressed in pixel space
@@ -246,7 +272,7 @@ public:
     void popProfileRange();
 
     // TODO: As long as we have gl calls explicitely issued from interface
-    // code, we need to be able to record and batch these calls. THe long 
+    // code, we need to be able to record and batch these calls. THe long
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
     // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
@@ -261,29 +287,17 @@ public:
     void _glUniformMatrix3fv(int location, int count, unsigned char transpose, const float* value);
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
-    void _glUniform(int location, int v0) {
-        _glUniform1i(location, v0);
-    }
+    void _glUniform(int location, int v0) { _glUniform1i(location, v0); }
 
-    void _glUniform(int location, float v0) {
-        _glUniform1f(location, v0);
-    }
+    void _glUniform(int location, float v0) { _glUniform1f(location, v0); }
 
-    void _glUniform(int location, const glm::vec2& v) {
-        _glUniform2f(location, v.x, v.y);
-    }
+    void _glUniform(int location, const glm::vec2& v) { _glUniform2f(location, v.x, v.y); }
 
-    void _glUniform(int location, const glm::vec3& v) {
-        _glUniform3f(location, v.x, v.y, v.z);
-    }
+    void _glUniform(int location, const glm::vec3& v) { _glUniform3f(location, v.x, v.y, v.z); }
 
-    void _glUniform(int location, const glm::vec4& v) {
-        _glUniform4f(location, v.x, v.y, v.z, v.w);
-    }
+    void _glUniform(int location, const glm::vec4& v) { _glUniform4f(location, v.x, v.y, v.z, v.w); }
 
-    void _glUniform(int location, const glm::mat3& v) {
-        _glUniformMatrix3fv(location, 1, false, glm::value_ptr(v));
-    }
+    void _glUniform(int location, const glm::mat3& v) { _glUniformMatrix3fv(location, 1, false, glm::value_ptr(v)); }
 
     void _glColor4f(float red, float green, float blue, float alpha);
 
@@ -291,7 +305,8 @@ public:
     // Well porting to gles i need it...
     void runLambda(std::function<void()> f);
 
-    enum Command {
+    enum Command
+    {
         COMMAND_draw = 0,
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
@@ -308,6 +323,7 @@ public:
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
         COMMAND_setProjectionJitter,
+        COMMAND_setProjectionJitterSequence,
         COMMAND_setViewportTransform,
         COMMAND_setDepthRangeTransform,
 
@@ -351,7 +367,7 @@ public:
         COMMAND_stopNamedCall,
 
         // TODO: As long as we have gl calls explicitely issued from interface
-        // code, we need to be able to record and batch these calls. THe long 
+        // code, we need to be able to record and batch these calls. THe long
         // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
         COMMAND_glUniform1i,
         COMMAND_glUniform1f,
@@ -382,7 +398,7 @@ public:
         union {
 #if (QT_POINTER_SIZE == 8)
             size_t _size;
-#endif            
+#endif
             int32 _int;
             uint32 _uint;
             float _float;
@@ -390,7 +406,7 @@ public:
         };
 #if (QT_POINTER_SIZE == 8)
         Param(size_t val) : _size(val) {}
-#endif            
+#endif
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
@@ -412,16 +428,11 @@ public:
 
         class Vector {
         public:
-            std::vector< Cache<T> > _items;
+            std::vector<Cache<T>> _items;
 
-            Vector() {
-                _items.reserve(_max);
-            }
+            Vector() { _items.reserve(_max); }
 
-            ~Vector() {
-                _max = std::max(_items.size(), _max);
-            }
-
+            ~Vector() { _max = std::max(_items.size(), _max); }
 
             size_t size() const { return _items.size(); }
             size_t cache(const Data& data) {
@@ -438,9 +449,7 @@ public:
                 return (_items.data() + offset)->_data;
             }
 
-            void clear() {
-                _items.clear();
-            }
+            void clear() { _items.clear(); }
         };
     };
 
@@ -495,7 +504,7 @@ public:
     };
 
     using TransformObjects = std::vector<TransformObject>;
-    bool _invalidModel { true };
+    bool _invalidModel{ true };
     Transform _currentModel;
     TransformObjects _objects;
     static size_t _objectsMax;
@@ -515,9 +524,9 @@ public:
 
     NamedBatchDataMap _namedData;
 
-	bool _isJitterOnProjectionEnabled{ false };
+    bool _isJitterOnProjectionEnabled{ false };
     bool _enableStereo{ true };
-    bool _enableSkybox { false };
+    bool _enableSkybox{ false };
 
 protected:
     const char* _name;
@@ -537,21 +546,19 @@ protected:
     void startNamedCall(const std::string& name);
     void stopNamedCall();
 
-
-
     void captureDrawCallInfoImpl();
 };
 
 template <typename T>
 size_t Batch::Cache<T>::_max = BATCH_PREALLOCATE_MIN;
 
-}
+}  // namespace gpu
 
 #if defined(NSIGHT_FOUND)
 
 class ProfileRangeBatch {
 public:
-    ProfileRangeBatch(gpu::Batch& batch, const char *name);
+    ProfileRangeBatch(gpu::Batch& batch, const char* name);
     ~ProfileRangeBatch();
 
 private:
@@ -562,7 +569,7 @@ private:
 
 #else
 
-#define PROFILE_RANGE_BATCH(batch, name) 
+#define PROFILE_RANGE_BATCH(batch, name)
 
 #endif
 

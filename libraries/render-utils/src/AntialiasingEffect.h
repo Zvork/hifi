@@ -19,14 +19,14 @@
 #include "DeferredFrameBuffer.h"
 #include "SurfaceGeometryPass.h"
 
-class JitterSampleConfig : public render::Job::Config {
+class AntialiasingSetupConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float scale MEMBER scale NOTIFY dirty)
         Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
         Q_PROPERTY(bool stop MEMBER stop NOTIFY dirty)
         Q_PROPERTY(int index READ getIndex NOTIFY dirty)
 public:
-    JitterSampleConfig() : render::Job::Config(true) {}
+    AntialiasingSetupConfig() : render::Job::Config(true) {}
 
     float scale{ 0.5f };
     bool stop{ false };
@@ -53,34 +53,23 @@ private:
 
 };
 
-
-class JitterSample {
+class AntialiasingSetup {
 public:
 
-    enum {
-        SEQUENCE_LENGTH = 64 
-    };
+    using Config = AntialiasingSetupConfig;
+    using JobModel = render::Job::Model<AntialiasingSetup, Config>;
 
-    using Config = JitterSampleConfig;
-    using Output = glm::vec2;
-    using JobModel = render::Job::ModelO<JitterSample, Output, Config>;
-
+    AntialiasingSetup();
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, Output& jitter);
+    void run(const render::RenderContextPointer& renderContext);
 
 private:
 
-    struct SampleSequence {
-        SampleSequence();
-
-        glm::vec2 offsets[SEQUENCE_LENGTH + 1];
-        int sequenceLength{ SEQUENCE_LENGTH };
-        int currentIndex{ 0 };
-    };
-
-    SampleSequence _sampleSequence;
-    float _scale{ 1.0 };
-    bool _freeze{ false };
+    std::vector<glm::vec2> _sampleSequence;
+    float _scale{ 1.0f };
+    int _freezedSampleIndex{ 0 };
+    bool _isStopped{ false };
+    bool _isFrozen{ false };
 };
 
 

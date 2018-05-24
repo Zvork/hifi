@@ -25,12 +25,8 @@
 #include "GLTexture.h"
 #include "GLShader.h"
 
-#include "RandomAndNoise.h"
-
 using namespace gpu;
 using namespace gpu::gl;
-
-#define GPU_JITTER_SEQUENCE_LENGTH	16
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -50,6 +46,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setViewTransform),
     (&::gpu::gl::GLBackend::do_setProjectionTransform),
     (&::gpu::gl::GLBackend::do_setProjectionJitter),
+    (&::gpu::gl::GLBackend::do_setProjectionJitterSequence),
     (&::gpu::gl::GLBackend::do_setViewportTransform),
     (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
@@ -131,13 +128,6 @@ void GLBackend::init() {
 
 GLBackend::GLBackend() {
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
-
-    _jitterOffsets.reserve(GPU_JITTER_SEQUENCE_LENGTH+1);
-    // Fill in with jitter samples
-    for (int i = 0; i < GPU_JITTER_SEQUENCE_LENGTH; i++) {
-        _jitterOffsets.emplace_back(glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f));
-    }
-    _jitterOffsets.emplace_back(glm::vec2(0.f));
 }
 
 GLBackend::~GLBackend() {
@@ -192,6 +182,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewTransform:
 				case Batch::COMMAND_setProjectionTransform:
                 case Batch::COMMAND_setProjectionJitter:
+                case Batch::COMMAND_setProjectionJitterSequence:
                 case Batch::COMMAND_saveViewProjectionTransform:
                 case Batch::COMMAND_setSavedViewProjectionTransform:
                 {
@@ -233,6 +224,8 @@ void GLBackend::renderPassDraw(const Batch& batch) {
             case Batch::COMMAND_setProjectionTransform:
             case Batch::COMMAND_saveViewProjectionTransform:
             case Batch::COMMAND_setSavedViewProjectionTransform:
+            case Batch::COMMAND_setProjectionJitterSequence:
+            case Batch::COMMAND_copySavedViewProjectionTransformToBuffer:
                 break;
 
             case Batch::COMMAND_draw:
@@ -742,9 +735,11 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
 
-    _transform._currentProjectionJitterIndex = (_transform._currentProjectionJitterIndex + 1) % GPU_JITTER_SEQUENCE_LENGTH;
     _transform._prevJitterOffset = _transform._jitterOffset;
-    _transform._jitterOffset = _jitterOffsets[_transform._currentProjectionJitterIndex];
+    _transform._currentProjectionJitterIndex++;
+    if (!_jitterOffsets.empty()) {
+        _transform._currentProjectionJitterIndex = _transform._currentProjectionJitterIndex  % _jitterOffsets.size();
+    }
 
     // Update previous views of saved transforms
     for (auto& viewProjState : _transform._savedTransforms) {

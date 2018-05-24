@@ -24,6 +24,9 @@
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
 #include "FramebufferCache.h"
+#include "RandomAndNoise.h"
+
+#define TAA_JITTER_SEQUENCE_LENGTH 16
 
 #define ANTIALIASING_USE_TAA    1
 
@@ -382,16 +385,19 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_NextMapSlot, nullptr);
+
+        // Reset jitter sequence
+        batch.setProjectionJitterSequence(nullptr, 0);
     });
 }
 
 
-void JitterSampleConfig::setIndex(int current) {
-    _index = (current) % JitterSample::SEQUENCE_LENGTH;    
+void AntialiasingSetupConfig::setIndex(int current) {
+    _index = (current) % TAA_JITTER_SEQUENCE_LENGTH;    
     emit dirty();
 }
 
-int JitterSampleConfig::cycleStopPauseRun() {
+int AntialiasingSetupConfig::cycleStopPauseRun() {
     _state = (_state + 1) % 3;
     switch (_state) {
         case 0: {
@@ -411,17 +417,17 @@ int JitterSampleConfig::cycleStopPauseRun() {
     return _state;
 }
 
-int JitterSampleConfig::prev() {
+int AntialiasingSetupConfig::prev() {
     setIndex(_index - 1);
     return _index;
 }
 
-int JitterSampleConfig::next() {
+int AntialiasingSetupConfig::next() {
     setIndex(_index + 1);
     return _index;
 }
 
-int JitterSampleConfig::none() {
+int AntialiasingSetupConfig::none() {
     _state = 0;
     stop = true;
     freeze = false;
@@ -429,7 +435,7 @@ int JitterSampleConfig::none() {
     return _state;
 }
 
-int JitterSampleConfig::pause() {
+int AntialiasingSetupConfig::pause() {
     _state = 1;
     stop = false;
     freeze = true;
@@ -437,8 +443,7 @@ int JitterSampleConfig::pause() {
     return _state;
 }
 
-
-int JitterSampleConfig::play() {
+int AntialiasingSetupConfig::play() {
     _state = 2;
     stop = false;
     freeze = false;
@@ -446,68 +451,31 @@ int JitterSampleConfig::play() {
     return _state;
 }
 
-template <int B> 
-class Halton {
-public:
-
-    float eval(int index) const {
-        float f = 1.0f;
-        float r = 0.0f;
-        float invB = 1.0f / (float)B;
-        index++; // Indices start at 1, not 0
-
-        while (index > 0) {
-            f = f * invB;
-            r = r + f * (float)(index % B);
-            index = index / B;
-
-        }
-
-        return r;
+AntialiasingSetup::AntialiasingSetup() {
+    _sampleSequence.reserve(TAA_JITTER_SEQUENCE_LENGTH + 1);
+    // Fill in with jitter samples
+    for (int i = 0; i < TAA_JITTER_SEQUENCE_LENGTH; i++) {
+        _sampleSequence.emplace_back(glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i)) - vec2(0.5f));
     }
-
-};
-
-
-JitterSample::SampleSequence::SampleSequence(){
-    // Halton sequence (2,3)
-    Halton<2> genX;
-    Halton<3> genY;
-
-    for (int i = 0; i < SEQUENCE_LENGTH; i++) {
-        offsets[i] = glm::vec2(genX.eval(i), genY.eval(i));
-        offsets[i] -= vec2(0.5f);
-    }
-    offsets[SEQUENCE_LENGTH] = glm::vec2(0.0f);
 }
 
-void JitterSample::configure(const Config& config) {
-    _freeze = config.stop || config.freeze;
+void AntialiasingSetup::configure(const Config& config) {
+    _isStopped = config.stop;
+    _isFrozen = config.freeze;
     if (config.freeze) {
-        auto pausedIndex = config.getIndex();
-        if (_sampleSequence.currentIndex != pausedIndex) {
-            _sampleSequence.currentIndex = pausedIndex;
-        }
-    } else if (config.stop) {
-        _sampleSequence.currentIndex = -1;
+        _freezedSampleIndex = config.getIndex();
     }
     _scale = config.scale;
 }
 
-void JitterSample::run(const render::RenderContextPointer& renderContext, Output& jitter) {
-    auto& current = _sampleSequence.currentIndex;
-    if (!_freeze) {
-        if (current >= 0) {
-            current = (current + 1) % SEQUENCE_LENGTH;
-        } else {
-            current = -1;
-        }
-    }
+void AntialiasingSetup::run(const render::RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    if (!_isStopped) {
+        RenderArgs* args = renderContext->args;
 
-    jitter.x = 0.0f;
-    jitter.y = 0.0f;
-    if (current >= 0) {
-        jitter = _sampleSequence.offsets[current];
+        gpu::doInBatch("AntialiasingSetup::run", args->_context, [&](gpu::Batch& batch) {
+            batch.setProjectionJitterSequence(_sampleSequence.data(), _sampleSequence.size());
+        });
     }
 }
 

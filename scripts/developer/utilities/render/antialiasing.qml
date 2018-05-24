@@ -49,10 +49,10 @@ Rectangle {
                     onClicked: {
                         var onOff = !Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff;
                          if (onOff) {
-                            Render.getConfig("RenderMainView.JitterCam").none();
+                            Render.getConfig("RenderMainView.AntialiasingSetup").none();
                             Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = true;
                          } else {
-                            Render.getConfig("RenderMainView.JitterCam").play();
+                            Render.getConfig("RenderMainView.AntialiasingSetup").play();
                             Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = false;
                          }
                          
@@ -65,24 +65,24 @@ Rectangle {
                 
                 HifiControls.Button {
                     text: {
-                        var state = 2 - (Render.getConfig("RenderMainView.JitterCam").freeze * 1 - Render.getConfig("RenderMainView.JitterCam").stop * 2); 
+                        var state = 2 - (Render.getConfig("RenderMainView.AntialiasingSetup").freeze * 1 - Render.getConfig("RenderMainView.AntialiasingSetup").stop * 2); 
                         if (state === 2) {
                             return "Jitter"
                         } else if  (state === 1) {
-                            return "Paused at " + Render.getConfig("RenderMainView.JitterCam").index + ""
+                            return "Paused at " + Render.getConfig("RenderMainView.AntialiasingSetup").index + ""
                         } else {
                             return "No Jitter"
                         }
                         }
-                    onClicked: { Render.getConfig("RenderMainView.JitterCam").cycleStopPauseRun(); }
+                    onClicked: { Render.getConfig("RenderMainView.AntialiasingSetup").cycleStopPauseRun(); }
                 }
                 HifiControls.Button {
                     text: "<"
-                    onClicked: { Render.getConfig("RenderMainView.JitterCam").prev(); }
+                    onClicked: { Render.getConfig("RenderMainView.AntialiasingSetup").prev(); }
                 } 
                 HifiControls.Button {
                     text: ">"
-                    onClicked: { Render.getConfig("RenderMainView.JitterCam").next(); }
+                    onClicked: { Render.getConfig("RenderMainView.AntialiasingSetup").next(); }
                 }
             }
             Separator {}          

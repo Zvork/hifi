@@ -338,7 +338,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewJitterCamConfig = renderConfig->getConfig<JitterSample>("RenderMainView.JitterCam");
+            auto mainViewJitterCamConfig = renderConfig->getConfig<AntialiasingSetup>("RenderMainView.AntialiasingSetup");
             auto mainViewAntialiasingConfig = renderConfig->getConfig<Antialiasing>("RenderMainView.Antialiasing");
             if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
                 if (action->isChecked()) {

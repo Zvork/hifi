@@ -106,7 +106,9 @@ size_t Batch::cacheData(size_t size, const void* data) {
     size_t offset = _data.size();
     size_t numBytes = size;
     _data.resize(offset + numBytes);
-    memcpy(_data.data() + offset, data, size);
+    if (data) {
+        memcpy(_data.data() + offset, data, size);
+    }
 
     return offset;
 }
@@ -253,6 +255,12 @@ void Batch::pushProjectionJitterEnabled(bool pIsProjectionEnabled) {
 
 void Batch::popProjectionJitterEnabled() { 
     pushProjectionJitterEnabled(_isJitterOnProjectionEnabled);
+}
+
+void Batch::setProjectionJitterSequence(const Vec2* pSequence, size_t pCount) {
+    ADD_COMMAND(setProjectionJitterSequence);
+    _params.emplace_back((uint)pCount);
+    _params.emplace_back(cacheData(sizeof(Vec2) * pCount, pSequence));
 }
 
 void Batch::setViewportTransform(const Vec4i& viewport) {
