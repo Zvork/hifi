@@ -48,9 +48,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::gl::GLBackend::do_setModelTransform),
     (&::gpu::gl::GLBackend::do_setViewTransform),
-	(&::gpu::gl::GLBackend::do_setProjectionTransform),
-	(&::gpu::gl::GLBackend::do_setProjectionJitter),
-	(&::gpu::gl::GLBackend::do_setViewportTransform),
+    (&::gpu::gl::GLBackend::do_setProjectionTransform),
+    (&::gpu::gl::GLBackend::do_setProjectionJitter),
+    (&::gpu::gl::GLBackend::do_setViewportTransform),
     (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
     (&::gpu::gl::GLBackend::do_saveViewProjectionTransform),
@@ -126,11 +126,6 @@ void GLBackend::init() {
 #if !defined(USE_GLES)
         qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #endif
-#if THREADED_TEXTURE_BUFFERING
-        // This has to happen on the main thread in order to give the thread 
-        // pool a reasonable parent object
-        GLVariableAllocationSupport::TransferJob::startBufferingThread();
-#endif
     });
 }
 
@@ -148,6 +143,7 @@ GLBackend::GLBackend() {
 GLBackend::~GLBackend() {
     killInput();
     killTransform();
+    killTextureManagementStage();
 }
 
 void GLBackend::renderPassTransfer(const Batch& batch) {
@@ -737,9 +733,8 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
-
-    GLVariableAllocationSupport::manageMemory();
-    GLVariableAllocationSupport::_frameTexturesCreated = 0;
+    
+    _textureManagement._transferEngine->manageMemory();
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 

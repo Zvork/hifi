@@ -514,9 +514,11 @@ protected:
     void resetStages();
 
     struct TextureManagementStageState {
-        bool _sparseCapable{ false };
+        bool _sparseCapable { false };
+        GLTextureTransferEnginePointer _transferEngine;
     } _textureManagement;
-    virtual void initTextureManagementStage() {}
+    virtual void initTextureManagementStage();
+    virtual void killTextureManagementStage();
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

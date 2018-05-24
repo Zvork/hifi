@@ -21,116 +21,114 @@
 class QImage;
 
 namespace gpu {
-    class Context;
+class Context;
 
-    struct ContextStats {
-    public:
-        int _ISNumFormatChanges = 0;
-        int _ISNumInputBufferChanges = 0;
-        int _ISNumIndexBufferChanges = 0;
+struct ContextStats {
+public:
+    int _ISNumFormatChanges = 0;
+    int _ISNumInputBufferChanges = 0;
+    int _ISNumIndexBufferChanges = 0;
 
-        int _RSNumResourceBufferBounded = 0;
-        int _RSNumTextureBounded = 0;
-        int _RSAmountTextureMemoryBounded = 0;
+    int _RSNumResourceBufferBounded = 0;
+    int _RSNumTextureBounded = 0;
+    int _RSAmountTextureMemoryBounded = 0;
 
-        int _DSNumAPIDrawcalls = 0;
-        int _DSNumDrawcalls = 0;
-        int _DSNumTriangles = 0;
+    int _DSNumAPIDrawcalls = 0;
+    int _DSNumDrawcalls = 0;
+    int _DSNumTriangles = 0;
 
-        int _PSNumSetPipelines = 0;
+    int _PSNumSetPipelines = 0;
 
-        ContextStats() {}
-        ContextStats(const ContextStats& stats) = default;
+    ContextStats() {}
+    ContextStats(const ContextStats& stats) = default;
 
-        void evalDelta(const ContextStats& begin, const ContextStats& end);
-    };
+    void evalDelta(const ContextStats& begin, const ContextStats& end);
+};
 
-    class Backend {
-    public:
-        virtual~Backend() {};
+class Backend {
+public:
+    virtual ~Backend(){};
 
+    virtual const std::string& getVersion() const = 0;
 
-        virtual const std::string& getVersion() const = 0;
+    void setStereoState(const StereoState& stereo) { _stereo = stereo; }
 
-        void setStereoState(const StereoState& stereo) { _stereo = stereo; }
+    virtual void render(const Batch& batch) = 0;
+    virtual void syncCache() = 0;
+    virtual void recycle() const = 0;
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-        virtual void render(const Batch& batch) = 0;
-        virtual void syncCache() = 0;
-        virtual void recycle() const = 0;
-        virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
-
-        virtual bool supportedTextureFormat(const gpu::Element& format) = 0;
+    virtual bool supportedTextureFormat(const gpu::Element& format) = 0;
 
         // Shared header between C++ and GLSL
 #include "TransformCamera_shared.slh"
 
-        class TransformCamera : public _TransformCamera {
-        public:
-            const Backend::TransformCamera& recomputeDerived(const Transform& view, const Transform& previousView) const;
-            // Jitter should be divided by framebuffer size
-            TransformCamera getMonoCamera(const Transform& view, const Transform& previousView, Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const;
-            // Jitter should be divided by framebuffer size
-            TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& view, const Transform& previousView, Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const;
-        };
-
-
-        template<typename T, typename U>
-        static void setGPUObject(const U& object, T* gpuObject) {
-            object.gpuObject.setGPUObject(gpuObject);
-        }
-        template<typename T, typename U>
-        static T* getGPUObject(const U& object) {
-            return reinterpret_cast<T*>(object.gpuObject.getGPUObject());
-        }
-
-        void resetStats() const { _stats = ContextStats(); }
-        void getStats(ContextStats& stats) const { stats = _stats; }
-
-        virtual bool isTextureManagementSparseEnabled() const = 0;
-
-        // These should only be accessed by Backend implementation to report the buffer and texture allocations,
-        // they are NOT public objects
-        static ContextMetricSize  freeGPUMemSize;
-
-        static ContextMetricCount bufferCount;
-        static ContextMetricSize  bufferGPUMemSize;
-
-        static ContextMetricCount textureResidentCount;
-        static ContextMetricCount textureFramebufferCount;
-        static ContextMetricCount textureResourceCount;
-        static ContextMetricCount textureExternalCount;
-
-        static ContextMetricSize  textureResidentGPUMemSize;
-        static ContextMetricSize  textureFramebufferGPUMemSize;
-        static ContextMetricSize  textureResourceGPUMemSize;
-        static ContextMetricSize  textureExternalGPUMemSize;
-
-        static ContextMetricCount texturePendingGPUTransferCount;
-        static ContextMetricSize  texturePendingGPUTransferMemSize;
-        static ContextMetricSize  textureResourcePopulatedGPUMemSize;
-
-
-    protected:
-        virtual bool isStereo() {
-            return _stereo.isStereo();
-        }
-
-        void getStereoProjections(mat4* eyeProjections) const {
-            for (int i = 0; i < 2; ++i) {
-                eyeProjections[i] = _stereo._eyeProjections[i];
-            }
-        }
-
-        void getStereoViews(mat4* eyeViews) const {
-            for (int i = 0; i < 2; ++i) {
-                eyeViews[i] = _stereo._eyeViews[i];
-            }
-        }
-
-        friend class Context;
-        mutable ContextStats _stats;
-        StereoState _stereo;
+    class TransformCamera : public _TransformCamera {
+    public:
+        const Backend::TransformCamera& recomputeDerived(const Transform& view, const Transform& previousView) const;
+        // Jitter should be divided by framebuffer size
+        TransformCamera getMonoCamera(const Transform& view, const Transform& previousView, Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const;
+        // Jitter should be divided by framebuffer size
+        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& view, const Transform& previousView, Vec2 normalizedJitter, Vec2 normalizedPrevJitter) const;
     };
+
+    template <typename T, typename U>
+    static void setGPUObject(const U& object, T* gpuObject) {
+        object.gpuObject.setGPUObject(gpuObject);
+    }
+    template <typename T, typename U>
+    static T* getGPUObject(const U& object) {
+        return reinterpret_cast<T*>(object.gpuObject.getGPUObject());
+    }
+
+    void resetStats() const { _stats = ContextStats(); }
+    void getStats(ContextStats& stats) const { stats = _stats; }
+
+    virtual bool isTextureManagementSparseEnabled() const = 0;
+
+    // These should only be accessed by Backend implementation to report the buffer and texture allocations,
+    // they are NOT public objects
+    static ContextMetricSize freeGPUMemSize;
+
+    static ContextMetricCount bufferCount;
+    static ContextMetricSize bufferGPUMemSize;
+
+    static ContextMetricCount textureResidentCount;
+    static ContextMetricCount textureFramebufferCount;
+    static ContextMetricCount textureResourceCount;
+    static ContextMetricCount textureExternalCount;
+
+    static ContextMetricSize textureResidentGPUMemSize;
+    static ContextMetricSize textureFramebufferGPUMemSize;
+    static ContextMetricSize textureResourceGPUMemSize;
+    static ContextMetricSize textureExternalGPUMemSize;
+
+    static ContextMetricCount texturePendingGPUTransferCount;
+    static ContextMetricSize texturePendingGPUTransferMemSize;
+    static ContextMetricSize textureResourcePopulatedGPUMemSize;
+    static ContextMetricSize textureResourceIdealGPUMemSize;
+
+protected:
+    virtual bool isStereo() {
+        return _stereo.isStereo();
+    }
+
+    void getStereoProjections(mat4* eyeProjections) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeProjections[i] = _stereo._eyeProjections[i];
+        }
+    }
+
+    void getStereoViews(mat4* eyeViews) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeViews[i] = _stereo._eyeViews[i];
+        }
+    }
+
+    friend class Context;
+    mutable ContextStats _stats;
+    StereoState _stereo;
+};
 
 }
 
