@@ -98,7 +98,6 @@ void Batch::clear() {
     _name = nullptr;
     _invalidModel = true;
     _currentModel = Transform();
-    _projectionJitter = glm::vec2(0.0f);
     _enableStereo = true;
     _enableSkybox = false;
 }
