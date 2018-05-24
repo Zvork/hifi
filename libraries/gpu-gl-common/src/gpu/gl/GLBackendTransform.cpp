@@ -102,11 +102,11 @@ void GLBackend::syncTransformStateCache() {
     _transform._enabledDrawcallInfoBuffer = false;
 }
 
-void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo,
-                                                             Vec2u framebufferSize,
-                                                             TransformCameras& cameras) const {
-    const float jitterAmplitude = 2.0f; // One pixel amplitude but since clip space is between -1 and 1...
-    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isJitterOnProjectionEnabled & 1)) / Vec2(framebufferSize);
+void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, TransformCameras& cameras) const {
+    // Should be 2 for one pixel amplitude as clip space is between -1 and 1, but lower values give less blur
+    // but more aliasing...
+    const float jitterAmplitude = 2.0f; 
+    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isJitterOnProjectionEnabled & 1)) / Vec2(_viewport.z, _viewport.w);
     const Vec2 jitter = jitterScale * _jitterOffset;
 
     if (stereo.isStereo()) {
@@ -135,19 +135,10 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
 }
 
 void GLBackend::preUpdateTransform() {
-    Vec2u outputSize{ 1, 1 };
-
-    if (_output._framebuffer) {
-        outputSize.x = _output._framebuffer->getWidth();
-        outputSize.y = _output._framebuffer->getHeight();
-    } else if (_transform._isJitterOnProjectionEnabled) {
-        qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
-    }
-
-    _transform.preUpdate(_commandIndex, _stereo, outputSize);
+    _transform.preUpdate(_commandIndex, _stereo);
 }
 
-void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize) {
+void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
     // Check all the dirty flags and update the state accordingly
     if (_invalidViewport) {
         _camera._viewport = glm::vec4(_viewport);
@@ -174,7 +165,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-        pushCameraBufferElement(stereo, framebufferSize, _cameras);
+        pushCameraBufferElement(stereo, _cameras);
         if (_currentSavedTransformSlot != INVALID_SAVED_CAMERA_SLOT) {
             // Save the offset of the saved camera slot in the camera buffer. Can be used to copy
             // that data, or (in the future) to reuse the offset.

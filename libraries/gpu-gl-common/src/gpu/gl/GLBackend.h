@@ -406,8 +406,8 @@ protected:
         mutable List::const_iterator _camerasItr;
         mutable size_t _currentCameraOffset{ INVALID_OFFSET };
 
-        void pushCameraBufferElement(const StereoState& stereo, Vec2u framebufferSize, TransformCameras& cameras) const;
-        void preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize);
+        void pushCameraBufferElement(const StereoState& stereo, TransformCameras& cameras) const;
+        void preUpdate(size_t commandIndex, const StereoState& stereo);
         void update(size_t commandIndex, const StereoState& stereo) const;
         void bindCurrentCamera(int stereoSide) const;
     } _transform;
