@@ -140,10 +140,10 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         cameras.push_back(CameraBufferElement(
-            _camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter)));
+            _camera.getMonoCamera(_skybox, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter)));
 #else
-        cameras.push_back(
-            (_camera.getMonoCamera(_viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter)));
+        cameras.push_back((_camera.getMonoCamera(_skybox, _viewProjectionState._correctedView,
+                                                 _viewProjectionState._previousCorrectedView, jitter)));
 #endif
     }
 }
@@ -166,11 +166,12 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         // Apply the correction
         if (_viewProjectionState._viewIsCamera && (_viewCorrectionEnabled && _presentFrame.correction != glm::mat4())) {
             Transform::mult(_viewProjectionState._correctedView, _viewProjectionState._view, _presentFrame.correctionInverse);
-            if (_skybox) {
-                _viewProjectionState._correctedView.setTranslation(vec3());
-            }
         } else {
             _viewProjectionState._correctedView = _viewProjectionState._view;
+        }
+
+        if (_skybox) {
+            _viewProjectionState._correctedView.setTranslation(vec3());
         }
         // This is when the _view matrix gets assigned
         _viewProjectionState._correctedView.getInverseMatrix(_camera._view);

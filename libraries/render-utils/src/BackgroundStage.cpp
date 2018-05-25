@@ -13,8 +13,8 @@
 
 #include <gpu/Context.h>
 
-std::string BackgroundStage::_stageName { "BACKGROUND_STAGE"};
-const BackgroundStage::Index BackgroundStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
+std::string BackgroundStage::_stageName{ "BACKGROUND_STAGE" };
+const BackgroundStage::Index BackgroundStage::INVALID_INDEX{ render::indexed_container::INVALID_INDEX };
 
 BackgroundStage::Index BackgroundStage::findBackground(const BackgroundPointer& background) const {
     auto found = _backgroundMap.find(background);
@@ -23,17 +23,14 @@ BackgroundStage::Index BackgroundStage::findBackground(const BackgroundPointer& 
     } else {
         return (*found).second;
     }
-
 }
 
 BackgroundStage::Index BackgroundStage::addBackground(const BackgroundPointer& background) {
-
     auto found = _backgroundMap.find(background);
     if (found == _backgroundMap.end()) {
         auto backgroundId = _backgrounds.newElement(background);
         // Avoid failing to allocate a background, just pass
         if (backgroundId != INVALID_INDEX) {
-
             // Insert the background and its index in the reverse map
             _backgroundMap.insert(BackgroundMap::value_type(background, backgroundId));
         }
@@ -43,16 +40,14 @@ BackgroundStage::Index BackgroundStage::addBackground(const BackgroundPointer& b
     }
 }
 
-
 BackgroundStage::BackgroundPointer BackgroundStage::removeBackground(Index index) {
     BackgroundPointer removed = _backgrounds.freeElement(index);
-    
+
     if (removed) {
         _backgroundMap.erase(removed);
     }
     return removed;
 }
-
 
 void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     const auto& lightingModel = inputs;
@@ -71,9 +66,9 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         auto background = backgroundStage->getBackground(backgroundId);
         if (background) {
             skybox = background->getSkybox();
-        }   
+        }
     }
-  /*  auto backgroundMode = skyStage->getBackgroundMode();
+    /*  auto backgroundMode = skyStage->getBackgroundMode();
 
     switch (backgroundMode) {
     case graphics::SunSkyStage::SKY_DEFAULT: {
@@ -90,28 +85,28 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
 
     case graphics::SunSkyStage::SKY_BOX: {*/
     if (skybox && !skybox->empty()) {
-            PerformanceTimer perfTimer("skybox");
-            auto args = renderContext->args;
+        PerformanceTimer perfTimer("skybox");
+        auto args = renderContext->args;
 
-            gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
-                args->_batch = &batch;
+        gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
+            args->_batch = &batch;
 
-                batch.enableSkybox(true);
+            batch.enableSkybox(true);
 
-                batch.setViewportTransform(args->_viewport);
-                batch.setStateScissorRect(args->_viewport);
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
 
-                batch.setSavedViewProjectionTransform(0);
+            batch.setSavedViewProjectionTransform(0);
 
-                skybox->render(batch, args->getViewFrustum());
-            });
-            args->_batch = nullptr;
+            skybox->render(batch, args->getViewFrustum());
+        });
+        args->_batch = nullptr;
 
-             // break;
-        }
-        // fall through: render defaults (if requested)
-//    }
-/*
+        // break;
+    }
+    // fall through: render defaults (if requested)
+    //    }
+    /*
     case graphics::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
         if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
             auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
@@ -127,7 +122,6 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         }
     }
     */
-
 }
 
 BackgroundStageSetup::BackgroundStageSetup() {
@@ -139,4 +133,3 @@ void BackgroundStageSetup::run(const render::RenderContextPointer& renderContext
         renderContext->_scene->resetStage(BackgroundStage::getName(), std::make_shared<BackgroundStage>());
     }
 }
-
