@@ -76,8 +76,7 @@ vec2 taa_getRegionFXAA() {
 }
 #define USE_YCOCG 1
 
-vec4 taa_fetchColor(sampler2D map, vec2 uv) {
-	vec4 c = texture(map, uv);
+vec4 taa_transformColor(vec4 c) {
 	// Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image, using luminance as weight, as proposed in
 	// https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
 	float lum = dot(vec3(0.3,0.5,0.2),c.rgb);
@@ -87,6 +86,11 @@ vec4 taa_fetchColor(sampler2D map, vec2 uv) {
 #else
 	return c;
 #endif
+}
+
+vec4 taa_fetchColor(sampler2D map, vec2 uv) {
+	vec4 c = texture(map, uv);
+    return taa_transformColor(c);
 }
 
 vec3 taa_resolveColor(vec3 color) {
@@ -242,16 +246,23 @@ vec2 taa_computePrevFragAndEyeUV(vec2 fragUV, vec2 fragVelocity, out vec2 prevEy
     return taa_fromEyeUVToFragUV(prevEyeUV, stereoSide);
 }
 
-vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
-    vec2 prevEyeUV;
-    vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
-    sourceColor = taa_fetchSourceMap(fragUV).xyz;
+bool taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
+    sourceColor = texture(sourceMap, fragUV).rgb;
+    // Is velocity is 0 then don't fetch history, just return the source. This means there is no jitter on this pixel
+    if (any( notEqual(fragVelocity, vec2(0.0)) )) {
+        vec2 prevEyeUV;
+        vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
 
-    historyColor = sourceColor;
-    if (!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))) {
-        historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
+        sourceColor = taa_transformColor(vec4(sourceColor, 1.0)).rgb;
+        historyColor = sourceColor;
+        if (!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))) {
+            historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
+        }
+        return true;
+    } else {
+        historyColor = sourceColor;
+        return false;
     }
-    return prevFragUV;
 }
 
 float Luminance(vec3 rgb) {
