@@ -28,9 +28,8 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
-{
-    (&::gpu::gl::GLBackend::do_draw), 
+GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = {
+    (&::gpu::gl::GLBackend::do_draw),
     (&::gpu::gl::GLBackend::do_drawIndexed),
     (&::gpu::gl::GLBackend::do_drawInstanced),
     (&::gpu::gl::GLBackend::do_drawIndexedInstanced),
@@ -110,11 +109,12 @@ void GLBackend::init() {
     std::call_once(once, [] {
         QString vendor{ (const char*)glGetString(GL_VENDOR) };
         QString renderer{ (const char*)glGetString(GL_RENDERER) };
-        qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-        qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qCDebug(gpugllogging) << "GL Version: " << QString((const char*)glGetString(GL_VERSION));
+        qCDebug(gpugllogging) << "GL Shader Language Version: "
+                              << QString((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
         qCDebug(gpugllogging) << "GL Vendor: " << vendor;
         qCDebug(gpugllogging) << "GL Renderer: " << renderer;
-        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
         // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
         qCDebug(gpugllogging) << "GPU:";
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
@@ -142,7 +142,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
     _inRenderTransferPass = true;
-    { // Sync all the buffers
+    {  // Sync all the buffers
         PROFILE_RANGE(render_gpu_gl_detail, "syncGPUBuffer");
 
         for (auto& cached : batch._buffers._items) {
@@ -152,7 +152,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
         }
     }
 
-    { // Sync all the transform states
+    {  // Sync all the transform states
         PROFILE_RANGE(render_gpu_gl_detail, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
@@ -177,16 +177,18 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                     break;
 
                 case Batch::COMMAND_copySavedViewProjectionTransformToBuffer:
+                    // We need to store this transform state in the transform buffer
                     preUpdateTransform();
+                    break;
+
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
-				case Batch::COMMAND_setProjectionTransform:
+                case Batch::COMMAND_setProjectionTransform:
                 case Batch::COMMAND_setProjectionJitter:
                 case Batch::COMMAND_setProjectionJitterSequence:
                 case Batch::COMMAND_saveViewProjectionTransform:
-                case Batch::COMMAND_setSavedViewProjectionTransform:
-                {
-					CommandCall call = _commandCalls[(*command)];
+                case Batch::COMMAND_setSavedViewProjectionTransform: {
+                    CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
                 }
@@ -199,7 +201,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
         }
     }
 
-    { // Sync the transform buffers
+    {  // Sync the transform buffers
         PROFILE_RANGE(render_gpu_gl_detail, "syncGPUTransform");
         transferTransformState(batch);
     }
@@ -217,7 +219,7 @@ void GLBackend::renderPassDraw(const Batch& batch) {
         switch (*command) {
             // Ignore these commands on this pass, taken care of in the transfer pass
             // Note we allow COMMAND_setViewportTransform to occur in both passes
-            // as it both updates the transform object (and thus the uniforms in the 
+            // as it both updates the transform object (and thus the uniforms in the
             // UBO) as well as executes the actual viewport call
             case Batch::COMMAND_setModelTransform:
             case Batch::COMMAND_setViewTransform:
@@ -225,7 +227,6 @@ void GLBackend::renderPassDraw(const Batch& batch) {
             case Batch::COMMAND_saveViewProjectionTransform:
             case Batch::COMMAND_setSavedViewProjectionTransform:
             case Batch::COMMAND_setProjectionJitterSequence:
-            case Batch::COMMAND_copySavedViewProjectionTransformToBuffer:
                 break;
 
             case Batch::COMMAND_draw:
@@ -264,9 +265,9 @@ void GLBackend::render(const Batch& batch) {
     if (!batch.isStereoEnabled()) {
         _stereo._enable = false;
     }
-	// Reset jitter
+    // Reset jitter
     _transform._isJitterOnProjectionEnabled = false;
-    
+
     {
         PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
         renderPassTransfer(batch);
@@ -290,7 +291,6 @@ void GLBackend::render(const Batch& batch) {
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 }
-
 
 void GLBackend::syncCache() {
     PROFILE_RANGE(render_gpu_gl_detail, __FUNCTION__);
@@ -331,11 +331,9 @@ void GLBackend::do_restoreContextViewCorrection(const Batch& batch, size_t param
 }
 
 void GLBackend::do_disableContextStereo(const Batch& batch, size_t paramOffset) {
-
 }
 
 void GLBackend::do_restoreContextStereo(const Batch& batch, size_t paramOffset) {
-
 }
 
 void GLBackend::do_runLambda(const Batch& batch, size_t paramOffset) {
@@ -361,9 +359,8 @@ void GLBackend::resetStages() {
     resetOutputStage();
     resetQueryStage();
 
-    (void) CHECK_GL_ERROR();
+    (void)CHECK_GL_ERROR();
 }
-
 
 void GLBackend::do_pushProfileRange(const Batch& batch, size_t paramOffset) {
     if (trace_render_gpu_gl_detail().isDebugEnabled()) {
@@ -385,12 +382,15 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface
-// code, we need to be able to record and batch these calls. THe long 
+// code, we need to be able to record and batch these calls. THe long
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
 #ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) ((_pipeline._programShader) ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo()) : -1)
+#define GET_UNIFORM_LOCATION(shaderUniformLoc)                                                           \
+    ((_pipeline._programShader)                                                                          \
+         ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version)isStereo()) \
+         : -1)
 #else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
 #endif
@@ -403,9 +403,7 @@ void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniform1i(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
-        batch._params[paramOffset + 0]._int);
+    glUniform1i(GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int), batch._params[paramOffset + 0]._int);
     (void)CHECK_GL_ERROR();
 }
 
@@ -417,9 +415,7 @@ void GLBackend::do_glUniform1f(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniform1f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
-        batch._params[paramOffset + 0]._float);
+    glUniform1f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int), batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -430,10 +426,8 @@ void GLBackend::do_glUniform2f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform2f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
-        batch._params[paramOffset + 1]._float,
-        batch._params[paramOffset + 0]._float);
+    glUniform2f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int), batch._params[paramOffset + 1]._float,
+                batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -444,11 +438,8 @@ void GLBackend::do_glUniform3f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform3f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
-        batch._params[paramOffset + 2]._float,
-        batch._params[paramOffset + 1]._float,
-        batch._params[paramOffset + 0]._float);
+    glUniform3f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int), batch._params[paramOffset + 2]._float,
+                batch._params[paramOffset + 1]._float, batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -459,12 +450,9 @@ void GLBackend::do_glUniform4f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform4f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 4]._int),
-        batch._params[paramOffset + 3]._float,
-        batch._params[paramOffset + 2]._float,
-        batch._params[paramOffset + 1]._float,
-        batch._params[paramOffset + 0]._float);
+    glUniform4f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 4]._int), batch._params[paramOffset + 3]._float,
+                batch._params[paramOffset + 2]._float, batch._params[paramOffset + 1]._float,
+                batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -475,10 +463,8 @@ void GLBackend::do_glUniform3fv(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform3fv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
-        batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
+    glUniform3fv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int), batch._params[paramOffset + 1]._uint,
+                 (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
 
     (void)CHECK_GL_ERROR();
 }
@@ -506,10 +492,8 @@ void GLBackend::do_glUniform4iv(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform4iv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
-        batch._params[paramOffset + 1]._uint,
-        (const GLint*)batch.readData(batch._params[paramOffset + 0]._uint));
+    glUniform4iv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int), batch._params[paramOffset + 1]._uint,
+                 (const GLint*)batch.readData(batch._params[paramOffset + 0]._uint));
 
     (void)CHECK_GL_ERROR();
 }
@@ -522,11 +506,9 @@ void GLBackend::do_glUniformMatrix3fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniformMatrix3fv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
+    glUniformMatrix3fv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int), batch._params[paramOffset + 2]._uint,
+                       batch._params[paramOffset + 1]._uint,
+                       (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 
@@ -538,21 +520,15 @@ void GLBackend::do_glUniformMatrix4fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniformMatrix4fv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
+    glUniformMatrix4fv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int), batch._params[paramOffset + 2]._uint,
+                       batch._params[paramOffset + 1]._uint,
+                       (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 
 void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
-
-    glm::vec4 newColor(
-        batch._params[paramOffset + 3]._float,
-        batch._params[paramOffset + 2]._float,
-        batch._params[paramOffset + 1]._float,
-        batch._params[paramOffset + 0]._float);
+    glm::vec4 newColor(batch._params[paramOffset + 3]._float, batch._params[paramOffset + 2]._float,
+                       batch._params[paramOffset + 1]._float, batch._params[paramOffset + 0]._float);
 
     if (_input._colorAttribute != newColor) {
         _input._colorAttribute = newColor;
@@ -606,8 +582,7 @@ void GLBackend::queueLambda(const std::function<void()> lambda) const {
 }
 
 void GLBackend::recycle() const {
-    PROFILE_RANGE(render_gpu_gl, __FUNCTION__)
-    {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__) {
         std::list<std::function<void()>> lamdbasTrash;
         {
             Lock lock(_trashMutex);
@@ -673,7 +648,7 @@ void GLBackend::recycle() const {
             std::swap(_externalTexturesTrash, externalTexturesTrash);
         }
         if (!externalTexturesTrash.empty()) {
-            std::vector<GLsync> fences;  
+            std::vector<GLsync> fences;
             fences.resize(externalTexturesTrash.size());
             for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
                 fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -725,7 +700,7 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
-    
+
     _textureManagement._transferEngine->manageMemory();
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
@@ -738,7 +713,7 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._prevJitterOffset = _transform._jitterOffset;
     _transform._currentProjectionJitterIndex++;
     if (!_jitterOffsets.empty()) {
-        _transform._currentProjectionJitterIndex = _transform._currentProjectionJitterIndex  % _jitterOffsets.size();
+        _transform._currentProjectionJitterIndex = _transform._currentProjectionJitterIndex % _jitterOffsets.size();
     }
 
     // Update previous views of saved transforms
