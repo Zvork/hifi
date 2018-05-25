@@ -42,13 +42,14 @@ Rectangle {
            // padding: 10
                 Repeater {
                     model: [
+                         "Opaque Overlays:DrawOverlayInFrontOpaque:enabled",
                          "Unlit:LightingModel:enableUnlit", 
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
                          "Haze:LightingModel:enableHaze",                
-                         "ssao:AmbientOcclusion:enabled",                      
-                         "Textures:LightingModel:enableMaterialTexturing"                     
+                         "SSAO:AmbientOcclusion:enabled",                      
+                         "Textures:LightingModel:enableMaterialTexturing",
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -64,12 +65,14 @@ Rectangle {
                 spacing: 5
                 Repeater {
                     model: [
+                         "Opaques:DrawOpaqueDeferred:enabled",
+                         "Transparents:DrawTransparentDeferred:enabled",
                          "Obscurance:LightingModel:enableObscurance",
                          "Scattering:LightingModel:enableScattering",
                          "Diffuse:LightingModel:enableDiffuse",
                          "Specular:LightingModel:enableSpecular",
                          "Albedo:LightingModel:enableAlbedo",
-                         "Wireframe:LightingModel:enableWireframe"
+                         "Wireframe:LightingModel:enableWireframe",
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -84,13 +87,14 @@ Rectangle {
                 spacing: 5
                 Repeater {
                     model: [
+                         "Transparent Overlays:DrawOverlayInFrontTransparent:enabled",
                          "Ambient:LightingModel:enableAmbientLight",
                          "Directional:LightingModel:enableDirectionalLight",
                          "Point:LightingModel:enablePointLight",
                          "Spot:LightingModel:enableSpotLight",
                          "Light Contour:LightingModel:showLightContour",
                          "Zone Stack:DrawZoneStack:enabled",
-                         "Shadow:RenderShadowTask:enabled"
+                         "Shadow:RenderShadowTask:enabled",
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -101,7 +105,7 @@ Rectangle {
                 }
             }
         }
-        Separator {}          
+        Separator {}
         Column {
             anchors.left: parent.left
             anchors.right: parent.right 

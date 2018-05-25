@@ -28,7 +28,7 @@ class AntialiasingSetupConfig : public render::Job::Config {
 public:
     AntialiasingSetupConfig() : render::Job::Config(true) {}
 
-    float scale{ 0.5f };
+    float scale{ 1.0f };
     bool stop{ false };
     bool freeze{ false };
 
@@ -100,10 +100,10 @@ public:
 
 
     float blend{ 0.125f };
-    float sharpen{ 0.15f };
+    float sharpen{ 0.0f };
 
     bool constrainColor{ true };
-    float covarianceGamma{ 0.85f };
+    float covarianceGamma{ 1.15f };
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };
