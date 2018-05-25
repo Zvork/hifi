@@ -243,24 +243,29 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     _params.emplace_back(cacheData(sizeof(Mat4), &proj));
 }
 
-void Batch::setProjectionJitterEnabled(bool pIsProjectionEnabled) {
-    _isJitterOnProjectionEnabled = pIsProjectionEnabled;
+void Batch::setProjectionJitterEnabled(bool isProjectionEnabled) {
+    _isJitterOnProjectionEnabled = isProjectionEnabled;
     pushProjectionJitterEnabled(_isJitterOnProjectionEnabled);
 }
 
-void Batch::pushProjectionJitterEnabled(bool pIsProjectionEnabled) {
+void Batch::pushProjectionJitterEnabled(bool isProjectionEnabled) {
 	ADD_COMMAND(setProjectionJitter);
-    _params.emplace_back(pIsProjectionEnabled & 1);
+    _params.emplace_back(isProjectionEnabled & 1);
 }
 
 void Batch::popProjectionJitterEnabled() { 
     pushProjectionJitterEnabled(_isJitterOnProjectionEnabled);
 }
 
-void Batch::setProjectionJitterSequence(const Vec2* pSequence, size_t pCount) {
+void Batch::setProjectionJitterSequence(const Vec2* sequence, size_t count) {
     ADD_COMMAND(setProjectionJitterSequence);
-    _params.emplace_back((uint)pCount);
-    _params.emplace_back(cacheData(sizeof(Vec2) * pCount, pSequence));
+    _params.emplace_back((uint)count);
+    _params.emplace_back(cacheData(sizeof(Vec2) * count, sequence));
+}
+
+void Batch::setProjectionJitterScale(float scale) {
+    ADD_COMMAND(setProjectionJitterScale);
+    _params.emplace_back(scale);
 }
 
 void Batch::setViewportTransform(const Vec4i& viewport) {

@@ -35,22 +35,26 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
 }
 
 void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
-    _transform._isJitterOnProjectionEnabled = (batch._params[paramOffset]._int & 1) != 0;
+    _transform._projectionJitter._isEnabled = (batch._params[paramOffset]._int & 1) != 0;
     _transform._invalidProj = true;
     // The current view / proj doesn't correspond to a saved camera slot
     _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
 }
 
 void GLBackend::do_setProjectionJitterSequence(const Batch& batch, size_t paramOffset) {
-    auto count = batch._params[paramOffset + 0]._int;
+    auto count = batch._params[paramOffset + 0]._uint;
     _jitterOffsets.resize(count);
     if (count) {
         memcpy(_jitterOffsets.data(), batch.readData(batch._params[paramOffset + 1]._uint), sizeof(Vec2) * count);
-        _transform._currentProjectionJitterIndex = _transform._currentProjectionJitterIndex % _jitterOffsets.size();
-        _transform._jitterOffset = _jitterOffsets[_transform._currentProjectionJitterIndex];
+        _transform._projectionJitter._currentSampleIndex = _transform._projectionJitter._currentSampleIndex % _jitterOffsets.size();
+        _transform._projectionJitter._offset = _jitterOffsets[_transform._projectionJitter._currentSampleIndex];
     } else {
-        _transform._jitterOffset = Vec2(0.0f);
+        _transform._projectionJitter._offset = Vec2(0.0f);
     }
+}
+
+void GLBackend::do_setProjectionJitterScale(const Batch& batch, size_t paramOffset) {
+    _transform._projectionJitter._scale = 2.0f * batch._params[paramOffset + 0]._float;
 }
 
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
@@ -117,9 +121,9 @@ void GLBackend::syncTransformStateCache() {
 void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, TransformCameras& cameras) const {
     // Should be 2 for one pixel amplitude as clip space is between -1 and 1, but lower values give less blur
     // but more aliasing...
-    const float jitterAmplitude = 2.0f;
-    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_isJitterOnProjectionEnabled & 1)) / Vec2(_viewport.z, _viewport.w);
-    const Vec2 jitter = jitterScale * _jitterOffset;
+    const float jitterAmplitude = _projectionJitter._scale;
+    const Vec2 jitterScale = Vec2(jitterAmplitude * float(_projectionJitter._isEnabled & 1)) / Vec2(_viewport.z, _viewport.w);
+    const Vec2 jitter = jitterScale * _projectionJitter._offset;
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER

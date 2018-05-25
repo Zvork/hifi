@@ -182,10 +182,11 @@ public:
     void resetViewTransform() { setViewTransform(Transform(), false); }
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
-    void setProjectionJitterEnabled(bool pIsProjectionEnabled);
-    void setProjectionJitterSequence(const Vec2* pSequence, size_t pCount);
+    void setProjectionJitterEnabled(bool isProjectionEnabled);
+    void setProjectionJitterSequence(const Vec2* sequence, size_t count);
+    void setProjectionJitterScale(float scale);
     // Very simple 1 level stack management of jitter.
-    void pushProjectionJitterEnabled(bool pIsProjectionEnabled);
+    void pushProjectionJitterEnabled(bool isProjectionEnabled);
     void popProjectionJitterEnabled();
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
@@ -324,6 +325,7 @@ public:
         COMMAND_setProjectionTransform,
         COMMAND_setProjectionJitter,
         COMMAND_setProjectionJitterSequence,
+        COMMAND_setProjectionJitterScale,
         COMMAND_setViewportTransform,
         COMMAND_setDepthRangeTransform,
 

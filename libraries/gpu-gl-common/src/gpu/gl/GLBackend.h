@@ -126,6 +126,7 @@ public:
     virtual void do_setProjectionTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionJitter(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionJitterSequence(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setProjectionJitterScale(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewportTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) final;
 
@@ -389,12 +390,17 @@ protected:
         PresentFrame _presentFrame;
         bool _viewCorrectionEnabled{ true };
 
+        struct Jitter {
+            Vec2 _offset{ 0.0f };
+            Vec2 _prevOffset{ 0.0f };
+            float _scale{ 0.f };
+            int _currentSampleIndex{ 0 };
+            bool _isEnabled{ false };
+        };
+
+        Jitter _projectionJitter;
         Vec4i _viewport{ 0, 0, 1, 1 };
         Vec2 _depthRange{ 0.0f, 1.0f };
-        Vec2 _jitterOffset{ 0.0f };
-        Vec2 _prevJitterOffset{ 0.0f };
-        int _currentProjectionJitterIndex{ 0 };
-        bool _isJitterOnProjectionEnabled{ false };
         bool _invalidView{ false };
         bool _invalidProj{ false };
         bool _invalidViewport{ false };

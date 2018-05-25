@@ -13,24 +13,19 @@
 
 #include <glm/gtc/random.hpp>
 
-#include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
 #include "StencilMaskPass.h"
-#include "TextureCache.h"
-#include "DependencyManager.h"
-#include "ViewFrustum.h"
-#include "GeometryCache.h"
-#include "FramebufferCache.h"
-#include "RandomAndNoise.h"
-
-#define TAA_JITTER_SEQUENCE_LENGTH 16
 
 #define ANTIALIASING_USE_TAA    1
 
 #if !ANTIALIASING_USE_TAA
+#include "GeometryCache.h"
+#include "ViewFrustum.h"
+#include "DependencyManager.h"
+
 #include "fxaa_vert.h"
 #include "fxaa_frag.h"
 #include "fxaa_blend_frag.h"
@@ -169,6 +164,9 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     });
 }
 #else
+#include "RandomAndNoise.h"
+
+#define TAA_JITTER_SEQUENCE_LENGTH 25
 
 #include "taa_frag.h"
 #include "fxaa_blend_frag.h"
@@ -263,6 +261,7 @@ void AntialiasingSetup::run(const render::RenderContextPointer& renderContext) {
                 offset = _freezedSampleIndex;
             }
             batch.setProjectionJitterSequence(_sampleSequence.data() + offset, count);
+            batch.setProjectionJitterScale(_scale);
         });
     }
 }
@@ -403,7 +402,6 @@ void Antialiasing::configure(const Config& config) {
 
 void Antialiasing::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
     
     RenderArgs* args = renderContext->args;
 

@@ -85,6 +85,15 @@ Rectangle {
                     onClicked: { Render.getConfig("RenderMainView.AntialiasingSetup").next(); }
                 }
             }
+            ConfigSlider {
+                label: qsTr("Jitter scale")
+                integral: false
+                config: Render.getConfig("RenderMainView.AntialiasingSetup")
+                property: "scale"
+                max: 2.0
+                min: 0.25
+                height: 38
+            }
             Separator {}          
             HifiControls.CheckBox {
                 boxSize: 20

@@ -99,11 +99,11 @@ public:
     bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
 
 
-    float blend{ 0.25f };
-    float sharpen{ 0.05f };
+    float blend{ 0.125f };
+    float sharpen{ 0.15f };
 
     bool constrainColor{ true };
-    float covarianceGamma{ 0.65f };
+    float covarianceGamma{ 0.85f };
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };

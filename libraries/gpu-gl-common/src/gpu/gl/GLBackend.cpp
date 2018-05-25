@@ -46,6 +46,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = {
     (&::gpu::gl::GLBackend::do_setProjectionTransform),
     (&::gpu::gl::GLBackend::do_setProjectionJitter),
     (&::gpu::gl::GLBackend::do_setProjectionJitterSequence),
+    (&::gpu::gl::GLBackend::do_setProjectionJitterScale),
     (&::gpu::gl::GLBackend::do_setViewportTransform),
     (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
@@ -186,6 +187,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setProjectionTransform:
                 case Batch::COMMAND_setProjectionJitter:
                 case Batch::COMMAND_setProjectionJitterSequence:
+                case Batch::COMMAND_setProjectionJitterScale:
                 case Batch::COMMAND_saveViewProjectionTransform:
                 case Batch::COMMAND_setSavedViewProjectionTransform: {
                     CommandCall call = _commandCalls[(*command)];
@@ -266,7 +268,7 @@ void GLBackend::render(const Batch& batch) {
         _stereo._enable = false;
     }
     // Reset jitter
-    _transform._isJitterOnProjectionEnabled = false;
+    _transform._projectionJitter._isEnabled = false;
 
     {
         PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
@@ -710,10 +712,10 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
 
-    _transform._prevJitterOffset = _transform._jitterOffset;
-    _transform._currentProjectionJitterIndex++;
+    _transform._projectionJitter._prevOffset = _transform._projectionJitter._offset;
+    _transform._projectionJitter._currentSampleIndex++;
     if (!_jitterOffsets.empty()) {
-        _transform._currentProjectionJitterIndex = _transform._currentProjectionJitterIndex % _jitterOffsets.size();
+        _transform._projectionJitter._currentSampleIndex = _transform._projectionJitter._currentSampleIndex % _jitterOffsets.size();
     }
 
     // Update previous views of saved transforms
