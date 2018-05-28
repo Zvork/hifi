@@ -498,12 +498,8 @@ public:
     Bytes _data;
     static size_t _dataMax;
 
-    // SSBO class... layout MUST match the layout in Transform.slh
-    class TransformObject {
-    public:
-        Mat4 _model;
-        Mat4 _modelInverse;
-    };
+    // SSBO class...
+#include "TransformObject_shared.slh"
 
     using TransformObjects = std::vector<TransformObject>;
     bool _invalidModel{ true };

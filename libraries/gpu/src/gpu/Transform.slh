@@ -108,10 +108,7 @@ vec2 cam_getInvWidthHeight() {
 <@endfunc@>
 
 <@func declareStandardObjectTransform()@>
-struct TransformObject {
-    mat4 _model;
-    mat4 _modelInverse;
-};
+<@include gpu/TransformObject_shared.slh@>
 
 layout(location=15) in ivec2 _drawCallInfo;
 
