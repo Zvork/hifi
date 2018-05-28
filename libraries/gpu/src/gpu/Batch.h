@@ -179,6 +179,7 @@ public:
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
     // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
+    void setModelTransform(const Transform& model, const Transform& previousModel);
     void resetViewTransform() { setViewTransform(Transform(), false); }
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
@@ -504,6 +505,7 @@ public:
     using TransformObjects = std::vector<TransformObject>;
     bool _invalidModel{ true };
     Transform _currentModel;
+    Transform _previousModel;
     TransformObjects _objects;
     static size_t _objectsMax;
 

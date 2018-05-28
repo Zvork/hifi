@@ -153,8 +153,9 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
 }
 
  void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
-    batch.setModelTransform(_drawTransform);
-}
+    batch.setModelTransform(_drawTransform, _previousDrawTransform);
+    _previousDrawTransform = _drawTransform;
+ }
 
 
 void MeshPartPayload::render(RenderArgs* args) {
@@ -453,7 +454,8 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
     if (_clusterBuffer) {
         batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
     }
-    batch.setModelTransform(_transform);
+    batch.setModelTransform(_transform, _previousTransform);
+    _previousTransform = _transform;
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {

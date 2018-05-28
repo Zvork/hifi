@@ -194,7 +194,7 @@ TransformObject getTransformObject() {
     <!// Bring the model pos in the world aligned space centered on the eye axis !>
     { // transformModelToEyeAndPreviousEyeWorldAlignedPos
         highp mat4 _mv = <$objectTransform$>._model;
-        highp mat4 _pmv = <$objectTransform$>._model;
+        highp mat4 _pmv = <$objectTransform$>._previousModel;
         _mv[3].xyz -= <$cameraTransform$>._viewInverse[3].xyz;
         _pmv[3].xyz -= <$cameraTransform$>._previousViewInverse[3].xyz;
         <$eyeWAPos$> = (_mv * <$modelPos$>);

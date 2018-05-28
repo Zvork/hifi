@@ -8,6 +8,7 @@
 struct TransformObject {
     TO_MAT4 _model;
     TO_MAT4 _modelInverse;
+    TO_MAT4 _previousModel;
 };
 
     // <@if 1@>
