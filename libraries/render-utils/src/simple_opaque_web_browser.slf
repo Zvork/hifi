@@ -26,6 +26,5 @@ in vec2 _texCoord0;
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
     texel = color_sRGBAToLinear(texel);
-    // Write no velocity to disable TAA.
-    packDeferredFragmentUnlitNoVelocity(normalize(_normalWS), 1.0, _color.rgb * texel.rgb);
+    packDeferredFragmentUnlit(normalize(_normalWS), 1.0, _color.rgb * texel.rgb);
 }

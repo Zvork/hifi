@@ -2324,7 +2324,7 @@ void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
 gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        buildWebShader(simple_vert::getShader(), simple_opaque_web_browser_frag::getShader(), false, false,
+        buildWebShader(simple_vert::getShader(), simple_opaque_web_browser_frag::getShader(), false, true,
                        _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
         buildWebShader(simple_vert::getShader(), simple_transparent_web_browser_frag::getShader(), true, true,
                        _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);

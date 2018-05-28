@@ -320,8 +320,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        // Don't jitter transparent objects. Projection jitter is off by default in a batch so no
-        // need to call batch.setProjectionJitterEnabled(false);
+        batch.setProjectionJitterEnabled(true);
         batch.setSavedViewProjectionTransform(0);
 
         // Setup lighting model for all items;
