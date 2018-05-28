@@ -292,6 +292,11 @@ void GLBackend::render(const Batch& batch) {
 
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
+
+    // Update object transform history
+    for (auto& objectTransform : batch._objects) {
+        objectTransform._previousModel = objectTransform._model;
+    }
 }
 
 void GLBackend::syncCache() {
@@ -715,7 +720,8 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._projectionJitter._prevOffset = _transform._projectionJitter._offset;
     _transform._projectionJitter._currentSampleIndex++;
     if (!_jitterOffsets.empty()) {
-        _transform._projectionJitter._currentSampleIndex = _transform._projectionJitter._currentSampleIndex % _jitterOffsets.size();
+        _transform._projectionJitter._currentSampleIndex =
+            _transform._projectionJitter._currentSampleIndex % _jitterOffsets.size();
     }
 
     // Update previous views of saved transforms

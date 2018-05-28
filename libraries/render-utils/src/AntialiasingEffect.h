@@ -16,7 +16,7 @@
 
 #include "render/DrawTask.h"
 #include "DeferredFrameTransform.h"
-#include "DeferredFrameBuffer.h"
+#include "DeferredFramebuffer.h"
 #include "SurfaceGeometryPass.h"
 
 class AntialiasingSetupConfig : public render::Job::Config {

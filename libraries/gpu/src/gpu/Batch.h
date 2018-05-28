@@ -506,7 +506,7 @@ public:
     bool _invalidModel{ true };
     Transform _currentModel;
     Transform _previousModel;
-    TransformObjects _objects;
+    mutable TransformObjects _objects;
     static size_t _objectsMax;
 
     BufferCaches _buffers;
