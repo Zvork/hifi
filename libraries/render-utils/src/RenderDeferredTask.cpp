@@ -166,7 +166,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+    const auto drawBackgroundInputs = DrawBackgroundStage::Inputs(lightingModel, deferredFramebuffer, lightingFramebuffer).asVarying();
+    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", drawBackgroundInputs);
 
     const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
@@ -321,7 +322,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setStateScissorRect(args->_viewport);
 
         batch.setProjectionJitterEnabled(true);
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
@@ -398,7 +399,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         batch.setStateScissorRect(args->_viewport);
 
         batch.setProjectionJitterEnabled(true);
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());

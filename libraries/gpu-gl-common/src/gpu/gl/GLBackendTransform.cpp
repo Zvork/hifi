@@ -230,6 +230,9 @@ void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramO
 
     _transform._savedTransforms[slotId]._cameraOffset = INVALID_OFFSET;
     _transform._currentSavedTransformSlot = slotId;
+    // If we are saving this transform to a save slot, then it means we are tracking the history of the view
+    // so copy the previous corrected view to the transform state.
+    _transform._viewProjectionState._previousCorrectedView = _transform._savedTransforms[slotId]._state._previousCorrectedView;
     preUpdateTransform();
     _transform._savedTransforms[slotId]._state.copyExceptPrevious(_transform._viewProjectionState);
 }

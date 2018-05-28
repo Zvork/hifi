@@ -123,7 +123,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         // float tMin = args->_viewport.y / fbHeight;
         // float tHeight = args->_viewport.w / fbHeight;
 
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
         batch.setModelTransform(Transform());
 
         // FXAA step

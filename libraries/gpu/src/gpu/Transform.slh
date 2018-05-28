@@ -310,6 +310,14 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformEyeToWorldDirAndPreviousClipPos(cameraTransform, eyeDir, worldDir, prevClipDir)@>
+    { // transformEyeToWorldDir
+        vec4 worldVec = <$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0);
+        <$worldDir$> = worldVec.xyz;
+        <$prevClipDir$> = <$cameraTransform$>._previousProjectionViewUntranslated * worldVec;
+    }
+<@endfunc@>
+
 <@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
     { // transformClipToEyeDir
         <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0)); // Must be 1.0 here

@@ -85,6 +85,11 @@ namespace render {
     class RenderEngine : public Engine {
     public:
 
+        enum TransformSlots {
+            TS_MAIN_VIEW = 0,
+            TS_BACKGROUND_VIEW
+        };
+
         RenderEngine();
         ~RenderEngine() = default;
 

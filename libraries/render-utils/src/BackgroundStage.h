@@ -18,7 +18,7 @@
 #include <render/Stage.h>
 
 #include "LightingModel.h"
-
+#include "DeferredFramebuffer.h"
 
 // Background stage to set up background-related rendering tasks
 class BackgroundStage : public render::Stage {
@@ -72,6 +72,7 @@ using BackgroundStagePointer = std::shared_ptr<BackgroundStage>;
 
 class BackgroundStageSetup {
 public:
+
     using JobModel = render::Job::Model<BackgroundStageSetup>;
 
     BackgroundStageSetup();
@@ -82,7 +83,7 @@ protected:
 
 class DrawBackgroundStage {
 public:
-    using Inputs = LightingModelPointer;
+    using Inputs = render::VaryingSet3<LightingModelPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
     using JobModel = render::Job::ModelI<DrawBackgroundStage, Inputs>;
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);

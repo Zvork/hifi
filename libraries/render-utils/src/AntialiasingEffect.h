@@ -99,8 +99,8 @@ public:
     bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
 
 
-    float blend{ 0.125f };
-    float sharpen{ 0.0f };
+    float blend{ 0.2f };
+    float sharpen{ 0.05f };
 
     bool constrainColor{ true };
     float covarianceGamma{ 1.15f };
@@ -126,7 +126,7 @@ signals:
 struct TAAParams {
     float nope{ 0.0f };
     float blend{ 0.15f };
-    float covarianceGamma{ 1.0f };
+    float covarianceGamma{ 0.9f };
     float debugShowVelocityThreshold{ 1.0f };
 
     glm::ivec4 flags{ 0 };

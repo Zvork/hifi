@@ -419,7 +419,7 @@ namespace render {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
                     PerformanceTimer perfTimer("skybox");
-                    skybox->render(batch, args->getViewFrustum());
+                    skybox->render(batch, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
                     break;
                 }
             }

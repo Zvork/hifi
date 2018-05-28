@@ -50,7 +50,7 @@ BackgroundStage::BackgroundPointer BackgroundStage::removeBackground(Index index
 }
 
 void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-    const auto& lightingModel = inputs;
+    const auto& lightingModel = inputs.get0();
     if (!lightingModel->isBackgroundEnabled()) {
         return;
     }
@@ -85,20 +85,27 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
 
     case graphics::SunSkyStage::SKY_BOX: {*/
     if (skybox && !skybox->empty()) {
+
         PerformanceTimer perfTimer("skybox");
         auto args = renderContext->args;
+        const auto& deferredFrameBuffer = inputs.get1();
+        const auto& finalFrameBuffer = inputs.get2();
+
 
         gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
+            batch.setFramebuffer(deferredFrameBuffer->getDeferredFramebuffer());
             batch.enableSkybox(true);
 
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
+            batch.setProjectionJitterEnabled(true);
 
-            batch.setSavedViewProjectionTransform(0);
+            skybox->render(batch, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
 
-            skybox->render(batch, args->getViewFrustum());
+            // Restore final framebuffer
+            batch.setFramebuffer(finalFrameBuffer);
         });
         args->_batch = nullptr;
 

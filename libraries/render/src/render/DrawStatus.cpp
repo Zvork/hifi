@@ -166,7 +166,7 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inI
     gpu::doInBatch("DrawStatus::run", args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
 
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need

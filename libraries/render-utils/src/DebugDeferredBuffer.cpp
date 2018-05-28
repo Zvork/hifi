@@ -457,7 +457,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
 
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
         batch.setModelTransform(Transform());
 
         // TODO REMOVE: Temporary until UI

@@ -79,12 +79,12 @@ void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
     }
 }
 
-void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
+void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum, uint xformSlot) const {
     updateSchemaBuffer();
-    Skybox::render(batch, frustum, (*this));
+    Skybox::render(batch, frustum, (*this), xformSlot);
 }
 
-void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
+void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox, uint xformSlot) {
     // Create the static shared elements used to render the skybox
     static gpu::BufferPointer theConstants;
     static gpu::PipelinePointer thePipeline;
@@ -127,6 +127,8 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewTransform);
+    // This is needed if we want to have motion vectors on the sky
+    batch.saveViewProjectionTransform(xformSlot);
     batch.setModelTransform(Transform()); // only for Mac
 
     batch.setPipeline(thePipeline);

@@ -204,9 +204,8 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
     gpu::doInBatch("DrawForward::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
-
         // Setup projection
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
         batch.setModelTransform(Transform());
 
         // Setup lighting model for all items;

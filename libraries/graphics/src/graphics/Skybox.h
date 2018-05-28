@@ -44,9 +44,9 @@ public:
     virtual void clear();
 
     void prepare(gpu::Batch& batch, int textureSlot = SKYBOX_SKYMAP_SLOT, int bufferSlot = SKYBOX_CONSTANTS_SLOT) const;
-    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
+    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum, uint xformSlot) const;
 
-    static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
+    static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox, uint xformSlot);
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
 

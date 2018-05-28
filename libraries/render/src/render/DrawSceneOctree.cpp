@@ -96,7 +96,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
 
     gpu::doInBatch("DrawSceneOctree::run", args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need
@@ -198,7 +198,7 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
     gpu::doInBatch("DrawItemSelection::run", args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
 
-        batch.setSavedViewProjectionTransform(0);
+        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
         batch.setModelTransform(Transform());
 
         // bind the one gpu::Pipeline we need

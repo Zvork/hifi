@@ -178,7 +178,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionJitterEnabled(true);
-            batch.setSavedViewProjectionTransform(0);
+            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
             std::vector<ShapeKey> skinnedShapeKeys{};
 
@@ -211,7 +211,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionJitterEnabled(true);
-            batch.setSavedViewProjectionTransform(0);
+            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
             // Draw stencil mask with object bounding boxes
             const auto highlightWidthLoc = _stencilMaskPipeline->getProgram()->getUniforms().findLocation("outlineWidth");
@@ -359,7 +359,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
             const auto geometryBuffer = DependencyManager::get<GeometryCache>();
 
             batch.setProjectionJitterEnabled(true);
-            batch.setSavedViewProjectionTransform(0);
+            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
             batch.setModelTransform(Transform());
 
             const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);

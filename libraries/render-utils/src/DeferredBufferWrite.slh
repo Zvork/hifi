@@ -86,6 +86,14 @@ void packDeferredFragmentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, ve
     _lighting = vec4(color, 1.0);
 }
 
+void packDeferredFragmentSky(vec4 prevPositionCS, vec3 color) {
+    // Force w to 1. It is already the case as the sky is on the far plane but this is a small
+    // optimization to tell the shader compiler to drop the division by w
+    prevPositionCS.w = 1.0;
+    _fragColor3 = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
+}
+
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3 fresnel, float roughness) {
     if (alpha <= 0.0) {
         discard;
