@@ -32,6 +32,17 @@ void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, co
     config->setGPUBatchRunTime(timer->getGPUAverage(), timer->getBatchAverage());
 }
 
+void SetFramebuffer::run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& framebuffer) {
+    assert(renderContext->args);
+    RenderArgs* args = renderContext->args;
+    
+    gpu::doInBatch("SetFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+        batch.setFramebuffer(framebuffer);
+        args->_batch = nullptr;
+    });
+}
+
 DrawOverlay3D::DrawOverlay3D(bool opaque, bool isProjectionJitterEnabled) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque),

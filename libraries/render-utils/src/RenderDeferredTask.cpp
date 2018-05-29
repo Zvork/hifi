@@ -164,10 +164,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-
+    task.addJob<SetDeferredFramebuffer>("SetDeferredFramebufferBackground", deferredFramebuffer, DeferredFramebuffer::FULL);
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    const auto drawBackgroundInputs = DrawBackgroundDeferred::Inputs(lightingModel, deferredFramebuffer, lightingFramebuffer).asVarying();
-    task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", drawBackgroundInputs);
+    task.addJob<DrawBackground>("DrawBackgroundDeferred", lightingModel, true);
+
+    task.addJob<SetDeferredFramebuffer>("SetDeferredFramebufferHaze", deferredFramebuffer, DeferredFramebuffer::LIGHTING);
 
     const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
@@ -203,7 +204,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontOpaque, lightingModel).asVarying();
     const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontTransparent, lightingModel).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true, true);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false, true);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false, false);
 
     task.addJob<EndGPURangeTimer>("OverlaysInFrontRangeTimer", overlaysInFrontRangeTimer);
 

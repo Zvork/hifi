@@ -94,7 +94,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    task.addJob<DrawBackgroundForward>("DrawBackgroundForward", lightingModel);
+    task.addJob<DrawBackground>("DrawBackground", lightingModel, false);
 
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();

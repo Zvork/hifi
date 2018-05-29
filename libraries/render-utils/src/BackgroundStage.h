@@ -77,24 +77,16 @@ public:
 protected:
 };
 
-class DrawBackgroundDeferred {
+class DrawBackground {
 public:
-    using Inputs = render::VaryingSet3<LightingModelPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
-    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs>;
+    using JobModel = render::Job::ModelI<DrawBackground, LightingModelPointer>;
 
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    DrawBackground(bool deferred) : _deferred(deferred) {}
+
+    void run(const render::RenderContextPointer& renderContext, const LightingModelPointer& lightingModel);
 
 protected:
-};
-
-class DrawBackgroundForward {
-public:
-    using Inputs = LightingModelPointer;
-    using JobModel = render::Job::ModelI<DrawBackgroundForward, Inputs>;
-
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
-
-protected:
+    bool _deferred { false };
 };
 
 #endif

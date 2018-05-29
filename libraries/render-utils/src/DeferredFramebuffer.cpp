@@ -12,6 +12,9 @@
 
 #include "DeferredBufferWrite_shared.slh"
 
+#include "gpu/Batch.h"
+#include "gpu/Context.h"
+
 DeferredFramebuffer::DeferredFramebuffer() {
 }
 
@@ -97,6 +100,17 @@ gpu::TexturePointer DeferredFramebuffer::getPrimaryDepthTexture() {
     return _primaryDepthTexture;
 }
 
+gpu::FramebufferPointer DeferredFramebuffer::getFramebuffer(Type type) {
+    switch (type) {
+        default:
+            return getDeferredFramebuffer();
+        case COLOR_DEPTH:
+            return getDeferredFramebufferDepthColor();
+        case LIGHTING:
+            return getLightingFramebuffer();
+    };
+}
+
 gpu::FramebufferPointer DeferredFramebuffer::getDeferredFramebuffer() {
     if (!_deferredFramebuffer) {
         allocate();
@@ -151,4 +165,15 @@ gpu::TexturePointer DeferredFramebuffer::getLightingTexture() {
         allocate();
     }
     return _lightingTexture;
+}
+
+void SetDeferredFramebuffer::run(const render::RenderContextPointer& renderContext, const DeferredFramebufferPointer& framebuffer) {
+    assert(renderContext->args);
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch("SetDeferredFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+        batch.setFramebuffer(framebuffer->getFramebuffer(_type));
+        args->_batch = nullptr;
+    });
 }
