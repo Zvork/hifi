@@ -166,8 +166,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    const auto drawBackgroundInputs = DrawBackgroundStage::Inputs(lightingModel, deferredFramebuffer, lightingFramebuffer).asVarying();
-    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", drawBackgroundInputs);
+    const auto drawBackgroundInputs = DrawBackgroundDeferred::Inputs(lightingModel, deferredFramebuffer, lightingFramebuffer).asVarying();
+    task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", drawBackgroundInputs);
 
     const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);

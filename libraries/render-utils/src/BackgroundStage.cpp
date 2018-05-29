@@ -49,7 +49,7 @@ BackgroundStage::BackgroundPointer BackgroundStage::removeBackground(Index index
     return removed;
 }
 
-void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawBackgroundDeferred::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     const auto& lightingModel = inputs.get0();
     if (!lightingModel->isBackgroundEnabled()) {
         return;
@@ -92,7 +92,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         const auto& finalFrameBuffer = inputs.get2();
 
 
-        gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawBackgroundDeferred::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
             batch.setFramebuffer(deferredFrameBuffer->getDeferredFramebuffer());
@@ -106,6 +106,79 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
 
             // Restore final framebuffer
             batch.setFramebuffer(finalFrameBuffer);
+        });
+        args->_batch = nullptr;
+
+        // break;
+    }
+    // fall through: render defaults (if requested)
+    //    }
+    /*
+    case graphics::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+            auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+            auto sceneKeyLight = scene->getKeyLight();
+            auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
+            if (defaultSkyboxAmbientTexture) {
+                sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
+                sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
+            }
+            // fall through: render defaults skybox
+        } else {
+            break;
+        }
+    }
+    */
+}
+
+void DrawBackgroundForward::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    const auto& lightingModel = inputs;
+    if (!lightingModel->isBackgroundEnabled()) {
+        return;
+    }
+
+    // Background rendering decision
+    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
+
+    graphics::SunSkyStagePointer background;
+    graphics::SkyboxPointer skybox;
+    if (backgroundStage->_currentFrame._backgrounds.size()) {
+        auto backgroundId = backgroundStage->_currentFrame._backgrounds.front();
+        auto background = backgroundStage->getBackground(backgroundId);
+        if (background) {
+            skybox = background->getSkybox();
+        }
+    }
+    /*  auto backgroundMode = skyStage->getBackgroundMode();
+
+    switch (backgroundMode) {
+    case graphics::SunSkyStage::SKY_DEFAULT: {
+        auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
+        auto sceneKeyLight = scene->getKeyLight();
+
+        scene->setSunModelEnable(false);
+        sceneKeyLight->setColor(ColorUtils::toVec3(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR));
+        sceneKeyLight->setIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY);
+        sceneKeyLight->setAmbientIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
+        sceneKeyLight->setDirection(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION);
+        // fall through: render a skybox (if available), or the defaults (if requested)
+    }
+
+    case graphics::SunSkyStage::SKY_BOX: {*/
+    if (skybox && !skybox->empty()) {
+        PerformanceTimer perfTimer("skybox");
+        auto args = renderContext->args;
+
+        gpu::doInBatch("DrawBackgroundForward::run", args->_context, [&](gpu::Batch& batch) {
+            args->_batch = &batch;
+
+            batch.enableSkybox(true);
+
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
+
+            skybox->render(batch, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
         });
         args->_batch = nullptr;
 

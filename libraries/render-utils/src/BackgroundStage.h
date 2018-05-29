@@ -29,28 +29,25 @@ public:
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
-    
+
     using BackgroundPointer = graphics::SunSkyStagePointer;
     using Backgrounds = render::indexed_container::IndexedPointerVector<graphics::SunSkyStage>;
     using BackgroundMap = std::unordered_map<BackgroundPointer, Index>;
 
     using BackgroundIndices = std::vector<Index>;
 
-
     Index findBackground(const BackgroundPointer& background) const;
     Index addBackground(const BackgroundPointer& background);
 
     BackgroundPointer removeBackground(Index index);
-    
+
     bool checkBackgroundId(Index index) const { return _backgrounds.checkIndex(index); }
 
     Index getNumBackgrounds() const { return _backgrounds.getNumElements(); }
     Index getNumFreeBackgrounds() const { return _backgrounds.getNumFreeIndices(); }
     Index getNumAllocatedBackgrounds() const { return _backgrounds.getNumAllocatedIndices(); }
 
-    BackgroundPointer getBackground(Index backgroundId) const {
-        return _backgrounds.get(backgroundId);
-    }
+    BackgroundPointer getBackground(Index backgroundId) const { return _backgrounds.get(backgroundId); }
 
     Backgrounds _backgrounds;
     BackgroundMap _backgroundMap;
@@ -58,21 +55,20 @@ public:
     class Frame {
     public:
         Frame() {}
-        
+
         void clear() { _backgrounds.clear(); }
 
         void pushBackground(BackgroundStage::Index index) { _backgrounds.emplace_back(index); }
 
         BackgroundStage::BackgroundIndices _backgrounds;
     };
-    
+
     Frame _currentFrame;
 };
 using BackgroundStagePointer = std::shared_ptr<BackgroundStage>;
 
 class BackgroundStageSetup {
 public:
-
     using JobModel = render::Job::Model<BackgroundStageSetup>;
 
     BackgroundStageSetup();
@@ -81,10 +77,20 @@ public:
 protected:
 };
 
-class DrawBackgroundStage {
+class DrawBackgroundDeferred {
 public:
     using Inputs = render::VaryingSet3<LightingModelPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
-    using JobModel = render::Job::ModelI<DrawBackgroundStage, Inputs>;
+    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs>;
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+protected:
+};
+
+class DrawBackgroundForward {
+public:
+    using Inputs = LightingModelPointer;
+    using JobModel = render::Job::ModelI<DrawBackgroundForward, Inputs>;
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
