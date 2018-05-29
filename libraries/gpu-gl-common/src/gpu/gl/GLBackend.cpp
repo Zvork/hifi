@@ -293,7 +293,7 @@ void GLBackend::render(const Batch& batch) {
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 
-    // Update object transform history
+    // Update object transform history for when the batch will be reexecuted
     for (auto& objectTransform : batch._objects) {
         objectTransform._previousModel = objectTransform._model;
     }
