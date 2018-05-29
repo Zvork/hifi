@@ -66,7 +66,7 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
-    DrawOverlay3D(bool opaque);
+    DrawOverlay3D(bool opaque, bool isProjectionJitterEnabled);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -75,6 +75,7 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
     bool _opaquePass{ true };
+    bool _isProjectionJitterEnabled{ false };
 };
 
 class CompositeHUD {

@@ -32,9 +32,10 @@ void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, co
     config->setGPUBatchRunTime(timer->getGPUAverage(), timer->getBatchAverage());
 }
 
-DrawOverlay3D::DrawOverlay3D(bool opaque) :
+DrawOverlay3D::DrawOverlay3D(bool opaque, bool isProjectionJitterEnabled) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
-    _opaquePass(opaque) {
+    _opaquePass(opaque),
+    _isProjectionJitterEnabled(isProjectionJitterEnabled) {
     initOverlay3DPipelines(*_shapePlumber);
 }
 
@@ -70,7 +71,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
-			batch.setProjectionJitterEnabled(true);
+			batch.setProjectionJitterEnabled(_isProjectionJitterEnabled);
             batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
             // Setup lighting model for all items;
