@@ -10,6 +10,8 @@
 //
 #include "GLESBackend.h"
 
+#include "gpu/gl/GLBuffer.h"
+
 using namespace gpu;
 using namespace gpu::gles;
 
