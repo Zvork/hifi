@@ -94,6 +94,11 @@ void packDeferredFragmentSky(vec4 prevPositionCS, vec3 color) {
     _lighting = vec4(color, 1.0);
 }
 
+void packDeferredFragmentOverlay(vec4 prevPositionCS, vec4 color) {
+    _fragColor3 = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = color;
+}
+
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3 fresnel, float roughness) {
     if (alpha <= 0.0) {
         discard;

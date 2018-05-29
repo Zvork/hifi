@@ -14,7 +14,7 @@
 #include "RenderUtilsLogging.h"
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool velocity, bool depthTest = false);
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
@@ -43,11 +43,11 @@ void SetFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     });
 }
 
-DrawOverlay3D::DrawOverlay3D(bool opaque, bool isProjectionJitterEnabled) :
+DrawOverlay3D::DrawOverlay3D(bool opaque, bool velocity) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque),
-    _isProjectionJitterEnabled(isProjectionJitterEnabled) {
-    initOverlay3DPipelines(*_shapePlumber);
+    _outputVelocity(velocity) {
+    initOverlay3DPipelines(*_shapePlumber, velocity);
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -72,7 +72,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
         if (_opaquePass) {
             gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch){
                 batch.enableStereo(false);
-                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
+                batch.clearDepthFramebuffer(1.0f, false);
             });
         }
 
@@ -82,7 +82,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
-			batch.setProjectionJitterEnabled(_isProjectionJitterEnabled);
+			batch.setProjectionJitterEnabled(_outputVelocity);
             batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
             // Setup lighting model for all items;

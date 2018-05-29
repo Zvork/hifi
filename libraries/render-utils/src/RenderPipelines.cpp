@@ -81,13 +81,20 @@
 #include "model_translucent_normal_map_fade_frag.h"
 
 #include "overlay3D_vert.h"
+
 #include "overlay3D_frag.h"
 #include "overlay3D_model_frag.h"
+#include "overlay3D_unlit_frag.h"
+#include "overlay3D_model_unlit_frag.h"
+
+#include "overlay3D_velocity_frag.h"
+#include "overlay3D_model_velocity_frag.h"
+#include "overlay3D_unlit_velocity_frag.h"
+#include "overlay3D_model_unlit_velocity_frag.h"
+
 #include "overlay3D_model_translucent_frag.h"
 #include "overlay3D_translucent_frag.h"
-#include "overlay3D_unlit_frag.h"
 #include "overlay3D_translucent_unlit_frag.h"
-#include "overlay3D_model_unlit_frag.h"
 #include "overlay3D_model_translucent_unlit_frag.h"
 
 #include "model_shadow_vert.h"
@@ -107,7 +114,7 @@
 using namespace render;
 using namespace std::placeholders;
 
-void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
+void initOverlay3DPipelines(ShapePlumber& plumber, bool velocity, bool depthTest = false);
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
@@ -120,16 +127,25 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* a
 void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 static bool forceLightBatchSetter{ false };
 
-void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest) {
+void initOverlay3DPipelines(ShapePlumber& plumber, bool velocity, bool depthTest) {
     auto vertex = overlay3D_vert::getShader();
     auto vertexModel = model_vert::getShader();
+
     auto pixel = overlay3D_frag::getShader();
-    auto pixelTranslucent = overlay3D_translucent_frag::getShader();
     auto pixelUnlit = overlay3D_unlit_frag::getShader();
-    auto pixelTranslucentUnlit = overlay3D_translucent_unlit_frag::getShader();
     auto pixelModel = overlay3D_model_frag::getShader();
-    auto pixelModelTranslucent = overlay3D_model_translucent_frag::getShader();
     auto pixelModelUnlit = overlay3D_model_unlit_frag::getShader();
+
+    if (velocity) {
+        pixel = overlay3D_velocity_frag::getShader();
+        pixelUnlit = overlay3D_unlit_velocity_frag::getShader();
+        pixelModel = overlay3D_model_velocity_frag::getShader();
+        pixelModelUnlit = overlay3D_model_unlit_velocity_frag::getShader();
+    }
+
+    auto pixelTranslucent = overlay3D_translucent_frag::getShader();
+    auto pixelTranslucentUnlit = overlay3D_translucent_unlit_frag::getShader();
+    auto pixelModelTranslucent = overlay3D_model_translucent_frag::getShader();
     auto pixelModelTranslucentUnlit = overlay3D_model_translucent_unlit_frag::getShader();
 
     auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);

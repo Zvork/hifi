@@ -717,11 +717,11 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;
 
-    _transform._projectionJitter._prevOffset = _transform._projectionJitter._offset;
-    _transform._projectionJitter._currentSampleIndex++;
-    if (!_jitterOffsets.empty()) {
-        _transform._projectionJitter._currentSampleIndex =
-            _transform._projectionJitter._currentSampleIndex % _jitterOffsets.size();
+    auto& projectionJitter = _transform._projectionJitter;
+    projectionJitter._prevOffset = projectionJitter._offset;
+    projectionJitter._currentSampleIndex++;
+    if (!projectionJitter._offsetSequence.empty()) {
+        projectionJitter._currentSampleIndex = projectionJitter._currentSampleIndex % projectionJitter._offsetSequence.size();
     }
 
     // Update previous views of saved transforms

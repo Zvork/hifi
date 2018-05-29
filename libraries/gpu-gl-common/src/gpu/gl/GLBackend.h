@@ -332,8 +332,6 @@ protected:
         mat4 correctionInverse;
     };
 
-    std::vector<Vec2> _jitterOffsets;
-
     struct TransformStageState {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         struct Cameras {
@@ -391,6 +389,7 @@ protected:
         bool _viewCorrectionEnabled{ true };
 
         struct Jitter {
+            std::vector<Vec2> _offsetSequence;
             Vec2 _offset{ 0.0f };
             Vec2 _prevOffset{ 0.0f };
             float _scale{ 0.f };
