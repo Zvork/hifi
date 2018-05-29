@@ -243,6 +243,21 @@ std::string Procedural::replaceProceduralBlock(const std::string& fragmentSource
     return fragmentShaderSource;
 }
 
+void Procedural::setVertexSource(const std::string& source) {
+    _vertexSource = source;
+    _shaderDirty = true;
+}
+
+void Procedural::setOpaqueFragmentSource(const std::string& source) {
+    _opaquefragmentSource = source;
+    _shaderDirty = true;
+}
+
+void Procedural::setTransparentFragmentSource(const std::string& source) {
+    _transparentfragmentSource = source;
+    _shaderDirty = true;
+}
+
 void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const glm::vec4& color) {
     _entityDimensions = size;
     _entityPosition = position;

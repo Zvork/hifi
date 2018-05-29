@@ -102,7 +102,7 @@ void DrawBackgroundDeferred::run(const render::RenderContextPointer& renderConte
             batch.setStateScissorRect(args->_viewport);
             batch.setProjectionJitterEnabled(true);
 
-            skybox->render(batch, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
+            skybox->render(batch, true, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
 
             // Restore final framebuffer
             batch.setFramebuffer(finalFrameBuffer);
@@ -178,7 +178,7 @@ void DrawBackgroundForward::run(const render::RenderContextPointer& renderContex
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
-            skybox->render(batch, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
+            skybox->render(batch, false, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
         });
         args->_batch = nullptr;
 

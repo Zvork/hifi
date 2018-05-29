@@ -26,11 +26,12 @@ public:
     bool empty() override;
     void clear() override;
 
-    void render(gpu::Batch& batch, const ViewFrustum& frustum, uint xformSlot) const override;
-    static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox, uint xformSlot);
+    void render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frustum, uint xformSlot) const override;
+    static void render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frustum, const ProceduralSkybox& skybox, uint xformSlot);
 
 protected:
     mutable Procedural _procedural;
+    mutable bool _isDeferred{ true };
 };
 typedef std::shared_ptr< ProceduralSkybox > ProceduralSkyboxPointer;
 

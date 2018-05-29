@@ -1,0 +1,40 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  <$_SCRIBE_TARGET$>
+//
+//  Created by Olivier Prat on 5/29/2018.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+out vec3 _normal;
+
+void main(void) {
+    const float depth = 0.0;
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, depth, 1.0),
+        vec4(1.0, -1.0, depth, 1.0),
+        vec4(-1.0, 1.0, depth, 1.0),
+        vec4(1.0, 1.0, depth, 1.0)
+    );
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    vec3 clipDir = UNIT_QUAD[gl_VertexID].xyz;
+    vec3 eyeDir;
+    <$transformClipToEyeDir(cam, clipDir, eyeDir)$>
+    <$transformEyeToWorldDir(cam, eyeDir, _normal)$>
+    
+    // Position is supposed to come in clip space
+    gl_Position = vec4(clipDir, 1.0);
+
+    <$transformStereoClipSpace(gl_Position)$>
+}

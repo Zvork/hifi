@@ -37,12 +37,12 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    _procedural._vertexSource = simple_vert::getSource();
+    _procedural.setVertexSource( simple_vert::getSource() );
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
-    _procedural._opaquefragmentSource = simple_frag::getSource();
+    _procedural.setOpaqueFragmentSource( simple_frag::getSource() );
     // FIXME: Transparent procedural entities only seem to work if they use the opaque pipelines
-    //_procedural._transparentfragmentSource = simple_transparent_frag::getSource();
-    _procedural._transparentfragmentSource = simple_frag::getSource();
+    //_procedural.setTransparentFragmentSource( simple_transparent_frag::getSource() );
+    _procedural.setTransparentFragmentSource( simple_frag::getSource() );
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);

@@ -17,6 +17,8 @@
 
 #include "skybox_vert.h"
 #include "skybox_frag.h"
+#include "skybox_fwd_vert.h"
+#include "skybox_fwd_frag.h"
 
 using namespace graphics;
 
@@ -79,18 +81,31 @@ void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
     }
 }
 
-void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum, uint xformSlot) const {
+void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frustum, uint xformSlot) const {
     updateSchemaBuffer();
-    Skybox::render(batch, frustum, (*this), xformSlot);
+    Skybox::render(batch, isDeferred, frustum, (*this), xformSlot);
 }
 
-void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox, uint xformSlot) {
+void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewFrustum, const Skybox& skybox, uint xformSlot) {
     // Create the static shared elements used to render the skybox
     static gpu::BufferPointer theConstants;
-    static gpu::PipelinePointer thePipeline;
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        {
+    static gpu::StatePointer theState;
+    static gpu::PipelinePointer theForwardPipeline;
+    static gpu::PipelinePointer theDeferredPipeline;
+
+    if (theState == nullptr) {
+        theState = std::make_shared<gpu::State>();
+        // Must match PrepareStencil::STENCIL_BACKGROUND
+        const int8_t STENCIL_BACKGROUND = 0;
+        theState->setStencilTest(true, 0xFF,
+                                 gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP,
+                                                         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    }
+
+    gpu::PipelinePointer pipeline;
+
+    if (isDeferred) {
+        if (theDeferredPipeline == nullptr) {
             auto skyVS = skybox_vert::getShader();
             auto skyFS = skybox_frag::getShader();
             auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
@@ -100,20 +115,30 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
                 bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
                 bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
                 if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
-
                 }
             });
 
-            auto skyState = std::make_shared<gpu::State>();
-            // Must match PrepareStencil::STENCIL_BACKGROUND
-            const int8_t STENCIL_BACKGROUND = 0;
-            skyState->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL,
-                gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-
-            thePipeline = gpu::Pipeline::create(skyShader, skyState);
+            theDeferredPipeline = gpu::Pipeline::create(skyShader, theState);
         }
-    });
+        pipeline = theDeferredPipeline;
+    } else {
+        if (theForwardPipeline == nullptr) {
+            auto skyVS = skybox_fwd_vert::getShader();
+            auto skyFS = skybox_fwd_frag::getShader();
+            auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
 
+            batch.runLambda([skyShader] {
+                gpu::Shader::BindingSet bindings;
+                bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
+                bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
+                if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
+                }
+            });
+
+            theForwardPipeline = gpu::Pipeline::create(skyShader, theState);
+        }
+        pipeline = theForwardPipeline;
+    }
 
     // Render
     glm::mat4 projMat;
@@ -131,7 +156,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.saveViewProjectionTransform(xformSlot);
     batch.setModelTransform(Transform()); // only for Mac
 
-    batch.setPipeline(thePipeline);
+    batch.setPipeline(pipeline);
     skybox.prepare(batch);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 

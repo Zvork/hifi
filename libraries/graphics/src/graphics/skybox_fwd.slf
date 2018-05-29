@@ -4,13 +4,13 @@
 //
 //  <$_SCRIBE_TARGET$>
 //
-//  Created by Sam Gateau on 5/5/2015.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Olivier Prat on 5/29/2018.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<@include DeferredBufferWrite.slh@>
+out vec4 _fragColor;
 
 uniform samplerCube cubeMap;
 
@@ -23,7 +23,6 @@ uniform skyboxBuffer {
 };
 
 in vec3 _normal;
-in vec4 _prevPositionCS;
 
 <@include skybox.slh@>
 
@@ -36,6 +35,6 @@ in vec4 _prevPositionCS;
 void main(void) {
 
     vec3 color = computeSkyColor();
-    packDeferredFragmentSky(_prevPositionCS, color);
+    _fragColor = vec4(color, 1.0);
 
 }

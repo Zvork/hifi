@@ -17,10 +17,12 @@
 
 #include <graphics/skybox_vert.h>
 #include <graphics/skybox_frag.h>
+#include <graphics/skybox_fwd_vert.h>
+#include <graphics/skybox_fwd_frag.h>
 
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
-    _procedural._vertexSource = skybox_vert::getSource();
-    _procedural._opaquefragmentSource = skybox_frag::getSource();
+    _procedural.setVertexSource( skybox_vert::getSource() );
+    _procedural.setOpaqueFragmentSource( skybox_frag::getSource() );
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND
@@ -41,15 +43,27 @@ void ProceduralSkybox::clear() {
     Skybox::clear();
 }
 
-void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum, uint xformSlot) const {
+void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frustum, uint xformSlot) const {
     if (_procedural.isReady()) {
-        ProceduralSkybox::render(batch, frustum, (*this), xformSlot);
+        if (_isDeferred != isDeferred) {
+            // Choose correct shader source. This is propably not the optimal way, especially if the procedural
+            // skybox is drawn in the same frame in both deferred AND forward.
+            if (isDeferred) {
+                _procedural.setVertexSource( skybox_vert::getSource() );
+                _procedural.setOpaqueFragmentSource( skybox_frag::getSource() );
+            } else {
+                _procedural.setVertexSource( skybox_fwd_vert::getSource() );
+                _procedural.setOpaqueFragmentSource( skybox_fwd_frag::getSource() );
+            }
+            _isDeferred = isDeferred;
+        }
+        ProceduralSkybox::render(batch, isDeferred, frustum, (*this), xformSlot);
     } else {
-        Skybox::render(batch, frustum, xformSlot);
+        Skybox::render(batch, isDeferred, frustum, xformSlot);
     }
 }
 
-void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox, uint xformSlot) {
+void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox, uint xformSlot) {
     glm::mat4 projMat;
     viewFrustum.evalProjectionMatrix(projMat);
 
