@@ -338,14 +338,14 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewJitterCamConfig = renderConfig->getConfig<AntialiasingSetup>("RenderMainView.AntialiasingSetup");
+            auto mainViewAntialiasingSetupConfig = renderConfig->getConfig<AntialiasingSetup>("RenderMainView.AntialiasingSetup");
             auto mainViewAntialiasingConfig = renderConfig->getConfig<Antialiasing>("RenderMainView.Antialiasing");
-            if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
+            if (mainViewAntialiasingSetupConfig && mainViewAntialiasingConfig) {
                 if (action->isChecked()) {
-                    mainViewJitterCamConfig->play();
+                    mainViewAntialiasingSetupConfig->play();
                     mainViewAntialiasingConfig->setDebugFXAA(false);
                 } else {
-                    mainViewJitterCamConfig->none();
+                    mainViewAntialiasingSetupConfig->none();
                     mainViewAntialiasingConfig->setDebugFXAA(true);
                 }
             }

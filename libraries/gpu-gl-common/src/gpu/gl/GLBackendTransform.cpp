@@ -49,10 +49,14 @@ void GLBackend::do_setProjectionJitterSequence(const Batch& batch, size_t paramO
         memcpy(projectionJitter._offsetSequence.data(), batch.readData(batch._params[paramOffset + 1]._uint), sizeof(Vec2) * count);
         projectionJitter._currentSampleIndex = projectionJitter._currentSampleIndex % projectionJitter._offsetSequence.size();
         projectionJitter._offset = projectionJitter._offsetSequence[projectionJitter._currentSampleIndex];
+    } else {
+        projectionJitter._offset = Vec2(0.0f);
     }
 }
 
 void GLBackend::do_setProjectionJitterScale(const Batch& batch, size_t paramOffset) {
+    // Should be 2 for one pixel amplitude as clip space is between -1 and 1, but lower values give less blur
+    // but more aliasing...
     _transform._projectionJitter._scale = 2.0f * batch._params[paramOffset + 0]._float;
 }
 
@@ -120,7 +124,7 @@ void GLBackend::syncTransformStateCache() {
 void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, TransformCameras& cameras) const {
     // Should be 2 for one pixel amplitude as clip space is between -1 and 1, but lower values give less blur
     // but more aliasing...
-    const float jitterAmplitude = (_projectionJitter._offsetSequence.empty() ? 0.0f : _projectionJitter._scale);
+    const float jitterAmplitude = _projectionJitter._scale;
     const Vec2 jitterScale = Vec2(jitterAmplitude * float(_projectionJitter._isEnabled & 1)) / Vec2(_viewport.z, _viewport.w);
     const Vec2 jitter = jitterScale * _projectionJitter._offset;
 

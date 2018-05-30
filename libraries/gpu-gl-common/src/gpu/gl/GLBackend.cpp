@@ -718,7 +718,6 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
     _transform._presentFrame.correctionInverse = invCorrection;
 
     auto& projectionJitter = _transform._projectionJitter;
-    projectionJitter._prevOffset = projectionJitter._offset;
     projectionJitter._currentSampleIndex++;
     if (!projectionJitter._offsetSequence.empty()) {
         projectionJitter._currentSampleIndex = projectionJitter._currentSampleIndex % projectionJitter._offsetSequence.size();

@@ -31,13 +31,14 @@ void main(void) {
         texel = color_sRGBAToLinear(texel);
         colorAlpha = -_color.a;
     }
+    texel.rgb *= _color.rgb;
 
     const float ALPHA_THRESHOLD = 0.999;
     if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
        packDeferredFragmentTranslucent(
             normalize(_normalWS),
             colorAlpha * texel.a,
-            _color.rgb * texel.rgb,
+            texel.rgb,
             DEFAULT_FRESNEL,
             DEFAULT_ROUGHNESS);
     } else {
@@ -45,6 +46,6 @@ void main(void) {
             _prevPositionCS,
             normalize(_normalWS),
             1.0,
-            _color.rgb * texel.rgb);
+            texel.rgb);
     }
 }
