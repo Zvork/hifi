@@ -49,6 +49,7 @@ class Backend {
 public:
     virtual ~Backend(){};
 
+    virtual void shutdown() {}
     virtual const std::string& getVersion() const = 0;
 
     void setStereoState(const StereoState& stereo) { _stereo = stereo; }

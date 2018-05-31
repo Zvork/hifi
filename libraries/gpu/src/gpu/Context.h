@@ -40,6 +40,7 @@ public:
     Context();
     ~Context();
 
+    void shutdown();
     const std::string& getBackendVersion() const;
 
     void beginFrame(const glm::mat4& renderView = glm::mat4(), const glm::mat4& renderPose = glm::mat4());
