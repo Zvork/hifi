@@ -20,6 +20,7 @@ in vec3 _normal;
 in vec4 _position;
 in vec4 _worldPosition;
 in vec4 _worldFadePosition;
+in vec4 _prevPositionCS;
 
 uniform sampler2D xMap;
 uniform sampler2D yMap;
@@ -53,7 +54,7 @@ void main(void) {
     vec4 diffuse = vec4(xyDiffuseScaled + xzDiffuseScaled + yzDiffuseScaled, 1.0);
 
     packDeferredFragment(
-        _worldPosition.xyz,
+        _prevPositionCS,
         _normal,
         1.0,
         vec3(diffuse),
