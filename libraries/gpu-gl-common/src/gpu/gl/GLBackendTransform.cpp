@@ -122,8 +122,6 @@ void GLBackend::syncTransformStateCache() {
 }
 
 void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, TransformCameras& cameras) const {
-    // Should be 2 for one pixel amplitude as clip space is between -1 and 1, but lower values give less blur
-    // but more aliasing...
     const float jitterAmplitude = _projectionJitter._scale;
     const Vec2 jitterScale = Vec2(jitterAmplitude * float(_projectionJitter._isEnabled & 1)) / Vec2(_viewport.z, _viewport.w);
     const Vec2 jitter = jitterScale * _projectionJitter._offset;
