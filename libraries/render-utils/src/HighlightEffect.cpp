@@ -279,6 +279,7 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
                     shaderParameters._size.y = size;
                 }
 
+                auto primaryFramebuffer = inputs.get4();
                 gpu::doInBatch("DrawHighlight::run", args->_context, [&](gpu::Batch& batch) {
                     batch.enableStereo(false);
                     batch.setFramebuffer(destinationFrameBuffer);
@@ -294,6 +295,9 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
                     batch.setResourceTexture(SCENE_DEPTH_MAP_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
                     batch.setResourceTexture(HIGHLIGHTED_DEPTH_MAP_SLOT, highlightedDepthTexture);
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+                    // Reset the framebuffer for overlay drawing
+                    batch.setFramebuffer(primaryFramebuffer);
                 });
             }
         }
@@ -352,6 +356,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
 
+        auto primaryFramebuffer = input.get2();
         gpu::doInBatch("DebugHighlight::run", args->_context, [&](gpu::Batch& batch) {
             batch.setViewportTransform(args->_viewport);
             batch.setFramebuffer(highlightRessources->getColorFramebuffer());
@@ -371,6 +376,9 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
             geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryDepthId);
 
             batch.setResourceTexture(0, nullptr);
+
+            // Reset the framebuffer for overlay drawing
+            batch.setFramebuffer(primaryFramebuffer);
         });
     }
 }
@@ -518,12 +526,12 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
             stream << "HighlightEffect" << i;
             name = stream.str();
         }
-        const auto drawHighlightInputs = DrawHighlight::Inputs(deferredFrameTransform, highlightRessources, sceneFrameBuffer, highlightedRect).asVarying();
+        const auto drawHighlightInputs = DrawHighlight::Inputs(deferredFrameTransform, highlightRessources, sceneFrameBuffer, highlightedRect, primaryFramebuffer).asVarying();
         task.addJob<DrawHighlight>(name, drawHighlightInputs, i, sharedParameters);
     }
 
     // Debug highlight
-    const auto debugInputs = DebugHighlight::Inputs(highlightRessources, const_cast<const render::Varying&>(highlight0Rect)).asVarying();
+    const auto debugInputs = DebugHighlight::Inputs(highlightRessources, const_cast<const render::Varying&>(highlight0Rect), primaryFramebuffer).asVarying();
     task.addJob<DebugHighlight>("HighlightDebug", debugInputs);
 }
 

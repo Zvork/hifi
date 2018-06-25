@@ -110,7 +110,7 @@ public:
     MotionStateType getType() const { return _type; }
     virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
-    void setMass(float mass);
+    virtual void setMass(float mass);
     virtual float getMass() const;
 
     void setBodyLinearVelocity(const glm::vec3& velocity) const;

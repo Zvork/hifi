@@ -236,7 +236,9 @@ enum class EntityVersion : PacketVersion {
     ShadowControl,
     MaterialData,
     CloneableData,
-    CollisionMask16Bytes
+    CollisionMask16Bytes,
+    YieldSimulationOwnership,
+    ParticleEntityFix
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -282,7 +284,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentityLookAtSnapping,
     UpdatedMannequinDefaultAvatar,
     AvatarJointDefaultPoseFlags,
-    FBXReaderNodeReparenting
+    FBXReaderNodeReparenting,
+    FixMannequinDefaultAvatarFeet,
+    ProceduralFaceMovementFlagsAndBlendshapes
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

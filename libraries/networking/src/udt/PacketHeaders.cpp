@@ -33,14 +33,14 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::CollisionMask16Bytes);
+            return static_cast<PacketVersion>(EntityVersion::ParticleEntityFix);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FBXReaderNodeReparenting);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::ProceduralFaceMovementFlagsAndBlendshapes);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
