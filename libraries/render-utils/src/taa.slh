@@ -59,6 +59,10 @@ bool taa_feedbackColor() {
     return GET_BIT(params.flags.y, 4);
 }
 
+bool taa_bicubicHistoryFetch() {
+    return GET_BIT(params.flags.y, 0);
+}
+
 vec2 taa_getDebugCursorTexcoord() {
     return params.pixelInfo_orbZoom.xy;
 }
@@ -75,6 +79,22 @@ vec2 taa_getRegionFXAA() {
     return params.regionInfo.zw;
 }
 #define USE_YCOCG 1
+
+vec2 taa_getImageSize() {
+    vec2 imageSize = getWidthHeight(0);
+    if (isStereo()) {
+        imageSize.x *= 2.0;
+    }
+    return imageSize;
+}
+
+vec2 taa_getTexelSize() {
+    vec2 texelSize = getInvWidthHeight();
+    if (isStereo()) {
+        texelSize.x *= 0.5;
+    }
+    return texelSize;
+}
 
 vec4 taa_transformColor(vec4 c) {
 	// Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image, using luminance as weight, as proposed in
@@ -109,7 +129,50 @@ vec4 taa_fetchSourceMap(vec2 uv) {
 }
 
 vec4 taa_fetchHistoryMap(vec2 uv) {
-	return taa_fetchColor(historyMap, uv);
+    vec4 result;
+
+    if (taa_bicubicHistoryFetch()) {
+        // Perform a Catmull-Rom interpolation for a (possibly) sharper result.
+        // Optimized 9-tap fetch based on http://vec3.ca/bicubic-filtering-in-fewer-taps/
+        vec2 samplePixelPos = uv * taa_getImageSize();
+        vec2 samplePixelIntPos = floor(samplePixelPos - 0.5) + 0.5;
+
+        vec2 samplePixelFracPos = samplePixelPos - samplePixelIntPos;
+        vec2 samplePixelFracPos2 = samplePixelFracPos * samplePixelFracPos;
+
+        // Catmull-Rom interpolation weights
+        vec2 w0 = samplePixelFracPos * (samplePixelFracPos * (1.0 - 0.5*samplePixelFracPos) - 0.5);
+        vec2 w1 = 1.0 + samplePixelFracPos2 * (1.5*samplePixelFracPos - 2.5);
+        vec2 w2 = samplePixelFracPos * (samplePixelFracPos * (2.0 - 1.5*samplePixelFracPos) + 0.5);
+        vec2 w3 = samplePixelFracPos2 * (0.5 * samplePixelFracPos - 0.5);
+    
+        vec2 w12 = w1 + w2;
+        vec2 offset12 = w2 / (w1 + w2);
+
+        vec2 sampleUV0 = samplePixelIntPos - vec2(1.0);
+        vec2 sampleUV3 = samplePixelIntPos + vec2(2.0);
+        vec2 sampleUV12 = samplePixelIntPos + offset12;
+
+        vec2 texelSize = taa_getTexelSize();
+        sampleUV0 *= texelSize;
+        sampleUV3 *= texelSize;
+        sampleUV12 *= texelSize;
+
+        result = texture(historyMap, vec2(sampleUV0.x,  sampleUV0.y)) * w0.x * w0.y;
+        result += texture(historyMap, vec2(sampleUV12.x, sampleUV0.y)) * w12.x * w0.y;
+        result += texture(historyMap, vec2(sampleUV3.x,  sampleUV0.y)) * w3.x * w0.y;
+
+        result += texture(historyMap, vec2(sampleUV0.x,  sampleUV12.y)) * w0.x * w12.y;
+        result += texture(historyMap, vec2(sampleUV12.x, sampleUV12.y)) * w12.x * w12.y;
+        result += texture(historyMap, vec2(sampleUV3.x,  sampleUV12.y)) * w3.x * w12.y;
+
+        result += texture(historyMap, vec2(sampleUV0.x,  sampleUV3.y)) * w0.x * w3.y;
+        result += texture(historyMap, vec2(sampleUV12.x, sampleUV3.y)) * w12.x * w3.y;
+        result += texture(historyMap, vec2(sampleUV3.x,  sampleUV3.y)) * w3.x * w3.y;
+    } else {
+	    result = texture(historyMap, uv);
+    }
+	return taa_transformColor(result);
 }
 
 vec4 taa_fetchNextMap(vec2 uv) {
@@ -126,22 +189,6 @@ float taa_fetchDepth(vec2 uv) {
 
 
 #define ZCMP_GT(a, b) (a > b)
-
-vec2 taa_getImageSize() {
-    vec2 imageSize = getWidthHeight(0);
-    if (isStereo()) {
-        imageSize.x *= 2.0;
-    }
-    return imageSize;
-}
-
-vec2 taa_getTexelSize() {
-    vec2 texelSize = getInvWidthHeight();
-    if (isStereo()) {
-        texelSize.x *= 0.5;
-    }
-    return texelSize;
-}
 
 vec3 taa_findClosestFragment3x3(vec2 uv)
 {

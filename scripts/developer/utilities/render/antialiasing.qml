@@ -110,14 +110,24 @@ Rectangle {
                 min: 0.5
                 height: 38
             }                          
-            Separator {}          
-            HifiControls.CheckBox {
-                boxSize: 20
-                text: "Feedback history color"
-                checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
-                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
-            }
-    
+            Separator {}        
+            Row {
+                spacing: 10
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Feedback history color"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
+                }
+        
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "History bicubic fetch"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["bicubicHistoryFetch"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["bicubicHistoryFetch"] = checked }
+                }
+            }  
+
             ConfigSlider {
                 label: qsTr("Source blend")
                 integral: false

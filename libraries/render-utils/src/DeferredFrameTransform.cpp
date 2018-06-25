@@ -36,9 +36,9 @@ void DeferredFrameTransform::update(RenderArgs* args) {
         frameTransformBuffer.infos.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
         frameTransformBuffer.infos.invPixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
     } else {
+        frameTransformBuffer.infos.pixelInfo.z *= 0.5f;
         frameTransformBuffer.infos.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
-        frameTransformBuffer.infos.invPixelInfo =
-            glm::vec4(2.0f / (float)(args->_viewport.z), 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.infos.invPixelInfo = glm::vec4(2.0f / (float)(args->_viewport.z), 1.0f / args->_viewport.w, 0.0f, 0.0f);
     }
 }
 
