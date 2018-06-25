@@ -57,9 +57,6 @@
 #include <entities-renderer/textured_particle_frag.h>
 #include <entities-renderer/textured_particle_vert.h>
 
-#include <render-utils/overlay3D_vert.h>
-#include <render-utils/overlay3D_frag.h>
-
 #include <graphics/skybox_vert.h>
 #include <graphics/skybox_frag.h>
 
@@ -134,12 +131,12 @@ const std::string PIXEL_SHADER_DEFINES{ R"GLSL(
 
 void testShaderBuild(const std::string& vs_src, const std::string& fs_src) {
     std::string error;
-    std::vector<char> binary;
     GLuint vs, fs;
-    if (!gl::compileShader(GL_VERTEX_SHADER, vs_src, VERTEX_SHADER_DEFINES, vs, error) || 
-        !gl::compileShader(GL_FRAGMENT_SHADER, fs_src, PIXEL_SHADER_DEFINES, fs, error)) {
+    if (!gl::compileShader(GL_VERTEX_SHADER, VERTEX_SHADER_DEFINES + vs_src, vs, error) ||
+        !gl::compileShader(GL_FRAGMENT_SHADER, PIXEL_SHADER_DEFINES + fs_src, fs, error)) {
         throw std::runtime_error("Failed to compile shader");
     }
+    gl::CachedShader binary;
     auto pr = gl::compileProgram({ vs, fs }, error, binary);
     if (!pr) {
         throw std::runtime_error("Failed to link shader");
@@ -194,8 +191,6 @@ void QTestWindow::draw() {
         testShaderBuild(ambient_occlusion_vert::getSource(), ambient_occlusion_frag::getSource());
         testShaderBuild(ambient_occlusion_vert::getSource(), occlusion_blend_frag::getSource());
 */
-
-        testShaderBuild(overlay3D_vert::getSource(), overlay3D_frag::getSource());
 
         testShaderBuild(paintStroke_vert::getSource(),paintStroke_frag::getSource());
         testShaderBuild(polyvox_vert::getSource(), polyvox_frag::getSource());

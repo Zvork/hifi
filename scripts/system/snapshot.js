@@ -37,8 +37,8 @@ var shareAfterLogin = false;
 var snapshotToShareAfterLogin = [];
 var METAVERSE_BASE = Account.metaverseServerURL;
 var isLoggedIn;
-var numGifSnapshotUploadsPending = 0;
-var numStillSnapshotUploadsPending = 0;
+var mostRecentGifSnapshotFilename = "";
+var mostRecentStillSnapshotFilename = "";
 
 // It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
 // POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
@@ -62,6 +62,10 @@ function removeFromStoryIDsToMaybeDelete(story_id) {
 
 function fileExtensionMatches(filePath, extension) {
     return filePath.split('.').pop().toLowerCase() === extension;
+}
+
+function getFilenameFromPath(str) {
+    return str.split('\\').pop().split('/').pop();
 }
 
 function onMessage(message) {
@@ -147,9 +151,9 @@ function onMessage(message) {
                         print('Sharing snapshot with audience "for_url":', message.data);
                         Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));                      
                         if (isGif) {
-                            numGifSnapshotUploadsPending++;
+                            mostRecentGifSnapshotFilename = getFilenameFromPath(message.data);
                         } else {
-                            numStillSnapshotUploadsPending++;
+                            mostRecentStillSnapshotFilename = getFilenameFromPath(message.data);
                         }
                     } else {
                         shareAfterLogin = true;
@@ -295,6 +299,7 @@ function printToPolaroid(image_url) {
         "description": "Printed from Snaps",                               
         "modelURL": POLAROID_MODEL_URL,
 
+        "dimensions": { "x": 0.5667, "y": 0.0212, "z": 0.4176 },
         "position": model_pos,
         "rotation": model_rot,
 
@@ -384,13 +389,11 @@ function snapshotUploaded(isError, reply) {
             ignoreStillSnapshotData = false;
         storyIDsToMaybeDelete.push(storyID);
         if (isGif) {
-            numGifSnapshotUploadsPending--;
-            if (numGifSnapshotUploadsPending !== 0) {
+            if (mostRecentGifSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreGifSnapshotData = true;
             }
         } else {
-            numStillSnapshotUploadsPending--;
-            if (numStillSnapshotUploadsPending !== 0) {
+            if (mostRecentStillSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreStillSnapshotData = true;
             }
         }
@@ -450,7 +453,7 @@ function takeSnapshot() {
     maybeDeleteSnapshotStories();
 
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
+    resetOverlays = Menu.isOptionChecked("Show Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     if (!HMD.active) {
@@ -470,7 +473,7 @@ function takeSnapshot() {
 
     // hide overlays if they are on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", false);
+        Menu.setIsOptionChecked("Show Overlays", false);
     }
 
     var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
@@ -527,7 +530,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
     if (!buttonConnected) {
@@ -583,7 +586,7 @@ function processingGifStarted(pathStillSnapshot) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
@@ -685,9 +688,9 @@ function onUsernameChanged() {
                         Window.shareSnapshot(element.path, element.href);
                         var isGif = fileExtensionMatches(element.path, "gif");
                         if (isGif) {
-                            numGifSnapshotUploadsPending++;
+                            mostRecentGifSnapshotFilename = getFilenameFromPath(element.path);
                         } else {
-                            numStillSnapshotUploadsPending++;
+                            mostRecentStillSnapshotFilename = getFilenameFromPath(element.path);
                         }
                     });
                 }

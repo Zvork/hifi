@@ -97,6 +97,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
+    _staleProxies.clear();
     QHash<EntityItemID, EntityItemPointer> localMap;
     localMap.swap(_entityMap);
     this->withWriteLock([&] {
@@ -228,6 +229,7 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketType::EntityAdd:
+        case PacketType::EntityClone:
         case PacketType::EntityEdit:
         case PacketType::EntityErase:
         case PacketType::EntityPhysics:
@@ -275,10 +277,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     _isDirty = true;
-    emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
     fixupNeedsParentFixups();
+
+    emit addingEntity(entity->getEntityItemID());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -358,21 +361,34 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
                         // the sender is taking ownership
-                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                            // when dynamic objects first activate and multiple participants bid simultaneously
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
                         // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
+                        // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                        // when dynamic objects first activate and multiple participants bid simultaneously
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                     } else {
                         // the sender is trying to steal ownership from another simulator
                         // so we apply the rules for ownership change:
                         // (1) higher priority wins
-                        // (2) equal priority wins if ownership filter has expired except...
+                        // (2) equal priority wins if ownership filter has expired
+                        // (3) VOLUNTEER priority is promoted to RECRUIT
                         uint8_t oldPriority = entity->getSimulationPriority();
                         uint8_t newPriority = properties.getSimulationOwner().getPriority();
                         if (newPriority > oldPriority ||
                              (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
+                            if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                                properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                            }
                         }
                     }
                     if (!simulationBlocked) {
@@ -390,6 +406,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
+                // TODO? replace these eight calls with just one?
                 properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
@@ -492,7 +509,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
     return true;
 }
 
-EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone) {
     EntityItemPointer result = NULL;
     EntityItemProperties props = properties;
 
@@ -504,7 +521,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     if (!properties.getClientOnly() && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
-        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain) {
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain && !isClone) {
         return nullptr;
     }
 
@@ -592,6 +609,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
+    cleanupCloneIDs(entityID);
     unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
     emit deletingEntityPointer(existingEntity.get());
@@ -625,6 +643,28 @@ void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
     });
 }
 
+void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
+    EntityItemPointer entity = findEntityByEntityItemID(entityID);
+    if (entity) {
+        // remove clone ID from it's clone origin's clone ID list if clone origin exists
+        const QUuid& cloneOriginID = entity->getCloneOriginID();
+        if (!cloneOriginID.isNull()) {
+            EntityItemPointer cloneOrigin = findEntityByID(cloneOriginID);
+            if (cloneOrigin) {
+                cloneOrigin->removeCloneID(entityID);
+            }
+        }
+        // clear the clone origin ID on any clones that this entity had
+        const QVector<QUuid>& cloneIDs = entity->getCloneIDs();
+        foreach(const QUuid& cloneChildID, cloneIDs) {
+            EntityItemPointer cloneChild = findEntityByEntityItemID(cloneChildID);
+            if (cloneChild) {
+                cloneChild->setCloneOriginID(QUuid());
+            }
+        }
+    }
+}
+
 void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool ignoreWarnings) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer());
@@ -653,6 +693,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         }
 
         // tell our delete operator about this entityID
+        cleanupCloneIDs(entityID);
         unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
@@ -703,6 +744,12 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 
         if (theEntity->isSimulated()) {
             _simulation->prepareEntityForDelete(theEntity);
+        }
+
+        // keep a record of valid stale spaceIndices so they can be removed from the Space
+        int32_t spaceIndex = theEntity->getSpaceIndex();
+        if (spaceIndex != -1) {
+            _staleProxies.push_back(spaceIndex);
         }
     }
 }
@@ -1392,6 +1439,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
     int processedBytes = 0;
     bool isAdd = false;
+    bool isClone = false;
     // we handle these types of "edit" packets
     switch (message.getType()) {
         case PacketType::EntityErase: {
@@ -1400,6 +1448,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             break;
         }
 
+        case PacketType::EntityClone:
+            isClone = true; // fall through to next case
+            // FALLTHRU
         case PacketType::EntityAdd:
             isAdd = true;  // fall through to next case
             // FALLTHRU
@@ -1422,8 +1473,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             EntityItemProperties properties;
             startDecode = usecTimestampNow();
 
-            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
-                                                                                entityItemID, properties);
+            bool validEditPacket = false;
+            EntityItemID entityIDToClone;
+            EntityItemPointer entityToClone;
+            if (isClone) {
+                QByteArray buffer = QByteArray::fromRawData(reinterpret_cast<const char*>(editData), maxLength);
+                validEditPacket = EntityItemProperties::decodeCloneEntityMessage(buffer, processedBytes, entityIDToClone, entityItemID);
+                if (validEditPacket) {
+                    entityToClone = findEntityByEntityItemID(entityIDToClone);
+                    if (entityToClone) {
+                        properties = entityToClone->getProperties();
+                    }
+                }
+            } else {
+                validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes, entityItemID, properties);
+            }
+
             endDecode = usecTimestampNow();
 
             EntityItemPointer existingEntity;
@@ -1491,22 +1556,24 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
             }
 
-            if ((isAdd || properties.lifetimeChanged()) &&
-                ((!senderNode->getCanRez() && senderNode->getCanRezTmp()) ||
-                (!senderNode->getCanRezCertified() && senderNode->getCanRezTmpCertified()))) {
-                // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
-                if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
-                    properties.getLifetime() > _maxTmpEntityLifetime) {
-                    properties.setLifetime(_maxTmpEntityLifetime);
+            if (!isClone) {
+                if ((isAdd || properties.lifetimeChanged()) &&
+                    ((!senderNode->getCanRez() && senderNode->getCanRezTmp()) ||
+                    (!senderNode->getCanRezCertified() && senderNode->getCanRezTmpCertified()))) {
+                    // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
+                    if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
+                        properties.getLifetime() > _maxTmpEntityLifetime) {
+                        properties.setLifetime(_maxTmpEntityLifetime);
+                        bumpTimestamp(properties);
+                    }
+                }
+
+                if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
+                    // if a node can't change locks, don't allow it to create an already-locked entity -- automatically
+                    // clear the locked property and allow the unlocked entity to be created.
+                    properties.setLocked(false);
                     bumpTimestamp(properties);
                 }
-            }
-
-            if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
-                // if a node can't change locks, don't allow it to create an already-locked entity -- automatically
-                // clear the locked property and allow the unlocked entity to be created.
-                properties.setLocked(false);
-                bumpTimestamp(properties);
             }
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
@@ -1566,17 +1633,32 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 } else if (isAdd) {
                     bool failedAdd = !allowed;
                     bool isCertified = !properties.getCertificateID().isEmpty();
+                    bool isCloneable = properties.getCloneable();
+                    int cloneLimit = properties.getCloneLimit();
                     if (!allowed) {
                         qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
-                    } else if (!isCertified && !senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
+                    } else if (!isClone && !isCertified && !senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
                         failedAdd = true;
                         qCDebug(entities) << "User without 'uncertified rez rights' [" << senderNode->getUUID()
                             << "] attempted to add an uncertified entity with ID:" << entityItemID;
-                    } else if (isCertified && !senderNode->getCanRezCertified() && !senderNode->getCanRezTmpCertified()) {
+                    } else if (!isClone && isCertified && !senderNode->getCanRezCertified() && !senderNode->getCanRezTmpCertified()) {
                         failedAdd = true;
                         qCDebug(entities) << "User without 'certified rez rights' [" << senderNode->getUUID()
                             << "] attempted to add a certified entity with ID:" << entityItemID;
+                    } else if (isClone && isCertified) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User attempted to clone certified entity from entity ID:" << entityIDToClone;
+                    } else if (isClone && !isCloneable) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User attempted to clone non-cloneable entity from entity ID:" << entityIDToClone;
+                    } else if (isClone && entityToClone && entityToClone->getCloneIDs().size() >= cloneLimit && cloneLimit != 0) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User attempted to clone entity ID:" << entityIDToClone << " which reached it's cloneable limit.";
                     } else {
+                        if (isClone) {
+                            properties.convertToCloneProperties(entityIDToClone);
+                        }
+
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
                         properties.setLastEditedBy(senderNode->getUUID());
@@ -1597,10 +1679,15 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             }
                         }
 
+                        if (newEntity && isClone) {
+                            entityToClone->addCloneID(newEntity->getEntityItemID());
+                            newEntity->setCloneOriginID(entityIDToClone);
+                        }
+
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
-
+                            
                             startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"
@@ -1788,6 +1875,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
+    PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
         fixupNeedsParentFixups();
         if (simulate && _simulation) {
@@ -1927,6 +2015,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 
                 if (shouldEraseEntity(entityID, sourceNode)) {
                     entityItemIDsToDelete << entityItemID;
+                    cleanupCloneIDs(entityItemID);
                 }
             }
             deleteEntities(entityItemIDsToDelete, true, true);
@@ -1976,6 +2065,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 
             if (shouldEraseEntity(entityID, sourceNode)) {
                 entityItemIDsToDelete << entityItemID;
+                cleanupCloneIDs(entityItemID);
             }
 
         }
@@ -2322,6 +2412,8 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         return false;
     }
 
+    QMap<QUuid, QVector<QUuid>> cloneIDs;
+
     bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
@@ -2409,10 +2501,42 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             }
         }
 
+        // Convert old cloneable entities so they use cloneableData instead of userData
+        if (contentVersion < (int)EntityVersion::CloneableData) {
+            QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+            QJsonObject grabbableKey = userData["grabbableKey"].toObject();
+            QJsonValue cloneable = grabbableKey["cloneable"];
+            if (cloneable.isBool() && cloneable.toBool()) {
+                QJsonValue cloneLifetime = grabbableKey["cloneLifetime"];
+                QJsonValue cloneLimit = grabbableKey["cloneLimit"];
+                QJsonValue cloneDynamic = grabbableKey["cloneDynamic"];
+                QJsonValue cloneAvatarEntity = grabbableKey["cloneAvatarEntity"];
+
+                // This is cloneable, we need to convert the properties
+                properties.setCloneable(true);
+                properties.setCloneLifetime(cloneLifetime.toInt());
+                properties.setCloneLimit(cloneLimit.toInt());
+                properties.setCloneDynamic(cloneDynamic.toBool());
+                properties.setCloneAvatarEntity(cloneAvatarEntity.toBool());
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
             success = false;
+        }
+
+        const QUuid& cloneOriginID = entity->getCloneOriginID();
+        if (!cloneOriginID.isNull()) {
+            cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+        }
+    }
+
+    for (const auto& entityID : cloneIDs.keys()) {
+        auto entity = findEntityByID(entityID);
+        if (entity) {
+            entity->setCloneIDs(cloneIDs.value(entityID));
         }
     }
 

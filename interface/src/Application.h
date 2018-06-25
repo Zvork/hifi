@@ -72,6 +72,8 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "workload/GameWorkload.h"
+
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -274,6 +276,8 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+    const GameWorkload& getGameWorkload() const { return _gameWorkload; }
+
     virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
     void updateMyAvatarLookAtPosition();
@@ -281,8 +285,11 @@ public:
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
-    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify, const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition,
+                                        const bool& cubemapOutputFormat,
+                                        const bool& notify,
+                                        const QString& filename = QString());
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
@@ -416,6 +423,8 @@ public slots:
     void loadServerlessDomain(QUrl domainURL);
 
     void updateVerboseLogging();
+
+    void changeViewAsNeeded(float boomLength);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -649,8 +658,10 @@ private:
     quint64 _lastFaceTrackerUpdate;
 
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::Engine() };
+    render::EnginePointer _renderEngine{ new render::RenderEngine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
+
+    GameWorkload _gameWorkload;
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {

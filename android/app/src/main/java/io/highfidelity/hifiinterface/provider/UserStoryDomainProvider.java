@@ -1,10 +1,11 @@
 package io.highfidelity.hifiinterface.provider;
 
 import android.util.Log;
-import android.util.MutableInt;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
@@ -25,6 +26,7 @@ public class UserStoryDomainProvider implements DomainProvider {
 
     private static final String INCLUDE_ACTIONS_FOR_PLACES = "concurrency";
     private static final String INCLUDE_ACTIONS_FOR_FULL_SEARCH = "concurrency,announcements,snapshot";
+    private static final String TAGS_TO_SEARCH = "mobile";
     private static final int MAX_PAGES_TO_GET = 10;
 
     private String mProtocol;
@@ -46,24 +48,42 @@ public class UserStoryDomainProvider implements DomainProvider {
         suggestions = new ArrayList<>();
     }
 
+    @Override
+    public synchronized void retrieve(String filterText, DomainCallback domainCallback) {
+        if (!startedToGetFromAPI) {
+            startedToGetFromAPI = true;
+            fillDestinations(filterText, domainCallback);
+        } else {
+            filterChoicesByText(filterText, domainCallback);
+        }
+    }
+
     private void fillDestinations(String filterText, DomainCallback domainCallback) {
         StoriesFilter filter = new StoriesFilter(filterText);
-        final MutableInt counter = new MutableInt(0);
-        allStories.clear();
-        getUserStoryPage(1,
+
+        List<UserStory> taggedStories = new ArrayList<>();
+        Set<String> taggedStoriesIds = new HashSet<>();
+        getUserStoryPage(1, taggedStories, TAGS_TO_SEARCH,
                 e -> {
-                    allStories.subList(counter.value, allStories.size()).forEach(userStory -> {
-                        filter.filterOrAdd(userStory);
+                    taggedStories.forEach(userStory -> {
+                        taggedStoriesIds.add(userStory.id);
                     });
-                    if (domainCallback != null) {
-                        domainCallback.retrieveOk(suggestions); //ended
-                    }
-                },
-                a -> {
-                    allStories.forEach(userStory -> {
-                        counter.value++;
-                        filter.filterOrAdd(userStory);
-                    });
+
+                    allStories.clear();
+                    getUserStoryPage(1, allStories, null,
+                            ex -> {
+                                allStories.forEach(userStory -> {
+                                    if (taggedStoriesIds.contains(userStory.id)) {
+                                        userStory.tagFound = true;
+                                    }
+                                    filter.filterOrAdd(userStory);
+                                });
+                                if (domainCallback != null) {
+                                    domainCallback.retrieveOk(suggestions); //ended
+                                }
+                            }
+                    );
+
                 }
         );
     }
@@ -72,24 +92,22 @@ public class UserStoryDomainProvider implements DomainProvider {
         restOfPagesCallback.callback(new Exception("Error accessing url [" + url + "]", t));
     }
 
-    private void getUserStoryPage(int pageNumber, Callback<Exception> restOfPagesCallback, Callback<Void> firstPageCallback) {
+    private void getUserStoryPage(int pageNumber, List<UserStory> userStoriesList, String tagsFilter, Callback<Exception> restOfPagesCallback) {
         Call<UserStories> userStories = mUserStoryDomainProviderService.getUserStories(
                 INCLUDE_ACTIONS_FOR_PLACES,
                 "open",
                 true,
                 mProtocol,
+                tagsFilter,
                 pageNumber);
         Log.d("API-USER-STORY-DOMAINS", "Protocol [" + mProtocol + "] include_actions [" + INCLUDE_ACTIONS_FOR_PLACES + "]");
         userStories.enqueue(new retrofit2.Callback<UserStories>() {
             @Override
             public void onResponse(Call<UserStories> call, Response<UserStories> response) {
                 UserStories data = response.body();
-                allStories.addAll(data.user_stories);
+                userStoriesList.addAll(data.user_stories);
                 if (data.current_page < data.total_pages && data.current_page <= MAX_PAGES_TO_GET) {
-                    if (pageNumber == 1 && firstPageCallback != null) {
-                        firstPageCallback.callback(null);
-                    }
-                    getUserStoryPage(pageNumber + 1, restOfPagesCallback, null);
+                    getUserStoryPage(pageNumber + 1, userStoriesList, tagsFilter, restOfPagesCallback);
                     return;
                 }
                 restOfPagesCallback.callback(null);
@@ -105,12 +123,16 @@ public class UserStoryDomainProvider implements DomainProvider {
     private class StoriesFilter {
         String[] mWords = new String[]{};
         public StoriesFilter(String filterText) {
-            mWords = filterText.toUpperCase().split("\\s+");
+            mWords = filterText.trim().toUpperCase().split("\\s+");
+            if (mWords.length == 1 && (mWords[0] == null || mWords[0].length() <= 0 ) ) {
+                mWords = null;
+            }
         }
 
         private boolean matches(UserStory story) {
-            if (mWords.length <= 0) {
-                return true;
+            if (mWords == null || mWords.length <= 0) {
+                // No text filter? So filter by tag
+                return story.tagFound;
             }
 
             for (String word : mWords) {
@@ -126,6 +148,9 @@ public class UserStoryDomainProvider implements DomainProvider {
             suggestions.add(story.toDomain());
         }
 
+        /**
+         * if the story matches this filter criteria it's added into suggestions
+         * */
         public void filterOrAdd(UserStory story) {
             if (matches(story)) {
                 addToSuggestions(story);
@@ -142,66 +167,26 @@ public class UserStoryDomainProvider implements DomainProvider {
         domainCallback.retrieveOk(suggestions);
     }
 
-    @Override
-    public synchronized void retrieve(String filterText, DomainCallback domainCallback) {
-        if (!startedToGetFromAPI) {
-            startedToGetFromAPI = true;
-            fillDestinations(filterText, domainCallback);
-        } else {
-            filterChoicesByText(filterText, domainCallback);
-        }
-    }
-
-    public void retrieveNot(DomainCallback domainCallback) {
-        // TODO Call multiple pages
-        Call<UserStories> userStories = mUserStoryDomainProviderService.getUserStories(
-                INCLUDE_ACTIONS_FOR_PLACES,
-                "open",
-                true,
-                mProtocol,
-                1);
-
-        Log.d("API-USER-STORY-DOMAINS", "Protocol [" + mProtocol + "] include_actions [" + INCLUDE_ACTIONS_FOR_PLACES + "]");
-        userStories.enqueue(new retrofit2.Callback<UserStories>() {
-
-            @Override
-            public void onResponse(Call<UserStories> call, Response<UserStories> response) {
-                UserStories userStories = response.body();
-                if (userStories == null) {
-                    domainCallback.retrieveOk(new ArrayList<>(0));
-                }
-                List<DomainAdapter.Domain> domains = new ArrayList<>(userStories.total_entries);
-                userStories.user_stories.forEach(userStory -> {
-                    domains.add(userStory.toDomain());
-                });
-                domainCallback.retrieveOk(domains);
-            }
-
-            @Override
-            public void onFailure(Call<UserStories> call, Throwable t) {
-                domainCallback.retrieveError(new Exception(t), t.getMessage());
-            }
-
-        });
-    }
-
     public interface UserStoryDomainProviderService {
         @GET("api/v1/user_stories")
         Call<UserStories> getUserStories(@Query("include_actions") String includeActions,
                                          @Query("restriction") String restriction,
                                          @Query("require_online") boolean requireOnline,
                                          @Query("protocol") String protocol,
+                                         @Query("tags") String tagsCommaSeparated,
                                          @Query("page") int pageNumber);
     }
 
     class UserStory {
         public UserStory() {}
+        String id;
         String place_name;
         String path;
         String thumbnail_url;
         String place_id;
         String domain_id;
         private String searchText;
+        private boolean tagFound; // Locally used
 
         // New fields? tags, description
 

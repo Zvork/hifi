@@ -30,9 +30,6 @@ void Application::editRenderArgs(RenderArgsEditor editor) {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_aboutToQuit || _window->isMinimized()) {
-        return;
-    }
 
     _renderFrameCount++;
     _lastTimeRendered.start();
@@ -105,7 +102,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
+        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize() * getRenderResolutionScale());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -208,10 +205,6 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
         RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-            renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
-                static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
-        }
         renderArgs->_debugFlags = renderDebugFlags;
     }
 

@@ -277,6 +277,9 @@ public:
     bool getVisible() const;
     void setVisible(bool value);
 
+    bool isVisibleInSecondaryCamera() const;
+    void setIsVisibleInSecondaryCamera(bool value);
+
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
@@ -288,10 +291,10 @@ public:
     bool getCollisionless() const;
     void setCollisionless(bool value);
 
-    uint8_t getCollisionMask() const;
-    void setCollisionMask(uint8_t value);
+    uint16_t getCollisionMask() const;
+    void setCollisionMask(uint16_t value);
 
-    void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
+    void computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask) const;
 
     bool getDynamic() const;
     void setDynamic(bool value);
@@ -308,14 +311,21 @@ public:
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const SimulationOwner& owner);
-    void promoteSimulationPriority(uint8_t priority);
 
     uint8_t getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void clearSimulationOwnership();
-    void setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp);
-    uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
-    void rememberHasSimulationOwnershipBid() const;
+
+    // TODO: move this "ScriptSimulationPriority" and "PendingOwnership" stuff into EntityMotionState
+    // but first would need to do some other cleanup. In the meantime these live here as "scratch space"
+    // to allow libs that don't know about each other to communicate.
+    void setScriptSimulationPriority(uint8_t priority);
+    void clearScriptSimulationPriority();
+    uint8_t getScriptSimulationPriority() const { return _scriptSimulationPriority; }
+    void setPendingOwnershipPriority(uint8_t priority);
+    uint8_t getPendingOwnershipPriority() const { return _pendingOwnershipPriority; }
+    bool pendingRelease(uint64_t timestamp) const;
+    bool stillWaitingToTakeOwnership(uint64_t timestamp) const;
 
     // Certifiable Properties
     QString getItemName() const;
@@ -340,6 +350,19 @@ public:
     void setCertificateID(const QString& value);
     quint32 getStaticCertificateVersion() const;
     void setStaticCertificateVersion(const quint32&);
+
+    bool getCloneable() const;
+    void setCloneable(bool value);
+    float getCloneLifetime() const;
+    void setCloneLifetime(float value);
+    float getCloneLimit() const;
+    void setCloneLimit(float value);
+    bool getCloneDynamic() const;
+    void setCloneDynamic(bool value);
+    bool getCloneAvatarEntity() const;
+    void setCloneAvatarEntity(bool value);
+    const QUuid getCloneOriginID() const;
+    void setCloneOriginID(const QUuid& value);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -395,7 +418,6 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void flagForOwnershipBid(uint8_t priority);
     void flagForMotionStateChange() { _flags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
@@ -484,6 +506,10 @@ public:
     void setCauterized(bool value) { _cauterized = value; }
     bool getCauterized() const { return _cauterized; }
 
+    float getBoundingRadius() const { return _boundingRadius; }
+    void setSpaceIndex(int32_t index);
+    int32_t getSpaceIndex() const { return _spaceIndex; }
+
     virtual void preDelete();
     virtual void postParentFixup() {}
 
@@ -494,8 +520,14 @@ public:
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
+    void addCloneID(const QUuid& cloneID);
+    void removeCloneID(const QUuid& cloneID);
+    const QVector<QUuid> getCloneIDs() const;
+    void setCloneIDs(const QVector<QUuid>& cloneIDs);
+
 signals:
     void requestRenderUpdate();
+    void spaceUpdate(std::pair<int32_t, glm::vec4> data);
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -560,9 +592,10 @@ protected:
     glm::vec3 _registrationPoint { ENTITY_ITEM_DEFAULT_REGISTRATION_POINT };
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
+    bool _isVisibleInSecondaryCamera { ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
-    uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
+    uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
     bool _locked { ENTITY_ITEM_DEFAULT_LOCKED };
     QString _userData { ENTITY_ITEM_DEFAULT_USER_DATA };
@@ -646,7 +679,26 @@ protected:
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
     uint64_t _simulationOwnershipExpiry { 0 };
 
+    float _boundingRadius { 0.0f };
+    int32_t _spaceIndex { -1 }; // index to proxy in workload::Space
+
+    // TODO: move this "scriptSimulationPriority" and "pendingOwnership" stuff into EntityMotionState
+    // but first would need to do some other cleanup. In the meantime these live here as "scratch space"
+    // to allow libs that don't know about each other to communicate.
+    uint64_t _pendingOwnershipTimestamp { 0 }; // timestamp of last owenership change request
+    uint8_t _pendingOwnershipPriority { 0 }; // priority of last ownership change request
+    uint8_t _pendingOwnershipState { 0 }; // TAKE or RELEASE
+    uint8_t _scriptSimulationPriority { 0 }; // target priority based on script operations
+
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
+
+    bool _cloneable { ENTITY_ITEM_DEFAULT_CLONEABLE };
+    float _cloneLifetime { ENTITY_ITEM_DEFAULT_CLONE_LIFETIME };
+    float _cloneLimit { ENTITY_ITEM_DEFAULT_CLONE_LIMIT };
+    bool _cloneDynamic { ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC };
+    bool _cloneAvatarEntity { ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY };
+    QUuid _cloneOriginID;
+    QVector<QUuid> _cloneIDs;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;

@@ -131,6 +131,8 @@ public:
         OctreeDataFileReply,
         OctreeDataPersist,
 
+        EntityClone,
+
         NUM_PACKET_TYPE
     };
 
@@ -232,7 +234,11 @@ enum class EntityVersion : PacketVersion {
     SoftEntities,
     MaterialEntities,
     ShadowControl,
-    MaterialData
+    MaterialData,
+    CloneableData,
+    CollisionMask16Bytes,
+    YieldSimulationOwnership,
+    ParticleEntityFix
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -278,7 +284,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentityLookAtSnapping,
     UpdatedMannequinDefaultAvatar,
     AvatarJointDefaultPoseFlags,
-    FBXReaderNodeReparenting
+    FBXReaderNodeReparenting,
+    FixMannequinDefaultAvatarFeet,
+    ProceduralFaceMovementFlagsAndBlendshapes
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

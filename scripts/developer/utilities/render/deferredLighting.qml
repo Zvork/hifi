@@ -14,6 +14,7 @@ import QtQuick.Layouts 1.3
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import  "configSlider"
+import "../lib/jet/qml" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -36,9 +37,9 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right 
               
-            spacing: 20
+            spacing: 5
             Column { 
-                spacing: 10
+                spacing: 5
            // padding: 10
                 Repeater {
                     model: [
@@ -61,7 +62,7 @@ Rectangle {
 
 
             Column {
-                spacing: 10
+                spacing: 5
                 Repeater {
                     model: [
                          "Obscurance:LightingModel:enableObscurance",
@@ -81,7 +82,7 @@ Rectangle {
             }
 
             Column {
-                spacing: 10
+                spacing: 5
                 Repeater {
                     model: [
                          "Ambient:LightingModel:enableAmbientLight",
@@ -105,7 +106,7 @@ Rectangle {
         Column {
             anchors.left: parent.left
             anchors.right: parent.right 
-            spacing: 10 
+            spacing: 5 
             Repeater {
                 model: [ "Tone Mapping Exposure:ToneMapping:exposure:5.0:-5.0"
                               ]
@@ -211,9 +212,9 @@ Rectangle {
 
         Separator {}          
         Row {
-            spacing: 10 
+            spacing: 5 
             Column {
-                spacing: 10 
+                spacing: 5 
 
                 HifiControls.CheckBox {
                     boxSize: 20
@@ -254,7 +255,7 @@ Rectangle {
 
             }
             Column {
-                spacing: 10 
+                spacing: 5 
                 HifiControls.CheckBox {
                     boxSize: 20
                     text: "Metas"
@@ -275,6 +276,13 @@ Rectangle {
                 }
             }
         }
+        Separator {}
+        HifiControls.Button {
+            text: "Engine"
+           // activeFocusOnPress: false
+            onClicked: {
+               sendToScript({method: "openEngineView"}); 
+            }
+        }
     }
-    //}
 }

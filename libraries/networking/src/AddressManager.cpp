@@ -157,7 +157,11 @@ void AddressManager::storeCurrentAddress() {
         // be loaded over http(s)
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
-        currentAddressHandle.set(url);
+        if (isConnected()) {
+            currentAddressHandle.set(url);
+        } else {
+            qCWarning(networking) << "Ignoring attempt to save current address because not connected to domain:" << url;
+        }
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an invalid url:" << url;
     }
@@ -767,10 +771,10 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
-    if (host != _domainURL.host() || port != _domainURL.port()) {
+    bool hostHasChanged = QString::compare(host, _domainURL.host(), Qt::CaseInsensitive);
+    if (hostHasChanged || port != _domainURL.port()) {
         addCurrentAddressToHistory(trigger);
 
-        bool emitHostChanged = host != _domainURL.host();
         _domainURL = QUrl();
         _domainURL.setScheme(URL_SCHEME_HIFI);
         _domainURL.setHost(host);
@@ -781,7 +785,7 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
 
-        if (emitHostChanged) {
+        if (hostHasChanged) {
             emit hostChanged(host);
         }
 
