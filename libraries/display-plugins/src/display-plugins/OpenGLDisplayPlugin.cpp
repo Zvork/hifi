@@ -262,8 +262,10 @@ void OpenGLDisplayPlugin::deactivate() {
     disconnect(compositorHelper.data());
 
     // Stop and destroy present thread
-    _presentThread->shutdown();
-    _presentThread.reset();
+    if (_presentThread) {
+        _presentThread->shutdown();
+        _presentThread.reset();
+    }
 
     internalDeactivate();
 
