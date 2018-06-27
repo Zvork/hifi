@@ -259,7 +259,9 @@ enum ApplicationEvent {
 class RenderEventHandler : public QObject {
     using Parent = QObject;
     Q_OBJECT
+
 public:
+
     RenderEventHandler(QOpenGLContext* context) {
         _renderContext = new OffscreenGLCanvas();
         _renderContext->setObjectName("RenderContext");
@@ -268,9 +270,6 @@ public:
             qFatal("Unable to make rendering context current");
         }
         _renderContext->doneCurrent();
-
-        // Deleting the object with automatically shutdown the thread
-        connect(qApp, &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
 
         // Transfer to a new thread
         moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
@@ -281,6 +280,7 @@ public:
     }
 
 private:
+
     void initialize() {
         setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
@@ -2468,6 +2468,13 @@ void Application::cleanupBeforeQuit() {
     // See https://highfidelity.fogbugz.com/f/cases/5328
     _main3DScene->enqueueFrame(); // flush all the transactions
     _main3DScene->processTransactionQueue(); // process and apply deletions
+
+    if (_renderEventHandler) {
+        // Destruction of the event handler should stop the render thread through a signal / slot
+        // connection (see ThreadHelpers::moveToNewNamedThread)
+        delete _renderEventHandler;
+        _renderEventHandler = nullptr;
+    }
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
