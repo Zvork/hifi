@@ -75,7 +75,7 @@ QJsonObject getGLContextData() {
     return result;
 }
 
-QThread* RENDER_THREAD = nullptr;
+const QThread* RENDER_THREAD = nullptr;
 
 bool isRenderThread() {
     return QThread::currentThread() == RENDER_THREAD;

@@ -193,7 +193,7 @@ void main(void) {
 }
 )SCRIBE";
 
-extern QThread* RENDER_THREAD;
+extern const QThread* RENDER_THREAD;
 
 class RenderThread : public GenericThread {
     using Parent = GenericThread;

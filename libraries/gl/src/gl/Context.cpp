@@ -249,8 +249,8 @@ void Context::create() {
     assert(0 == _hdc);
     auto hwnd = _hwnd;
     // Create a temporary context to initialize glew
-    static std::once_flag once;
-    std::call_once(once, [&] {
+    //static std::once_flag once;
+    //std::call_once(once, [&] {
         auto hdc = GetDC(hwnd);
         setupPixelFormatSimple(hdc);
         auto glrc = wglCreateContext(hdc);
@@ -263,7 +263,7 @@ void Context::create() {
         wglMakeCurrent(0, 0);
         wglDeleteContext(glrc);
         ReleaseDC(hwnd, hdc);
-    });
+    //});
 
     _hdc = GetDC(_hwnd);
 #if defined(USE_GLES)

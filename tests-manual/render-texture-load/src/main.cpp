@@ -60,7 +60,7 @@
 #include <gl/Config.h>
 #include <gl/Context.h>
 
-extern QThread* RENDER_THREAD;
+extern const QThread* RENDER_THREAD;
 
 static const QString DATA_SET = "https://hifi-content.s3.amazonaws.com/austin/textures.zip";
 static QDir DATA_DIR = QDir(QString("h:/textures"));

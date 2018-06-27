@@ -23,6 +23,10 @@
 
 #include <gpu/Batch.h>
 
+namespace gl {
+    class Context;
+}
+
 namespace gpu {
     namespace gl {
         class GLBackend;
@@ -38,6 +42,7 @@ protected:
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
 public:
+    OpenGLDisplayPlugin();
     ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
@@ -84,6 +89,37 @@ public:
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
 
 protected:
+    
+    class PresentThread : public QThread {
+        using Mutex = std::mutex;
+        using Condition = std::condition_variable;
+        using Lock = std::unique_lock<Mutex>;
+
+    public:
+
+        PresentThread(OpenGLDisplayPlugin* displayPlugin, gl::Context* context);
+        ~PresentThread();
+
+        void shutdown();
+
+        virtual void run() override;
+
+        void withOtherThreadContext(std::function<void()> f);
+
+    private:
+
+        bool _shutdown{ false };
+        Mutex _mutex;
+        // Used to allow the main thread to perform context operations
+        Condition _condition;
+
+        QThread* _targetOperationThread{ nullptr };
+        bool _pendingOtherThreadOperation{ false };
+        bool _finishedOtherThreadOperation{ false };
+        OpenGLDisplayPlugin* _displayPlugin{ nullptr };
+        gl::Context* _context{ nullptr };
+    };
+
     friend class PresentThread;
 
     glm::uvec2 getSurfaceSize() const;
@@ -127,7 +163,7 @@ protected:
     void render(std::function<void(gpu::Batch& batch)> f);
 
     bool _vsyncEnabled { true };
-    QThread* _presentThread{ nullptr };
+    std::unique_ptr<PresentThread> _presentThread;
     std::queue<gpu::FramePointer> _newFrameQueue;
     RateCounter<200> _droppedFrameRate;
     RateCounter<200> _newFrameRate;
