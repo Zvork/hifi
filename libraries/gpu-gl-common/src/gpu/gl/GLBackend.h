@@ -284,7 +284,8 @@ protected:
     virtual void updateInput() = 0;
 
     struct InputStageState {
-        bool _invalidFormat{ true };
+        bool _invalidFormat { true };
+        bool _lastUpdateStereoState{ false }; 
         bool _hadColorAttribute{ true };
         Stream::FormatPointer _format;
         std::string _formatKey;
