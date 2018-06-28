@@ -116,11 +116,11 @@ void OpenGLDisplayPlugin::PresentThread::run() {
     _context->makeCurrent();
     CHECK_GL_ERROR();
 #if defined(Q_OS_MAC)
-    newPlugin->swapBuffers();
+    _displayPlugin->swapBuffers();
 #endif
     gl::setSwapInterval(wantVsync ? 1 : 0);
 #if defined(Q_OS_MAC)
-    newPlugin->swapBuffers();
+    _displayPlugin->swapBuffers();
 #endif
     hasVsync = gl::getSwapInterval() != 0;
     _displayPlugin->setVsyncEnabled(hasVsync);

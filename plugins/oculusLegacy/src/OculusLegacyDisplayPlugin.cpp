@@ -143,7 +143,7 @@ bool OculusLegacyDisplayPlugin::internalActivate() {
     
     _container->makeRenderingContextCurrent();
     
-    QOpenGLContextWrapper(_hmdWindow->context()).moveToThread(_presentThread);
+    QOpenGLContextWrapper(_hmdWindow->context()).moveToThread(_presentThread.get());
 
     _hswDismissed = false;
     _hmd = ovrHmd_Create(0);
