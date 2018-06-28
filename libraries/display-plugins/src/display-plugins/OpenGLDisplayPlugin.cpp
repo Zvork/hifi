@@ -221,7 +221,7 @@ bool OpenGLDisplayPlugin::activate() {
         throw std::runtime_error("Failed to make context current");
     }
 
-    // This is a very ugly temporary hack. GLAD is linked statically as all Hifi libraries
+    // GLAD is linked statically as all Hifi libraries
     // but display plugins such as OpenVR and Occulus are shared libraries which link statically
     // to GLAD and Hifi libraries. So basically all static variables in these static libraries
     // are duplicated both in interface.exe and all shared library plugins, including GLAD
