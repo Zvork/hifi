@@ -515,8 +515,6 @@ void OpenVrDisplayPlugin::internalDeactivate() {
 }
 
 void OpenVrDisplayPlugin::customizeContext() {
-    // Display plugins in DLLs must initialize GL locally
-    gl::initModuleGl();
     Parent::customizeContext();
 
     if (_threadedSubmit) {
