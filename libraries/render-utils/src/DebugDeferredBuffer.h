@@ -97,6 +97,10 @@ private:
     Mode _mode{ Off };
     glm::vec4 _size;
 
+#include "debug_deferred_buffer_shared.slh"
+
+    using ParametersBuffer = gpu::StructBuffer<DebugParameters>;
+
     struct CustomPipeline {
         gpu::PipelinePointer pipeline;
         mutable QFileInfo info;
@@ -108,6 +112,7 @@ private:
     const gpu::PipelinePointer& getPipeline(Mode mode, std::string customFile = std::string());
     std::string getShaderSourceCode(Mode mode, std::string customFile = std::string());
 
+    ParametersBuffer _parameters;
     StandardPipelines _pipelines;
     CustomPipelines _customPipelines;
     int _geometryId{ 0 };

@@ -68,7 +68,7 @@ enum DeferredShader_MapSlot {
     SCATTERING_SPECULAR_UNIT = 9,
     SKYBOX_MAP_UNIT = render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP, // unit = 10
     SHADOW_MAP_UNIT = 11,
-    nextAvailableUnit = SHADOW_MAP_UNIT + SHADOW_CASCADE_MAX_COUNT
+    nextAvailableUnit = SHADOW_MAP_UNIT
 };
 
 enum DeferredShader_BufferSlot {
@@ -533,9 +533,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Bind the shadow buffers
         if (globalShadow) {
-            for (unsigned int i = 0; i < globalShadow->getCascadeCount(); i++) {
-                batch.setResourceTexture(SHADOW_MAP_UNIT+i, globalShadow->getCascade(i).map);
-            }
+            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->map);
         }
 
         auto program = deferredLightingEffect->_directionalSkyboxLight;
