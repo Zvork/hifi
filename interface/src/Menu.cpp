@@ -256,8 +256,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
         0, true, qApp, SLOT(rotationModeChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
-
     // View > Enter First Person Mode in HMD
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPersonHMD, 0, true);
 
@@ -283,7 +281,7 @@ Menu::Menu() {
     MenuWrapper* settingsMenu = addMenu("Settings");
 
     // Settings > General...
-    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr, QAction::PreferencesRole);
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
             QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
@@ -817,6 +815,9 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
+
+    // Developer > Show Overlays
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Overlays, 0, true);
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");
