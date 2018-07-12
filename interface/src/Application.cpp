@@ -1448,8 +1448,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-
     auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
@@ -1501,12 +1499,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["first_run"] = firstRun.get();
 
         // add the user's machine ID to the launch event
+        QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
         properties["machine_fingerprint"] = machineFingerPrint;
 
         userActivityLogger.logAction("launch", properties);
     }
-
-    setCrashAnnotation("machine_fingerprint", machineFingerPrint.toStdString());
 
     _entityEditSender.setMyAvatar(myAvatar.get());
 
@@ -2123,6 +2120,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
+        properties["avatar_identity_requests_sent"] = DependencyManager::get<AvatarManager>()->getIdentityRequestsSent();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -7639,7 +7637,6 @@ void Application::toggleEntityScriptServerLogDialog() {
 
 void Application::loadAddAvatarBookmarkDialog() const {
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
-    avatarBookmarks->addBookmark();
 }
 
 void Application::loadAvatarBrowser() const {

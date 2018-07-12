@@ -24,7 +24,6 @@
 
 <@include Haze.slh@>
 
-uniform sampler2D colorMap;
 uniform sampler2D linearDepthMap;
 
 vec4 unpackPositionFromZeyeAndSide(vec2 texcoord, out int side) {
@@ -59,5 +58,8 @@ void main(void) {
     Light light = getKeyLight();
     vec3 lightDirectionWS = getLightDirection(light);
 
-    outFragColor = computeHazeColor(fragColor, fragPositionES.xyz, fragPositionWS.xyz, eyePositionWS.xyz, lightDirectionWS);
+    outFragColor = computeHazeColor(fragPositionES.xyz, fragPositionWS.xyz, eyePositionWS.xyz, lightDirectionWS);
+    if (outFragColor.a < 1e-4) {
+        discard;
+    }
 }

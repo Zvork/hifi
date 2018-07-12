@@ -169,7 +169,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawBackground>("DrawBackgroundDeferred", lightingModel, true);
 
     task.addJob<SetDeferredFramebuffer>("SetDeferredFramebufferHaze", deferredFramebuffer, DeferredFramebuffer::LIGHTING);
-    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
+    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
