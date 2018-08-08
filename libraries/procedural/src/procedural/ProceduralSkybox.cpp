@@ -13,16 +13,13 @@
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <gpu/Shader.h>
 #include <ViewFrustum.h>
-
-#include <graphics/skybox_vert.h>
-#include <graphics/skybox_frag.h>
-#include <graphics/skybox_fwd_vert.h>
-#include <graphics/skybox_fwd_frag.h>
+#include <shaders/Shaders.h>
 
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
-    _procedural.setVertexSource( skybox_vert::getSource() );
-    _procedural.setOpaqueFragmentSource( skybox_frag::getSource() );
+    _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
+    _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox)->getSource());
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND
@@ -49,11 +46,11 @@ void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrus
             // Choose correct shader source. This is propably not the optimal way, especially if the procedural
             // skybox is drawn in the same frame in both deferred AND forward.
             if (isDeferred) {
-                _procedural.setVertexSource( skybox_vert::getSource() );
-                _procedural.setOpaqueFragmentSource( skybox_frag::getSource() );
+                _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox)->getSource());
             } else {
-                _procedural.setVertexSource( skybox_fwd_vert::getSource() );
-                _procedural.setOpaqueFragmentSource( skybox_fwd_frag::getSource() );
+                _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox_fwd)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox_fwd)->getSource());
             }
             _isDeferred = isDeferred;
         }
@@ -77,9 +74,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrus
 
     auto& procedural = skybox._procedural;
     procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
-    auto textureSlot = procedural.getOpaqueShader()->getTextures().findLocation("cubeMap");
-    auto bufferSlot = procedural.getOpaqueShader()->getUniformBuffers().findLocation("skyboxBuffer");
-    skybox.prepare(batch, textureSlot, bufferSlot);
+    skybox.prepare(batch);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 }
 

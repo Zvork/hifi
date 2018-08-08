@@ -10,6 +10,7 @@
 //
 #include "GLBackend.h"
 #include <gpu/TextureTable.h>
+#include <gpu/ShaderConstants.h>
 
 #include "GLShared.h"
 #include "GLPipeline.h"
@@ -125,15 +126,18 @@ void GLBackend::resetPipelineStage() {
     glUseProgram(0);
 }
 
+GLBackend::UniformStageState::BufferState::BufferState(const BufferPointer& buffer, GLintptr offset, GLsizeiptr size)
+  : buffer(buffer), offset(offset), size(size) {}
+
 void GLBackend::releaseUniformBuffer(uint32_t slot) {
     auto& buf = _uniform._buffers[slot];
-    if (buf) {
-        auto* object = Backend::getGPUObject<GLBuffer>(*buf);
+    if (buf.buffer) {
+        auto* object = Backend::getGPUObject<GLBuffer>(*buf.buffer);
         if (object) {
             glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0);  // RELEASE
             (void)CHECK_GL_ERROR();
         }
-        buf.reset();
+        buf = UniformStageState::BufferState();
     }
 }
 
@@ -143,6 +147,33 @@ void GLBackend::resetUniformStage() {
     }
 }
 
+void GLBackend::bindUniformBuffer(uint32_t slot, const BufferPointer& buffer, GLintptr offset, GLsizeiptr size) {
+    if (!buffer) {
+        releaseUniformBuffer(slot);
+        return;
+    }
+
+    UniformStageState::BufferState bufferState{ buffer, offset, size };
+
+    // check cache before thinking
+    if (_uniform._buffers[slot] == bufferState) {
+        return;
+    }
+
+    // Sync BufferObject
+    auto* object = syncGPUObject(*bufferState.buffer);
+    if (object) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, bufferState.offset, bufferState.size);
+
+        _uniform._buffers[slot] = bufferState;
+        (void)CHECK_GL_ERROR();
+    } else {
+        releaseUniformBuffer(slot);
+        return;
+    }
+
+}
+
 void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
     if (slot > (GLuint)MAX_NUM_UNIFORM_BUFFERS) {
@@ -150,31 +181,12 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
                               << " which doesn't exist. MaxNumUniformBuffers = " << getMaxNumUniformBuffers();
         return;
     }
+
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
 
-    if (!uniformBuffer) {
-        releaseUniformBuffer(slot);
-        return;
-    }
-
-    // check cache before thinking
-    if (_uniform._buffers[slot] == uniformBuffer) {
-        return;
-    }
-
-    // Sync BufferObject
-    auto* object = syncGPUObject(*uniformBuffer);
-    if (object) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, rangeStart, rangeSize);
-
-        _uniform._buffers[slot] = uniformBuffer;
-        (void)CHECK_GL_ERROR();
-    } else {
-        releaseUniformBuffer(slot);
-        return;
-    }
+    bindUniformBuffer(slot, uniformBuffer, rangeStart, rangeSize);
 }
 
 void GLBackend::releaseResourceTexture(uint32_t slot) {

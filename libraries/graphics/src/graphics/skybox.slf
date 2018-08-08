@@ -11,28 +11,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include DeferredBufferWrite.slh@>
+<@include graphics/ShaderConstants.h@>
 
-uniform samplerCube cubeMap;
+layout(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
 
 struct Skybox {
     vec4 color;
 };
 
-uniform skyboxBuffer {
+layout(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
     Skybox skybox;
 };
 
-in vec3 _normal;
-in vec4 _prevPositionCS;
+layout(location=0) in vec3 _normal;
+layout(location=1) in vec4 _prevPositionCS;
 
 <@include skybox.slh@>
 
-//PROCEDURAL_COMMON_BLOCK
-
-#line 1001
-//PROCEDURAL_BLOCK
-
-#line 2033
 void main(void) {
 
     vec3 color = computeSkyColor();

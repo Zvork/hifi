@@ -67,7 +67,29 @@ protected:
     GLBackend();
 
 public:
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler);
+
+#if defined(USE_GLES)
+    // https://www.khronos.org/registry/OpenGL-Refpages/es3/html/glGet.xhtml
+    static const GLint MIN_REQUIRED_TEXTURE_IMAGE_UNITS = 16;
+    static const GLint MIN_REQUIRED_COMBINED_UNIFORM_BLOCKS = 60;
+    static const GLint MIN_REQUIRED_COMBINED_TEXTURE_IMAGE_UNITS = 48;
+    static const GLint MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS = 72;
+    static const GLint MIN_REQUIRED_UNIFORM_LOCATIONS = 1024;
+#else
+    // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGet.xhtml
+    static const GLint MIN_REQUIRED_TEXTURE_IMAGE_UNITS = 16;
+    static const GLint MIN_REQUIRED_COMBINED_UNIFORM_BLOCKS = 70;
+    static const GLint MIN_REQUIRED_COMBINED_TEXTURE_IMAGE_UNITS = 48;
+    static const GLint MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS = 36;
+    static const GLint MIN_REQUIRED_UNIFORM_LOCATIONS = 1024;
+#endif
+
+    static GLint MAX_TEXTURE_IMAGE_UNITS;
+    static GLint MAX_UNIFORM_BUFFER_BINDINGS;
+    static GLint MAX_COMBINED_UNIFORM_BLOCKS;
+    static GLint MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+    static GLint MAX_UNIFORM_BLOCK_SIZE;
+    static GLint UNIFORM_BUFFER_OFFSET_ALIGNMENT;
 
     virtual ~GLBackend();
 
@@ -106,7 +128,6 @@ public:
 
     // Texture Tables offers 2 dedicated slot (taken from the ubo slots)
     static const int MAX_NUM_RESOURCE_TABLE_TEXTURES = 2;
-    static const int RESOURCE_TABLE_TEXTURE_SLOT_OFFSET = TRANSFORM_CAMERA_SLOT + 1;
     size_t getMaxNumResourceTextureTables() const { return MAX_NUM_RESOURCE_TABLE_TEXTURES; }
 
     // Draw Stage
@@ -245,6 +266,8 @@ public:
     }
 
 protected:
+    virtual GLint getRealUniformLocation(GLint location) const;
+
     void recycle() const override;
 
     // FIXME instead of a single flag, create a features struct similar to
@@ -253,9 +276,8 @@ protected:
 
     static const size_t INVALID_OFFSET = (size_t)-1;
     static const uint INVALID_SAVED_CAMERA_SLOT = (uint)-1;
-    bool _inRenderTransferPass{ false };
-    int32_t _uboAlignment{ 0 };
-    int _currentDraw{ -1 };
+    bool _inRenderTransferPass { false };
+    int _currentDraw { -1 };
 
     std::list<std::string> profileRanges;
     mutable Mutex _trashMutex;
@@ -426,10 +448,24 @@ protected:
     virtual void transferTransformState(const Batch& batch) const = 0;
 
     struct UniformStageState {
-        std::array<BufferPointer, MAX_NUM_UNIFORM_BUFFERS> _buffers;
-        //Buffers _buffers {  };
+        struct BufferState {
+            BufferPointer buffer;
+            GLintptr offset{ 0 };
+            GLsizeiptr size{ 0 };
+            BufferState(const BufferPointer& buffer = nullptr, GLintptr offset = 0, GLsizeiptr size = 0);
+            bool operator ==(BufferState& other) const {
+                return offset == other.offset && size == other.size && buffer == other.buffer;
+            }
+        };
+
+        // MAX_NUM_UNIFORM_BUFFERS-1 is the max uniform index BATCHES are allowed to set, but
+        // MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS is used here because the backend sets some 
+        // internal UBOs for things like camera correction 
+        std::array<BufferState, MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS> _buffers;
     } _uniform;
 
+    // Helper function that provides common code 
+    void bindUniformBuffer(uint32_t slot, const BufferPointer& buffer, GLintptr offset = 0, GLsizeiptr size = 0);
     void releaseUniformBuffer(uint32_t slot);
     void resetUniformStage();
 
@@ -441,6 +477,7 @@ protected:
     // Helper function that provides common code used by do_setResourceTexture and
     // do_setResourceTextureTable (in non-bindless mode)
     void bindResourceTexture(uint32_t slot, const TexturePointer& texture);
+
 
     // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);
@@ -481,6 +518,7 @@ protected:
     } _pipeline;
 
     // Backend dependant compilation of the shader
+    virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const;
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
     virtual std::string getBackendShaderHeader() const = 0;
@@ -491,7 +529,6 @@ protected:
     // The program string returned can be used as a key for a cache of shader binaries
     // The shader strings can be reliably sent to the low level `compileShader` functions
     virtual std::string getShaderSource(const Shader& shader, int version) final;
-    virtual void makeProgramBindings(ShaderObject& shaderObject);
     class ElementResource {
     public:
         gpu::Element _element;
@@ -499,14 +536,6 @@ protected:
         ElementResource(Element&& elem, uint16 resource) : _element(elem), _resource(resource) {}
     };
     ElementResource getFormatFromGLUniform(GLenum gltype);
-    static const GLint UNUSED_SLOT{ -1 };
-    static bool isUnusedSlot(GLint binding) { return (binding == UNUSED_SLOT); }
-    virtual int makeUniformSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings,
-        Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
-    virtual int makeUniformBlockSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
-    virtual int makeResourceBufferSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& resourceBuffers) = 0;
-    virtual int makeInputSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
-    virtual int makeOutputSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();

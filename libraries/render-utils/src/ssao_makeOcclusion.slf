@@ -19,7 +19,7 @@
 
 <$declarePackOcclusionDepth()$>
 
-out vec4 outFragColor;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec2 imageSize = getSideImageSize(getResolutionLevel());

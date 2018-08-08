@@ -110,7 +110,7 @@ public:
     static ContextMetricSize textureResourceIdealGPUMemSize;
 
 protected:
-    virtual bool isStereo() {
+    virtual bool isStereo() const {
         return _stereo.isStereo();
     }
 

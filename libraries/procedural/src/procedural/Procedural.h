@@ -64,23 +64,13 @@ public:
     void setIsFading(bool isFading) { _isFading = isFading; }
     void setDoesFade(bool doesFade) { _doesFade = doesFade; }
 
-    void setVertexSource(const std::string& source);
-    void setOpaqueFragmentSource(const std::string& source);
-    void setTransparentFragmentSource(const std::string& source);
+    void setVertexSource(const gpu::Shader::Source& source);
+    void setOpaqueFragmentSource(const gpu::Shader::Source& source);
+    void setTransparentFragmentSource(const gpu::Shader::Source& source);
 
     gpu::StatePointer _opaqueState { std::make_shared<gpu::State>() };
     gpu::StatePointer _transparentState { std::make_shared<gpu::State>() };
 
-    enum StandardUniforms {
-        DATE,
-        TIME,
-        FRAME_COUNT,
-        SCALE,
-        POSITION,
-        ORIENTATION,
-        CHANNEL_RESOLUTION,
-        NUM_STANDARD_UNIFORMS
-    };
 
 protected:
     // Procedural metadata
@@ -101,13 +91,11 @@ protected:
     bool _channelsDirty { true };
 
     // Rendering objects
-    std::string _vertexSource;
-    std::string _opaquefragmentSource;
-    std::string _transparentfragmentSource;
+    gpu::Shader::Source _vertexSource;
+    gpu::Shader::Source _opaquefragmentSource;
+    gpu::Shader::Source _transparentfragmentSource;
 
     UniformLambdas _uniforms;
-    int32_t _standardOpaqueUniformSlots[NUM_STANDARD_UNIFORMS];
-    int32_t _standardTransparentUniformSlots[NUM_STANDARD_UNIFORMS];
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];
     gpu::PipelinePointer _opaquePipeline;
     gpu::PipelinePointer _transparentPipeline;

@@ -10,6 +10,7 @@
 
 #include "GLShader.h"
 #include "GLState.h"
+#include "GLBackend.h"
 
 using namespace gpu;
 using namespace gpu::gl;

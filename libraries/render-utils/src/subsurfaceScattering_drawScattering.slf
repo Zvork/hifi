@@ -12,6 +12,7 @@
 //
 
 
+<@include gpu/ShaderConstants.h@>
 
 <@include DeferredBufferRead.slh@>
 <@include graphics/Light.slh@>
@@ -22,10 +23,10 @@
 <@include SubsurfaceScattering.slh@>
 <$declareSubsurfaceScatteringBRDF()$>
 
-in vec2 varTexCoord0;
-out vec4 _fragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 _fragColor;
 
-uniform vec2 uniformCursorTexcoord = vec2(0.5);
+layout(location=GPU_UNIFORM_EXTRA0) uniform vec2 uniformCursorTexcoord = vec2(0.5);
 
 //uniform vec3 uniformLightVector = vec3(1.0);
 

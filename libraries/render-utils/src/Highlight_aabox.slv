@@ -23,7 +23,7 @@ struct ItemBound {
 };
 
 #if defined(GPU_GL410)
-uniform samplerBuffer ssbo0Buffer;
+layout(binding=0) uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
     ItemBound bound;
@@ -32,7 +32,7 @@ ItemBound getItemBound(int i) {
     return bound;
 }
 #else
-layout(std140) buffer ssbo0Buffer {
+layout(std140, binding=0) buffer ssbo0Buffer {
     ItemBound bounds[];
 };
 ItemBound getItemBound(int i) {
@@ -41,8 +41,12 @@ ItemBound getItemBound(int i) {
 }
 #endif
 
-uniform parametersBuffer {
+struct HighlightParameters {
     vec2 outlineWidth;
+};
+
+layout(binding=0) uniform parametersBuffer {
+    HighlightParameters _parameters;
 };
 
 void main(void) {
@@ -102,6 +106,11 @@ void main(void) {
     pos.xyz += UNIT_BOX_NORMALS[triangleIndex];
     vec4 offsetPosition;
     <$transformModelToMonoClipPos(cam, obj, pos, offsetPosition)$>
+<<<<<<< HEAD
     gl_Position.xy += normalize(offsetPosition.xy-gl_Position.xy) * outlineWidth * gl_Position.w;
     <$transformStereoClipSpace(gl_Position)$>
+=======
+    gl_Position.xy += normalize(offsetPosition.xy-gl_Position.xy) * _parameters.outlineWidth * gl_Position.w;
+    <$transformStereoClipsSpace(cam, gl_Position)$>
+>>>>>>> e9f23a43f61b00b76d10c1600781fc408842f48c
 }

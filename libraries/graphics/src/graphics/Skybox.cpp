@@ -14,11 +14,8 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <ViewFrustum.h>
-
-#include "skybox_vert.h"
-#include "skybox_frag.h"
-#include "skybox_fwd_vert.h"
-#include "skybox_fwd_frag.h"
+#include <shaders/Shaders.h>
+#include "ShaderConstants.h"
 
 using namespace graphics;
 
@@ -67,17 +64,12 @@ void Skybox::clear() {
     _empty = true;
 }
 
-void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
-    if (bufferSlot > -1) {
-        batch.setUniformBuffer(bufferSlot, _schemaBuffer);
-    }
-
-    if (textureSlot > -1) {
-        gpu::TexturePointer skymap = getCubemap();
-        // FIXME: skymap->isDefined may not be threadsafe
-        if (skymap && skymap->isDefined()) {
-            batch.setResourceTexture(textureSlot, skymap);
-        }
+void Skybox::prepare(gpu::Batch& batch) const {
+    batch.setUniformBuffer(graphics::slot::buffer::SkyboxParams, _schemaBuffer);
+    gpu::TexturePointer skymap = getCubemap();
+    // FIXME: skymap->isDefined may not be threadsafe
+    if (skymap && skymap->isDefined()) {
+        batch.setResourceTexture(graphics::slot::texture::Skybox, skymap);
     }
 }
 
@@ -90,6 +82,7 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewF
     // Create the static shared elements used to render the skybox
     static gpu::BufferPointer theConstants;
     static gpu::StatePointer theState;
+    static gpu::ShaderPointer skyShader;
     static gpu::PipelinePointer theForwardPipeline;
     static gpu::PipelinePointer theDeferredPipeline;
 
@@ -106,35 +99,13 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewF
 
     if (isDeferred) {
         if (theDeferredPipeline == nullptr) {
-            auto skyVS = skybox_vert::getShader();
-            auto skyFS = skybox_frag::getShader();
-            auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
-
-            batch.runLambda([skyShader] {
-                gpu::Shader::BindingSet bindings;
-                bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
-                bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
-                if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
-                }
-            });
-
+            auto skyShader = gpu::Shader::createProgram(shader::graphics::program::skybox);
             theDeferredPipeline = gpu::Pipeline::create(skyShader, theState);
         }
         pipeline = theDeferredPipeline;
     } else {
         if (theForwardPipeline == nullptr) {
-            auto skyVS = skybox_fwd_vert::getShader();
-            auto skyFS = skybox_fwd_frag::getShader();
-            auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
-
-            batch.runLambda([skyShader] {
-                gpu::Shader::BindingSet bindings;
-                bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
-                bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
-                if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
-                }
-            });
-
+            auto skyShader = gpu::Shader::createProgram(shader::graphics::program::skybox_fwd);
             theForwardPipeline = gpu::Pipeline::create(skyShader, theState);
         }
         pipeline = theForwardPipeline;
@@ -160,5 +131,5 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewF
     skybox.prepare(batch);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-    batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
+    batch.setResourceTexture(graphics::slot::texture::Skybox, nullptr);
 }

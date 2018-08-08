@@ -11,13 +11,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/ShaderConstants.h@>
+
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-uniform vec4 inColor;
+
+layout(location=GPU_UNIFORM_COLOR) uniform vec4 inColor;
 
 
 struct ItemBound {
@@ -26,7 +29,7 @@ struct ItemBound {
 };
 
 #if defined(GPU_GL410)
-uniform samplerBuffer ssbo0Buffer;
+layout(binding=0) uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
     ItemBound bound;
@@ -35,7 +38,7 @@ ItemBound getItemBound(int i) {
     return bound;
 }
 #else
-layout(std140) buffer ssbo0Buffer {
+layout(std140, binding=0) buffer ssbo0Buffer {
     ItemBound bounds[];
 };
 ItemBound getItemBound(int i) {
@@ -46,8 +49,8 @@ ItemBound getItemBound(int i) {
 
 
 
-out vec4 varColor;
-out vec2 varTexcoord;
+layout(location=0) out vec4 varColor;
+layout(location=1) out vec2 varTexcoord;
 
 void main(void) {
     const vec4 UNIT_BOX[8] = vec4[8](

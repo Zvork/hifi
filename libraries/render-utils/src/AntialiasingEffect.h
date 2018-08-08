@@ -187,7 +187,6 @@ private:
 
     TAAParamsBuffer _params;
     float _sharpen{ 0.15f };
-    int _sharpenLoc{ -1 };
     bool _isSharpenEnabled{ true };
 };
 

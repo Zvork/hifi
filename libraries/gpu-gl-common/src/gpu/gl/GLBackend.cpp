@@ -105,14 +105,35 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = {
     (&::gpu::gl::GLBackend::do_popProfileRange),
 };
 
+#define GL_GET_INTEGER(NAME) glGetIntegerv(GL_##NAME, &const_cast<GLint&>(NAME)); 
+    
+GLint GLBackend::MAX_TEXTURE_IMAGE_UNITS{ 0 };
+GLint GLBackend::MAX_UNIFORM_BUFFER_BINDINGS{ 0 };
+GLint GLBackend::MAX_COMBINED_UNIFORM_BLOCKS{ 0 };
+GLint GLBackend::MAX_COMBINED_TEXTURE_IMAGE_UNITS{ 0 };
+GLint GLBackend::MAX_UNIFORM_BLOCK_SIZE{ 0 };
+GLint GLBackend::UNIFORM_BUFFER_OFFSET_ALIGNMENT{ 1 };
+
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
+
+
         QString vendor{ (const char*)glGetString(GL_VENDOR) };
         QString renderer{ (const char*)glGetString(GL_RENDERER) };
-        qCDebug(gpugllogging) << "GL Version: " << QString((const char*)glGetString(GL_VERSION));
-        qCDebug(gpugllogging) << "GL Shader Language Version: "
-                              << QString((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+        // Textures
+        GL_GET_INTEGER(MAX_TEXTURE_IMAGE_UNITS);
+        GL_GET_INTEGER(MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+
+        // Uniform blocks
+        GL_GET_INTEGER(MAX_UNIFORM_BUFFER_BINDINGS);
+        GL_GET_INTEGER(MAX_COMBINED_UNIFORM_BLOCKS);
+        GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
+        GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
+
+        qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
         qCDebug(gpugllogging) << "GL Vendor: " << vendor;
         qCDebug(gpugllogging) << "GL Renderer: " << renderer;
         GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
@@ -121,14 +142,24 @@ void GLBackend::init() {
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
         qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+        qCDebug(gpugllogging) << "Limits:";
+        qCDebug(gpugllogging) << "\tmax textures:" << MAX_TEXTURE_IMAGE_UNITS;
+        qCDebug(gpugllogging) << "\tmax texture binding:" << MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+        qCDebug(gpugllogging) << "\tmax uniforms:" << MAX_UNIFORM_BUFFER_BINDINGS;
+        qCDebug(gpugllogging) << "\tmax uniform binding:" << MAX_COMBINED_UNIFORM_BLOCKS;
+        qCDebug(gpugllogging) << "\tmax uniform size:" << MAX_UNIFORM_BLOCK_SIZE;
+        qCDebug(gpugllogging) << "\tuniform alignment:" << UNIFORM_BUFFER_OFFSET_ALIGNMENT;
 #if !defined(USE_GLES)
         qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #endif
     });
 }
 
+GLBackend::GLBackend(bool syncCache) {
+    initShaderBinaryCache();
+}
+
 GLBackend::GLBackend() {
-    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initShaderBinaryCache();
 }
 
@@ -392,19 +423,10 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
     }
 }
 
+
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-
-// As long as we don;t use several versions of shaders we can avoid this more complex code path
-#ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc)                                                           \
-    ((_pipeline._programShader)                                                                          \
-         ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version)isStereo()) \
-         : -1)
-#else
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
-#endif
 
 void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
@@ -414,7 +436,10 @@ void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniform1i(GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int), batch._params[paramOffset + 0]._int);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 1]._int);
+    glUniform1i(
+        location,
+        batch._params[paramOffset + 0]._int);
     (void)CHECK_GL_ERROR();
 }
 
@@ -426,7 +451,10 @@ void GLBackend::do_glUniform1f(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniform1f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int), batch._params[paramOffset + 0]._float);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 1]._int);
+    glUniform1f(
+        location,
+        batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -437,8 +465,11 @@ void GLBackend::do_glUniform2f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform2f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int), batch._params[paramOffset + 1]._float,
-                batch._params[paramOffset + 0]._float);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
+    glUniform2f(
+        location,
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -449,8 +480,12 @@ void GLBackend::do_glUniform3f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform3f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int), batch._params[paramOffset + 2]._float,
-                batch._params[paramOffset + 1]._float, batch._params[paramOffset + 0]._float);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 3]._int);
+    glUniform3f(
+        location,
+        batch._params[paramOffset + 2]._float,
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -461,9 +496,13 @@ void GLBackend::do_glUniform4f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform4f(GET_UNIFORM_LOCATION(batch._params[paramOffset + 4]._int), batch._params[paramOffset + 3]._float,
-                batch._params[paramOffset + 2]._float, batch._params[paramOffset + 1]._float,
-                batch._params[paramOffset + 0]._float);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 4]._int);
+    glUniform4f(
+        location,
+        batch._params[paramOffset + 3]._float,
+        batch._params[paramOffset + 2]._float,
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
 
@@ -474,8 +513,11 @@ void GLBackend::do_glUniform3fv(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform3fv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int), batch._params[paramOffset + 1]._uint,
-                 (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
+    glUniform3fv(
+        location,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
 
     (void)CHECK_GL_ERROR();
 }
@@ -488,7 +530,7 @@ void GLBackend::do_glUniform4fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    GLint location = GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
     GLsizei count = batch._params[paramOffset + 1]._uint;
     const GLfloat* value = (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint);
     glUniform4fv(location, count, value);
@@ -503,8 +545,11 @@ void GLBackend::do_glUniform4iv(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform4iv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int), batch._params[paramOffset + 1]._uint,
-                 (const GLint*)batch.readData(batch._params[paramOffset + 0]._uint));
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
+    glUniform4iv(
+        location,
+        batch._params[paramOffset + 1]._uint,
+        (const GLint*)batch.readData(batch._params[paramOffset + 0]._uint));
 
     (void)CHECK_GL_ERROR();
 }
@@ -517,9 +562,12 @@ void GLBackend::do_glUniformMatrix3fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniformMatrix3fv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int), batch._params[paramOffset + 2]._uint,
-                       batch._params[paramOffset + 1]._uint,
-                       (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 3]._int);
+    glUniformMatrix3fv(
+        location,
+        batch._params[paramOffset + 2]._uint,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 
@@ -531,9 +579,12 @@ void GLBackend::do_glUniformMatrix4fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniformMatrix4fv(GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int), batch._params[paramOffset + 2]._uint,
-                       batch._params[paramOffset + 1]._uint,
-                       (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 3]._int);
+    glUniformMatrix4fv(
+        location,
+        batch._params[paramOffset + 2]._uint,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 

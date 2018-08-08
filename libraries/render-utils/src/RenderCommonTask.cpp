@@ -9,9 +9,22 @@
 #include "RenderCommonTask.h"
 
 #include <gpu/Context.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "DeferredLightingEffect.h"
 #include "RenderUtilsLogging.h"
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
 
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
@@ -86,8 +99,8 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
 
             // Setup lighting model for all items;
-            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
-            batch.setUniformBuffer(render::ShapePipeline::Slot::FRAME_TRANSFORM, frameTransform->getFrameTransformBuffer());
+            batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+            batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
             renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;

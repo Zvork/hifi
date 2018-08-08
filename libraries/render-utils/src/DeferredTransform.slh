@@ -11,6 +11,9 @@
 <@if not DEFERRED_TRANSFORM_SLH@>
 <@def DEFERRED_TRANSFORM_SLH@>
 
+<@include gpu/ShaderConstants.h@>
+<@include render-utils/ShaderConstants.h@>
+
 <@func declareDeferredFrameTransform()@>
 
 <@include DeferredTransform_shared.slh@>
@@ -18,7 +21,7 @@
 #define DeferredFrameTransform _DeferredFrameTransform
 #define TransformCamera _TransformCamera
 
-layout(std140) uniform deferredFrameTransformBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 

@@ -23,7 +23,7 @@
 
 
 
-out vec4 varColor;
+layout(location=0) out vec4 varColor;
 
 
 void main(void) {
