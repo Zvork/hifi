@@ -12,7 +12,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Transform.slh@>
 <@include graphics/Material.slh@>
 <@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
