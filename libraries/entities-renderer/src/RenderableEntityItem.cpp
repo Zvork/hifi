@@ -336,6 +336,11 @@ bool EntityRenderer::needsRenderUpdate() const {
     if (_needsRenderUpdate) {
         return true;
     }
+
+    if (isFading()) {
+        return true;
+    }
+
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
@@ -363,32 +368,34 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
-void EntityRenderer::updateModelTransform() {
+void EntityRenderer::updateModelTransformAndBound() {
     bool success = false;
     auto newModelTransform = _entity->getTransformToCenter(success);
     if (success) {
         _modelTransform = newModelTransform;
+    }
+
+    success = false;
+    auto bound = _entity->getAABox(success);
+    if (success) {
+        _bound = bound;
     }
 }
 
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
+        if (isFading()) {
+            emit requestRenderUpdate();
+        }
+
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {
             _isFading = false;
         }
         _prevIsTransparent = transparent;
 
-        bool success = false;
-        auto bound = entity->getAABox(success);
-        if (success) {
-            _bound = bound;
-        }
-        auto newModelTransform = entity->getTransformToCenter(success);
-        if (success) {
-            _modelTransform = newModelTransform;
-        }
+        updateModelTransformAndBound();
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();

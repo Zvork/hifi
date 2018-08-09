@@ -12,12 +12,15 @@
 
 #include "RenderDeferredTask.h"
 
+#include <QtCore/qglobal.h>
+
 #include <DependencyManager.h>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include <graphics/ShaderConstants.h>
 
 #include <render/CullTask.h>
 #include <render/FilterTask.h>
@@ -26,8 +29,10 @@
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
+#include <render/ResampleTask.h>
 
 #include "RenderHifi.h"
+#include "render-utils/ShaderConstants.h"
 #include "RenderCommonTask.h"
 #include "LightingModel.h"
 #include "StencilMaskPass.h"
@@ -55,12 +60,29 @@
 using namespace render;
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
+
 RenderDeferredTask::RenderDeferredTask()
 {
 }
 
-void RenderDeferredTask::configure(const Config& config)
-{
+void RenderDeferredTask::configure(const Config& config) {
+    // Propagate resolution scale to sub jobs who need it
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample>("PrimaryBufferUpscale");
+    assert(preparePrimaryBufferConfig);
+    assert(upsamplePrimaryBufferConfig);
+    preparePrimaryBufferConfig->setProperty("resolutionScale", config.resolutionScale);
+    upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 
 const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, const char* selectionName,
@@ -97,23 +119,22 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto jitter = task.addJob<JitterSample>("JitterCam");
 
-    // Prepare deferred, generate the shared Deferred Frame Transform
+    // GPU jobs: Start preparing the primary, deferred and lighting buffer
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+
+    // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", jitter);
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
-    
-
-    // GPU jobs: Start preparing the primary, deferred and lighting buffer
-    const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
     const auto opaqueRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
-    const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).asVarying();
+    const auto prepareDeferredInputs = PrepareDeferred::Inputs(scaledPrimaryFramebuffer, lightingModel).asVarying();
     const auto prepareDeferredOutputs = task.addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
     // draw a stencil mask in hidden regions of the framebuffer.
-    task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
+    task.addJob<PrepareStencil>("PrepareStencil", scaledPrimaryFramebuffer);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel, jitter).asVarying();
@@ -223,7 +244,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Bloom>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
@@ -284,6 +305,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
 
+    // Upscale to finale resolution
+    const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
+
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
 
@@ -338,27 +362,18 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // Set the light
-        deferredLightingEffect->setupKeyLightBatch(args, batch,
-            render::ShapePipeline::Slot::KEY_LIGHT,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
-
-        deferredLightingEffect->setupLocalLightsBatch(batch,
-            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-            lightClusters);
+        deferredLightingEffect->setupKeyLightBatch(args, batch);
+        deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
         // Setup haze if current zone has haze
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 
@@ -376,16 +391,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
 
-        deferredLightingEffect->unsetLocalLightsBatch(batch,
-            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT);
-
-        deferredLightingEffect->unsetKeyLightBatch(batch,
-            render::ShapePipeline::Slot::KEY_LIGHT,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
+        deferredLightingEffect->unsetLocalLightsBatch(batch);
+        deferredLightingEffect->unsetKeyLightBatch(batch);
     });
 
     config->setNumDrawn((int)inItems.size());
@@ -420,7 +427,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;
