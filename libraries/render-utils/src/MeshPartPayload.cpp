@@ -136,10 +136,13 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputStream(0, _drawMesh->getVertexStream());
 }
 
- void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
-    batch.setModelTransform(_drawTransform, _previousDrawTransform);
-    _previousDrawTransform = _drawTransform;
- }
+void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
+    batch.setModelTransform(_drawTransform, _previousModelTransform);
+    // This isn't really the perfect moment to do this but I can't find a better place
+    if (renderMode == RenderArgs::DEFAULT_RENDER_MODE) {
+        _previousModelTransform = _drawTransform;
+    }
+}
 
 
 void MeshPartPayload::render(RenderArgs* args) {
@@ -239,6 +242,8 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     updateTransformForSkinnedMesh(renderTransform, transform);
 
     initCache(model);
+
+    _previousModelTransform = _transform;
 }
 
 void ModelMeshPartPayload::initCache(const ModelPointer& model) {
@@ -402,8 +407,11 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
     if (_clusterBuffer) {
         batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
-    batch.setModelTransform(_transform, _previousTransform);
-    _previousTransform = _transform;
+    batch.setModelTransform(_transform, _previousModelTransform);
+    // This isn't really the perfect moment to do this but I can't find a better place
+    if (renderMode == RenderArgs::DEFAULT_RENDER_MODE) {
+        _previousModelTransform = _transform;
+    }
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
