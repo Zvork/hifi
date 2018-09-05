@@ -71,6 +71,9 @@ protected:
     static uint32_t _forwardProgram;
     static uint32_t _deferredProgram;
 
+    static gpu::PipelinePointer _forwardPipeline;
+    static gpu::PipelinePointer _deferredPipeline;
+
 };
 typedef std::shared_ptr<Skybox> SkyboxPointer;
 

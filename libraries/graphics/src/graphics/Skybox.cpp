@@ -21,6 +21,8 @@ using namespace graphics;
 
 uint32_t Skybox::_forwardProgram{ shader::graphics::program::skybox };
 uint32_t Skybox::_deferredProgram{ shader::graphics::program::skybox };
+gpu::PipelinePointer Skybox::_forwardPipeline;
+gpu::PipelinePointer Skybox::_deferredPipeline;
 
 Skybox::Skybox() {
     Schema schema;
@@ -82,22 +84,22 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frust
 }
 
 void Skybox::setDeferredProgramId(uint32_t id) {
-    if (_deferredProgram == 0) {
+    if (_deferredProgram != id) {
         _deferredProgram = id;
+        _deferredPipeline.reset();
     }
 }
 
 void Skybox::setForwardProgramId(uint32_t id) {
-    if (_forwardProgram == 0) {
+    if (_forwardProgram != id) {
         _forwardProgram = id;
+        _forwardPipeline.reset();
     }
 }
 
 void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewFrustum, const Skybox& skybox, uint xformSlot) {
     // Create the static shared elements used to render the skybox
     static gpu::StatePointer theState;
-    static gpu::PipelinePointer theForwardPipeline;
-    static gpu::PipelinePointer theDeferredPipeline;
 
     if (theState == nullptr) {
         theState = std::make_shared<gpu::State>();
@@ -111,17 +113,17 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewF
     gpu::PipelinePointer pipeline;
 
     if (isDeferred) {
-        if (theDeferredPipeline == nullptr) {
+        if (_deferredPipeline == nullptr) {
             auto skyShader = gpu::Shader::createProgram(_deferredProgram);
-            theDeferredPipeline = gpu::Pipeline::create(skyShader, theState);
+            _deferredPipeline = gpu::Pipeline::create(skyShader, theState);
         }
-        pipeline = theDeferredPipeline;
+        pipeline = _deferredPipeline;
     } else {
-        if (theForwardPipeline == nullptr) {
+        if (_forwardPipeline == nullptr) {
             auto skyShader = gpu::Shader::createProgram(_forwardProgram);
-            theForwardPipeline = gpu::Pipeline::create(skyShader, theState);
+            _forwardPipeline = gpu::Pipeline::create(skyShader, theState);
         }
-        pipeline = theForwardPipeline;
+        pipeline = _forwardPipeline;
     }
 
     // Render
