@@ -4,33 +4,37 @@
 //
 //  <$_SCRIBE_TARGET$>
 //
-//  Created by Sam Gateau on 5/5/2015.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Olivier Prat on 5/29/2018.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<@include DeferredBufferWrite.slh@>
-<@include graphics/ShaderConstants.h@>
+out vec4 _fragColor;
 
-layout(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
+uniform samplerCube cubeMap;
 
 struct Skybox {
     vec4 color;
 };
 
-layout(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
+uniform skyboxBuffer {
     Skybox skybox;
 };
 
-layout(location=0) in vec3 _normal;
-layout(location=1) in vec4 _prevPositionCS;
+in vec3 _normal;
 
 <@include skybox.slh@>
 
+//PROCEDURAL_COMMON_BLOCK
+
+#line 1001
+//PROCEDURAL_BLOCK
+
+#line 2033
 void main(void) {
 
     vec3 color = computeSkyColor();
-    packDeferredFragmentSky(_prevPositionCS, color);
+    _fragColor = vec4(color, 1.0);
 
 }

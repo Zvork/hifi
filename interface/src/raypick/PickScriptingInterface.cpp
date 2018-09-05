@@ -11,6 +11,7 @@
 #include <QVariant>
 #include "GLMHelpers.h"
 
+#include "Application.h"
 #include <PickManager.h>
 
 #include "StaticRayPick.h"
@@ -20,6 +21,14 @@
 #include "StaticParabolaPick.h"
 #include "JointParabolaPick.h"
 #include "MouseParabolaPick.h"
+#include "CollisionPick.h"
+
+#include "SpatialParentFinder.h"
+#include "NestableTransformNode.h"
+#include "PickTransformNode.h"
+#include "MouseTransformNode.h"
+#include "avatar/MyAvatarHeadTransformNode.h"
+#include "avatar/AvatarManager.h"
 
 #include <ScriptEngine.h>
 
@@ -31,6 +40,8 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
             return createStylusPick(properties);
         case PickQuery::PickType::Parabola:
             return createParabolaPick(properties);
+        case PickQuery::PickType::Collision:
+            return createCollisionPick(properties);
         default:
             return PickManager::INVALID_PICK_ID;
     }
@@ -234,6 +245,50 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
     return PickManager::INVALID_PICK_ID;
 }
 
+/**jsdoc
+* A Shape defines a physical volume.
+*
+* @typedef {object} Shape
+* @property {string} shapeType The type of shape to use. Can be one of the following: "box", "sphere", "capsule-x", "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"
+* @property {Vec3} dimensions - The size to scale the shape to.
+*/
+
+// TODO: Add this property to the Shape jsdoc above once model picks work properly
+// * @property {string} modelURL - If shapeType is one of: "compound", "simple-hull", "simple-compound", or "static-mesh", this defines the model to load to generate the collision volume.
+
+/**jsdoc
+* A set of properties that can be passed to {@link Picks.createPick} to create a new Collision Pick.
+
+* @typedef {object} Picks.CollisionPickProperties
+* @property {Shape} shape - The information about the collision region's size and shape.
+* @property {Vec3} position - The position of the collision region.
+* @property {Quat} orientation - The orientation of the collision region.
+*/
+unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
+    QVariantMap propMap = properties.toMap();
+
+    bool enabled = false;
+    if (propMap["enabled"].isValid()) {
+        enabled = propMap["enabled"].toBool();
+    }
+
+    PickFilter filter = PickFilter();
+    if (propMap["filter"].isValid()) {
+        filter = PickFilter(propMap["filter"].toUInt());
+    }
+
+    float maxDistance = 0.0f;
+    if (propMap["maxDistance"].isValid()) {
+        maxDistance = propMap["maxDistance"].toFloat();
+    }
+
+    CollisionRegion collisionRegion(propMap);
+    auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine());
+    collisionPick->parentTransform = createTransformNode(propMap);
+
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, collisionPick);
+}
+
 void PickScriptingInterface::enablePick(unsigned int uid) {
     DependencyManager::get<PickManager>()->enablePick(uid);
 }
@@ -304,4 +359,44 @@ unsigned int PickScriptingInterface::getPerFrameTimeBudget() const {
 
 void PickScriptingInterface::setPerFrameTimeBudget(unsigned int numUsecs) {
     DependencyManager::get<PickManager>()->setPerFrameTimeBudget(numUsecs);
+}
+
+std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const QVariantMap& propMap) {
+    if (propMap["parentID"].isValid()) {
+        QUuid parentUuid = propMap["parentID"].toUuid();
+        if (!parentUuid.isNull()) {
+            // Infer object type from parentID
+            // For now, assume a QUuuid is a SpatiallyNestable. This should change when picks are converted over to QUuids.
+            bool success;
+            std::weak_ptr<SpatiallyNestable> nestablePointer = DependencyManager::get<SpatialParentFinder>()->find(parentUuid, success, nullptr);
+            int parentJointIndex = 0;
+            if (propMap["parentJointIndex"].isValid()) {
+                parentJointIndex = propMap["parentJointIndex"].toInt();
+            }
+            auto sharedNestablePointer = nestablePointer.lock();
+            if (success && sharedNestablePointer) {
+                return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
+            }
+        }
+
+        unsigned int pickID = propMap["parentID"].toUInt();
+        if (pickID != 0) {
+            return std::make_shared<PickTransformNode>(pickID);
+        }
+    }
+    
+    if (propMap["joint"].isValid()) {
+        QString joint = propMap["joint"].toString();
+        if (joint == "Mouse") {
+            return std::make_shared<MouseTransformNode>();
+        } else if (joint == "Avatar") {
+            return std::make_shared<MyAvatarHeadTransformNode>();
+        } else if (!joint.isNull()) {
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            int jointIndex = myAvatar->getJointIndex(joint);
+            return std::make_shared<NestableTransformNode>(myAvatar, jointIndex);
+        }
+    }
+
+    return std::shared_ptr<TransformNode>();
 }

@@ -19,6 +19,9 @@
 
 using namespace graphics;
 
+uint32_t Skybox::_forwardProgram{ shader::graphics::program::skybox };
+uint32_t Skybox::_deferredProgram{ shader::graphics::program::skybox };
+
 Skybox::Skybox() {
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
@@ -78,11 +81,21 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frust
     Skybox::render(batch, isDeferred, frustum, (*this), xformSlot);
 }
 
+void Skybox::setDeferredProgramId(uint32_t id) {
+    if (_deferredProgram == 0) {
+        _deferredProgram = id;
+    }
+}
+
+void Skybox::setForwardProgramId(uint32_t id) {
+    if (_forwardProgram == 0) {
+        _forwardProgram = id;
+    }
+}
+
 void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewFrustum, const Skybox& skybox, uint xformSlot) {
     // Create the static shared elements used to render the skybox
-    static gpu::BufferPointer theConstants;
     static gpu::StatePointer theState;
-    static gpu::ShaderPointer skyShader;
     static gpu::PipelinePointer theForwardPipeline;
     static gpu::PipelinePointer theDeferredPipeline;
 
@@ -99,13 +112,13 @@ void Skybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& viewF
 
     if (isDeferred) {
         if (theDeferredPipeline == nullptr) {
-            auto skyShader = gpu::Shader::createProgram(shader::graphics::program::skybox);
+            auto skyShader = gpu::Shader::createProgram(_deferredProgram);
             theDeferredPipeline = gpu::Pipeline::create(skyShader, theState);
         }
         pipeline = theDeferredPipeline;
     } else {
         if (theForwardPipeline == nullptr) {
-            auto skyShader = gpu::Shader::createProgram(shader::graphics::program::skybox_fwd);
+            auto skyShader = gpu::Shader::createProgram(_forwardProgram);
             theForwardPipeline = gpu::Pipeline::create(skyShader, theState);
         }
         pipeline = theForwardPipeline;

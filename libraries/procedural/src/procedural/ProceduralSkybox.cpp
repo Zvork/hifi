@@ -46,11 +46,11 @@ void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrus
             // Choose correct shader source. This is propably not the optimal way, especially if the procedural
             // skybox is drawn in the same frame in both deferred AND forward.
             if (isDeferred) {
+                _procedural.setVertexSource(gpu::Shader::createVertex(shader::render_utils::vertex::skybox)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::render_utils::fragment::skybox)->getSource());
+            } else {
                 _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
                 _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox)->getSource());
-            } else {
-                _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox_fwd)->getSource());
-                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox_fwd)->getSource());
             }
             _isDeferred = isDeferred;
         }

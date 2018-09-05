@@ -76,31 +76,38 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {number} distance The distance at which to render the end of this Ray Pointer, if one is defined.
  */
 /**jsdoc
- * A set of properties used to define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
+ * A set of properties which define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
  *
  * @typedef {object} Pointers.RayPointerRenderState
- * @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
- * @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
- * An overlay to represent the beginning of the Ray Pointer, if desired.
- * @property {Overlays.OverlayProperties} [path] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field), which <b>must</b> be <code>"line3d"</code>.
- * An overlay to represent the path of the Ray Pointer, if desired.
- * @property {Overlays.OverlayProperties} [end] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
- * An overlay to represent the end of the Ray Pointer, if desired.
+ * @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+ * @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Ray Pointer,
+ * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+ * @property {Overlays.OverlayProperties|QUuid} [path] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the path of the Ray Pointer,
+ * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field), which <b>must</b> be <code>"line3d"</code>.
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+ * @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the end of the Ray Pointer,
+ * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
  */
 /**jsdoc
  * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
  * @typedef {object} Pointers.LaserPointerProperties
  * @property {boolean} [faceAvatar=false] If true, the end of the Pointer will always rotate to face the avatar.
  * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
- * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+ * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
  * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
  * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
  * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
  * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
  * the normal will follow exactly.
  * @property {boolean} [enabled=false]
- * @property {Pointers.RayPointerRenderState[]} [renderStates] A list of different visual states to switch between.
- * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+ * @property {Pointers.RayPointerRenderState[]|Object.<string, Pointers.RayPointerRenderState>} [renderStates] A collection of different visual states to switch between.
+ * When using {@link Pointers.createPointer}, a list of RayPointerRenderStates.
+ * When returned from {@link Pointers.getPointerProperties}, a map between render state names and RayPointRenderStates.
+ * @property {Pointers.DefaultRayPointerRenderState[]|Object.<string, Pointers.DefaultRayPointerRenderState>} [defaultRenderStates] A collection of different visual states to use if there is no intersection.
+ * When using {@link Pointers.createPointer}, a list of DefaultRayPointerRenderStates.
+ * When returned from {@link Pointers.getPointerProperties}, a map between render state names and DefaultRayPointRenderStates.
  * @property {boolean} [hover=false] If this Pointer should generate hover events.
  * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
  */
@@ -207,9 +214,10 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * The rendering properties of the parabolic path
 *
 * @typedef {object} Pointers.ParabolaProperties
-* @property {Color} color The color of the parabola.
-* @property {number} alpha The alpha of the parabola.
-* @property {number} width The width of the parabola, in meters.
+* @property {Color} color=255,255,255 The color of the parabola.
+* @property {number} alpha=1.0 The alpha of the parabola.
+* @property {number} width=0.01 The width of the parabola, in meters.
+* @property {boolean} isVisibleInSecondaryCamera=false The width of the parabola, in meters.
 */
 /**jsdoc
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.ParabolaPointerRenderState},
@@ -223,27 +231,34 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is intersecting something.
 *
 * @typedef {object} Pointers.ParabolaPointerRenderState
-* @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
-* @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
-* An overlay to represent the beginning of the Parabola Pointer, if desired.
-* @property {Pointers.ParabolaProperties} [path] The rendering properties of the parabolic path defined by the Parabola Pointer.
-* @property {Overlays.OverlayProperties} [end] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
-* An overlay to represent the end of the Parabola Pointer, if desired.
+* @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+* @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Parabola Pointer,
+* using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+* When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+* @property {Pointers.ParabolaProperties} [path]  When using {@link Pointers.createPointer}, the optionally defined rendering properties of the parabolic path defined by the Parabola Pointer.
+* Not defined in {@link Pointers.getPointerProperties}.
+* @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the end of the Parabola Pointer,
+* using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+* When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
 */
 /**jsdoc
 * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
-* @typedef {object} Pointers.LaserPointerProperties
+* @typedef {object} Pointers.ParabolaPointerProperties
 * @property {boolean} [faceAvatar=false] If true, the end of the Pointer will always rotate to face the avatar.
 * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
-* @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+* @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
 * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
 * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
 * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
 * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
 * the normal will follow exactly.
 * @property {boolean} [enabled=false]
-* @property {Pointers.ParabolaPointerRenderState[]} [renderStates] A list of different visual states to switch between.
-* @property {Pointers.DefaultParabolaPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+* @property {Pointers.ParabolaPointerRenderState[]|Object.<string, Pointers.ParabolaPointerRenderState>} [renderStates] A collection of different visual states to switch between.
+* When using {@link Pointers.createPointer}, a list of ParabolaPointerRenderStates.
+* When returned from {@link Pointers.getPointerProperties}, a map between render state names and ParabolaPointerRenderStates.
+* @property {Pointers.DefaultParabolaPointerRenderState[]|Object.<string, Pointers.DefaultParabolaPointerRenderState>} [defaultRenderStates] A collection of different visual states to use if there is no intersection.
+* When using {@link Pointers.createPointer}, a list of DefaultParabolaPointerRenderStates.
+* When returned from {@link Pointers.getPointerProperties}, a map between render state names and DefaultParabolaPointerRenderStates.
 * @property {boolean} [hover=false] If this Pointer should generate hover events.
 * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
 */
@@ -374,4 +389,8 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const
         result = pickResult->toVariantMap();
     }
     return result;
+}
+
+QVariantMap PointerScriptingInterface::getPointerProperties(unsigned int uid) const {
+    return DependencyManager::get<PointerManager>()->getPointerProperties(uid);
 }

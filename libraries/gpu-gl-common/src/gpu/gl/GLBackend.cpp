@@ -764,7 +764,6 @@ void GLBackend::recycle() const {
     }
 
     _textureManagement._transferEngine->manageMemory();
-    Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
 void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {

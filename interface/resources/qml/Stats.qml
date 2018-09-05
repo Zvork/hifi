@@ -61,6 +61,9 @@ Item {
                         text: "Game Rate: " + root.gameLoopRate
                     }
                     StatText {
+                        text: "Physics Object Count: " + root.physicsObjectCount
+                    }
+                    StatText {
                         visible: root.expanded
                         text: root.gameUpdateStats
                     }
@@ -115,6 +118,22 @@ Item {
                     StatText {
                         visible: root.expanded
                         text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Total picks:\n    " +
+                                    root.stylusPicksCount + " styluses\n    " +
+                                    root.rayPicksCount + " rays\n    " +
+                                    root.parabolaPicksCount + " parabolas\n    " +
+                                    root.collisionPicksCount + " colliders"
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Intersection calls: Entities/Overlays/Avatars/HUD\n    " +
+                                    "Styluses:\t" + root.stylusPicksUpdated.x + "/" + root.stylusPicksUpdated.y + "/" + root.stylusPicksUpdated.z + "/" + root.stylusPicksUpdated.w + "\n    " +
+                                    "Rays:\t" + root.rayPicksUpdated.x + "/" + root.rayPicksUpdated.y + "/" + root.rayPicksUpdated.z + "/" + root.rayPicksUpdated.w + "\n    " +
+                                    "Parabolas:\t" + root.parabolaPicksUpdated.x + "/" + root.parabolaPicksUpdated.y + "/" + root.parabolaPicksUpdated.z + "/" + root.parabolaPicksUpdated.w + "\n    " +
+                                    "Colliders:\t" + root.collisionPicksUpdated.x + "/" + root.collisionPicksUpdated.y + "/" + root.collisionPicksUpdated.z + "/" + root.collisionPicksUpdated.w
                     }
                 }
             }
@@ -172,6 +191,21 @@ Item {
                     }
                     StatText {
                         text: "Yaw: " + root.yaw.toFixed(1)
+                    }
+                    StatText {
+                        visible: root.animStackNames.length > 0;
+                        text: "Anim Stack Names:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.animStackNames.length * 15
+                        visible: root.animStackNames.length > 0;
+                        model: root.animStackNames
+                        delegate: StatText {
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
                     }
                     StatText {
                         visible: root.expanded;

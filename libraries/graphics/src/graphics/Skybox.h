@@ -46,6 +46,9 @@ public:
     void prepare(gpu::Batch& batch) const;
     virtual void render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frustum, uint xformSlot) const;
 
+    static void setDeferredProgramId(uint32_t id);
+    static void setForwardProgramId(uint32_t id);
+
     static void render(gpu::Batch& batch, bool isDeferred, const ViewFrustum& frustum, const Skybox& skybox, uint xformSlot);
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
@@ -64,6 +67,10 @@ protected:
     glm::quat _orientation;
 
     bool _empty{ true };
+
+    static uint32_t _forwardProgram;
+    static uint32_t _deferredProgram;
+
 };
 typedef std::shared_ptr<Skybox> SkyboxPointer;
 

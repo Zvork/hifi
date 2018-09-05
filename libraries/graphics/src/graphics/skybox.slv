@@ -4,8 +4,8 @@
 //
 //  <$_SCRIBE_TARGET$>
 //
-//  Created by Sam Gateau on 5/5/2015.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Olivier Prat on 5/29/2018.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,8 +15,7 @@
 
 <$declareStandardTransform()$>
 
-layout(location=0) out vec3 _normal;
-layout(location=1) out vec4 _prevPositionCS;
+out vec3 _normal;
 
 void main(void) {
     const float depth = 0.0;
@@ -32,7 +31,7 @@ void main(void) {
     vec3 clipDir = UNIT_QUAD[gl_VertexID].xyz;
     vec3 eyeDir;
     <$transformClipToEyeDir(cam, clipDir, eyeDir)$>
-    <$transformEyeToWorldDirAndPreviousClipPos(cam, eyeDir, _normal, _prevPositionCS)$>
+    <$transformEyeToWorldDir(cam, eyeDir, _normal)$>
     
     // Position is supposed to come in clip space
     gl_Position = vec4(clipDir, 1.0);
