@@ -354,7 +354,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
 
         // Clear Color, Depth and Stencil for deferred buffer
         batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 | gpu::Framebuffer::BUFFER_COLOR3 |
+            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 | gpu::Framebuffer::BUFFER_COLOR3 | gpu::Framebuffer::BUFFER_COLOR4 |
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
             vec4(vec3(0), 0), 1.0, 0, true);
