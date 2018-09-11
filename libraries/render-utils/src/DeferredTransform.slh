@@ -141,7 +141,7 @@ vec3 evalEyePositionFromZdb(int side, float Zdb, vec2 texcoord) {
 }
 
 vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
-	float Zdb = evalZdbFromZeye(Zeye);
+    float Zdb = evalZdbFromZeye(Zeye);
     return evalEyePositionFromZdb(side, Zdb, texcoord);
 }
 

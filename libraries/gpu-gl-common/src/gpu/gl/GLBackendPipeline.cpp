@@ -160,11 +160,10 @@ void GLBackend::bindUniformBuffer(uint32_t slot, const BufferPointer& buffer, GL
         return;
     }
 
-    // Sync BufferObject
-    auto* object = syncGPUObject(*bufferState.buffer);
-    if (object) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, bufferState.offset, bufferState.size);
-
+    // Grab the true gl Buffer object
+    auto glBO = getBufferIDUnsynced(*buffer);
+    if (glBO) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, slot, glBO, bufferState.offset, bufferState.size);
         _uniform._buffers[slot] = bufferState;
         (void)CHECK_GL_ERROR();
     } else {

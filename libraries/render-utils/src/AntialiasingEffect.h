@@ -125,6 +125,10 @@ signals:
 #define SET_BIT(bitfield, bitIndex, value) bitfield = ((bitfield) & ~(1 << (bitIndex))) | ((value) << (bitIndex))
 #define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))
 
+#define ANTIALIASING_USE_TAA    1
+
+#if ANTIALIASING_USE_TAA
+
 struct TAAParams {
     float nope{ 0.0f };
     float blend{ 0.15f };
@@ -180,7 +184,7 @@ private:
 
     gpu::FramebufferSwapChainPointer _antialiasingBuffers;
     gpu::TexturePointer _antialiasingTextures[2];
-
+    gpu::BufferPointer _blendParamsBuffer;
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
     gpu::PipelinePointer _debugBlendPipeline;
@@ -189,5 +193,7 @@ private:
     float _sharpen{ 0.15f };
     bool _isSharpenEnabled{ true };
 };
+
+#endif // if ANTIALIASING_USE_TAA
 
 #endif // hifi_AntialiasingEffect_h
