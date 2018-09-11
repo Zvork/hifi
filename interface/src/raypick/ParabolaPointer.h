@@ -36,6 +36,7 @@ public:
             void setVisible(bool visible);
             void updateKey();
             void updateUniformBuffer() { _uniformBuffer->setSubData(0, _parabolaData); }
+            void updateBounds();
 
             void setColor(const glm::vec3& color) { _parabolaData.color = glm::vec4(color, _parabolaData.color.a); }
             void setAlpha(const float& alpha) { _parabolaData.color.a = alpha; }
@@ -95,6 +96,8 @@ public:
 
     ParabolaPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
         bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
+
+    QVariantMap toVariantMap() const override;
 
     static std::shared_ptr<StartEndRenderState> buildRenderState(const QVariantMap& propMap);
 

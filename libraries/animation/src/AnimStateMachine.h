@@ -133,13 +133,14 @@ protected:
 
     // interpolation state
     bool _duringInterp = false;
-    InterpType _interpType { InterpType::SnapshotBoth };
+    InterpType _interpType { InterpType::SnapshotPrev };
     float _alphaVel = 0.0f;
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
     AnimPoseVec _nextPoses;
 
     State::Pointer _currentState;
+    State::Pointer _previousState;
     std::vector<State::Pointer> _states;
 
     QString _currentStateVar;

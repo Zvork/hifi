@@ -23,6 +23,8 @@ AnimStateMachine::~AnimStateMachine() {
 
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
+    float parentDebugAlpha = context.getDebugAlpha(_id);
+
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
         // switch states
@@ -68,26 +70,30 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
             } else {
                 assert(false);
             }
-
             if (_poses.size() > 0 && nextPoses && prevPoses && nextPoses->size() > 0 && prevPoses->size() > 0) {
                 ::blend(_poses.size(), &(prevPoses->at(0)), &(nextPoses->at(0)), _alpha, &_poses[0]);
             }
+            context.setDebugAlpha(_currentState->getID(), _alpha * parentDebugAlpha, _children[_currentState->getChildIndex()]->getType());
         } else {
             _duringInterp = false;
             _prevPoses.clear();
             _nextPoses.clear();
         }
     }
+
     if (!_duringInterp) {
+        context.setDebugAlpha(_currentState->getID(), parentDebugAlpha, _children[_currentState->getChildIndex()]->getType());
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
-
     processOutputJoints(triggersOut);
+
+    context.addStateMachineInfo(_id, _currentState->getID(), _previousState->getID(), _duringInterp, _alpha);
 
     return _poses;
 }
 
 void AnimStateMachine::setCurrentState(State::Pointer state) {
+    _previousState = _currentState ? _currentState : state;
     _currentState = state;
 }
 
@@ -132,7 +138,7 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimCon
     qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget << "interpType = " << (int)_interpType;
 #endif
 
-    _currentState = desiredState;
+    setCurrentState(desiredState);
 }
 
 AnimStateMachine::State::Pointer AnimStateMachine::evaluateTransitions(const AnimVariantMap& animVars) const {

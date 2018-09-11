@@ -136,6 +136,10 @@ signals:
 #define SET_BIT(bitfield, bitIndex, value) bitfield = ((bitfield) & ~(1 << (bitIndex))) | ((value) << (bitIndex))
 #define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))
 
+#define ANTIALIASING_USE_TAA    1
+
+#if ANTIALIASING_USE_TAA
+
 struct TAAParams {
     float nope{ 0.0f };
     float blend{ 0.15f };
@@ -191,7 +195,7 @@ private:
 
     gpu::FramebufferSwapChainPointer _antialiasingBuffers;
     gpu::TexturePointer _antialiasingTextures[2];
-
+    gpu::BufferPointer _blendParamsBuffer;
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
     gpu::PipelinePointer _debugBlendPipeline;
@@ -202,7 +206,7 @@ private:
 };
 
 
-/*
+#else 
 class AntiAliasingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled)
@@ -224,18 +228,15 @@ public:
     const gpu::PipelinePointer& getBlendPipeline();
     
 private:
-    
-    // Uniforms for AA
-    gpu::int32 _texcoordOffsetLoc;
-    
     gpu::FramebufferPointer _antialiasingBuffer;
     
     gpu::TexturePointer _antialiasingTexture;
+    gpu::BufferPointer _paramsBuffer;
     
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
     int _geometryId { 0 };
 };
-*/
+#endif
 
 #endif // hifi_AntialiasingEffect_h

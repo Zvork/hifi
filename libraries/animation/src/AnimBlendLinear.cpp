@@ -27,6 +27,7 @@ AnimBlendLinear::~AnimBlendLinear() {
 const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
     _alpha = animVars.lookup(_alphaVar, _alpha);
+    float parentDebugAlpha = context.getDebugAlpha(_id);
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -34,16 +35,27 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
         }
     } else if (_children.size() == 1) {
         _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
+        context.setDebugAlpha(_children[0]->getID(), parentDebugAlpha, _children[0]->getType());
     } else {
-
         float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         size_t prevPoseIndex = glm::floor(clampedAlpha);
         size_t nextPoseIndex = glm::ceil(clampedAlpha);
-        float alpha = glm::fract(clampedAlpha);
-
+        auto alpha = glm::fract(clampedAlpha);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
-    }
 
+        // weights are for animation stack debug purposes only.
+        float weight1 = 0.0f;
+        float weight2 = 0.0f;
+        if (prevPoseIndex == nextPoseIndex) {
+            weight2 = 1.0f;
+            context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
+        } else {
+            weight2 = alpha;
+            weight1 = 1.0f - weight2;
+            context.setDebugAlpha(_children[prevPoseIndex]->getID(), weight1 * parentDebugAlpha, _children[prevPoseIndex]->getType());
+            context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
+        }
+    }
     processOutputJoints(triggersOut);
 
     return _poses;

@@ -36,19 +36,7 @@ class QJsonObject;
 
 class AnimNode : public std::enable_shared_from_this<AnimNode> {
 public:
-    enum class Type {
-        Clip = 0,
-        BlendLinear,
-        BlendLinearMove,
-        Overlay,
-        StateMachine,
-        Manipulator,
-        InverseKinematics,
-        DefaultPose,
-        TwoBoneIK,
-        PoleVectorConstraint,
-        NumTypes
-    };
+    using Type = AnimNodeType;
     using Pointer = std::shared_ptr<AnimNode>;
     using ConstPointer = std::shared_ptr<const AnimNode>;
 
