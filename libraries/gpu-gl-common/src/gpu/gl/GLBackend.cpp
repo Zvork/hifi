@@ -217,6 +217,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                     preUpdateTransform();
                     break;
 
+                case Batch::COMMAND_setFramebuffer:
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform:

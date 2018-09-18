@@ -54,7 +54,152 @@
 #define GPU_STEREO_CAMERA_BUFFER
 #endif
 
+//
+// GL Backend pointer storage mechanism
+// One of the following three defines must be defined.
+// GPU_POINTER_STORAGE_SHARED
+
+// The platonic ideal, use references to smart pointers.
+// However, this produces artifacts because there are too many places in the code right now that
+// create temporary values (undesirable smart pointer duplications) and then those temp variables
+// get passed on and have their reference taken, and then invalidated
+// GPU_POINTER_STORAGE_REF
+
+// Raw pointer manipulation.  Seems more dangerous than the reference wrappers,
+// but in practice, the danger of grabbing a reference to a temporary variable
+// is causing issues
+// GPU_POINTER_STORAGE_RAW
+
+#if defined(USE_GLES)
+#define GPU_POINTER_STORAGE_SHARED
+#else
+#define GPU_POINTER_STORAGE_RAW
+#endif
+
 namespace gpu { namespace gl {
+
+#if defined(GPU_POINTER_STORAGE_SHARED)
+template <typename T>
+static inline bool compare(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b) {
+    return a == b;
+}
+
+template <typename T>
+static inline T* acquire(const std::shared_ptr<T>& pointer) {
+    return pointer.get();
+}
+
+template <typename T>
+static inline void reset(std::shared_ptr<T>& pointer) {
+    return pointer.reset();
+}
+
+template <typename T>
+static inline bool valid(const std::shared_ptr<T>& pointer) {
+    return pointer.operator bool();
+}
+
+template <typename T>
+static inline void assign(std::shared_ptr<T>& pointer, const std::shared_ptr<T>& source) {
+    pointer = source;
+}
+
+using BufferReference = BufferPointer;
+using TextureReference = TexturePointer;
+using FramebufferReference = FramebufferPointer;
+using FormatReference = Stream::FormatPointer;
+using PipelineReference = PipelinePointer;
+
+#define GPU_REFERENCE_INIT_VALUE nullptr
+
+#elif defined(GPU_POINTER_STORAGE_REF)
+
+template <typename T>
+class PointerReferenceWrapper : public std::reference_wrapper<const std::shared_ptr<T>> {
+    using Parent = std::reference_wrapper<const std::shared_ptr<T>>;
+
+public:
+    using Pointer = std::shared_ptr<T>;
+    PointerReferenceWrapper() : Parent(EMPTY()) {}
+    PointerReferenceWrapper(const Pointer& pointer) : Parent(pointer) {}
+    void clear() { *this = EMPTY(); }
+
+private:
+    static const Pointer& EMPTY() {
+        static const Pointer EMPTY_VALUE;
+        return EMPTY_VALUE;
+    };
+};
+
+template <typename T>
+static bool compare(const PointerReferenceWrapper<T>& reference, const std::shared_ptr<T>& pointer) {
+    return reference.get() == pointer;
+}
+
+template <typename T>
+static inline T* acquire(const PointerReferenceWrapper<T>& reference) {
+    return reference.get().get();
+}
+
+template <typename T>
+static void assign(PointerReferenceWrapper<T>& reference, const std::shared_ptr<T>& pointer) {
+    reference = pointer;
+}
+
+template <typename T>
+static bool valid(const PointerReferenceWrapper<T>& reference) {
+    return reference.get().operator bool();
+}
+
+template <typename T>
+static inline void reset(PointerReferenceWrapper<T>& reference) {
+    return reference.clear();
+}
+
+using BufferReference = PointerReferenceWrapper<Buffer>;
+using TextureReference = PointerReferenceWrapper<Texture>;
+using FramebufferReference = PointerReferenceWrapper<Framebuffer>;
+using FormatReference = PointerReferenceWrapper<Stream::Format>;
+using PipelineReference = PointerReferenceWrapper<Pipeline>;
+
+#define GPU_REFERENCE_INIT_VALUE
+
+#elif defined(GPU_POINTER_STORAGE_RAW)
+
+template <typename T>
+static bool compare(const T* const& rawPointer, const std::shared_ptr<T>& pointer) {
+    return rawPointer == pointer.get();
+}
+
+template <typename T>
+static inline T* acquire(T*& rawPointer) {
+    return rawPointer;
+}
+
+template <typename T>
+static inline bool valid(const T* const& rawPointer) {
+    return rawPointer;
+}
+
+template <typename T>
+static inline void reset(T*& rawPointer) {
+    rawPointer = nullptr;
+}
+
+template <typename T>
+static inline void assign(T*& rawPointer, const std::shared_ptr<T>& pointer) {
+    rawPointer = pointer.get();
+}
+
+using BufferReference = Buffer*;
+using TextureReference = Texture*;
+using FramebufferReference = Framebuffer*;
+using FormatReference = Stream::Format*;
+using PipelineReference = Pipeline*;
+
+#define GPU_REFERENCE_INIT_VALUE nullptr
+
+#endif
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
     // Context Backend static interface required
@@ -67,7 +212,6 @@ protected:
     GLBackend();
 
 public:
-
 #if defined(USE_GLES)
     // https://www.khronos.org/registry/OpenGL-Refpages/es3/html/glGet.xhtml
     static const GLint MIN_REQUIRED_TEXTURE_IMAGE_UNITS = 16;
@@ -307,10 +451,10 @@ protected:
     virtual void updateInput() = 0;
 
     struct InputStageState {
-        bool _invalidFormat { true };
-        bool _lastUpdateStereoState{ false }; 
+        bool _invalidFormat{ true };
+        bool _lastUpdateStereoState{ false };
         bool _hadColorAttribute{ true };
-        Stream::FormatPointer _format;
+        FormatReference _format{ GPU_REFERENCE_INIT_VALUE };
         std::string _formatKey;
 
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
@@ -321,27 +465,22 @@ protected:
         BuffersState _invalidBuffers{ 0 };
         BuffersState _attribBindingBuffers{ 0 };
 
-        Buffers _buffers;
-        Offsets _bufferOffsets;
-        Offsets _bufferStrides;
-        std::vector<GLuint> _bufferVBOs;
+        std::array<BufferReference, MAX_NUM_INPUT_BUFFERS> _buffers{};
+        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferOffsets{};
+        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferStrides{};
+        std::array<GLuint, MAX_NUM_INPUT_BUFFERS> _bufferVBOs{};
 
         glm::vec4 _colorAttribute{ 0.0f };
 
-        BufferPointer _indexBuffer;
+        BufferReference _indexBuffer{};
         Offset _indexBufferOffset{ 0 };
         Type _indexBufferType{ UINT32 };
 
-        BufferPointer _indirectBuffer;
+        BufferReference _indirectBuffer{};
         Offset _indirectBufferOffset{ 0 };
         Offset _indirectBufferStride{ 0 };
 
         GLuint _defaultVAO{ 0 };
-
-        InputStageState() :
-            _invalidFormat(true), _format(0), _formatKey(), _attributeActivation(0),
-            _buffers(_invalidBuffers.size(), BufferPointer(0)), _bufferOffsets(_invalidBuffers.size(), 0),
-            _bufferStrides(_invalidBuffers.size(), 0), _bufferVBOs(_invalidBuffers.size(), 0) {}
     } _input;
 
     virtual void initTransform() = 0;
@@ -450,35 +589,41 @@ protected:
 
     struct UniformStageState {
         struct BufferState {
-            BufferPointer buffer;
+            BufferReference buffer{};
             GLintptr offset{ 0 };
             GLsizeiptr size{ 0 };
-            BufferState(const BufferPointer& buffer = nullptr, GLintptr offset = 0, GLsizeiptr size = 0);
-            bool operator ==(BufferState& other) const {
-                return offset == other.offset && size == other.size && buffer == other.buffer;
+
+            BufferState& operator=(const BufferState& other) = delete;
+            void reset() {
+                gpu::gl::reset(buffer);
+                offset = 0;
+                size = 0;
+            }
+            bool compare(const BufferPointer& buffer, GLintptr offset, GLsizeiptr size) {
+                const auto& self = *this;
+                return (self.offset == offset && self.size == size && gpu::gl::compare(self.buffer, buffer));
             }
         };
 
         // MAX_NUM_UNIFORM_BUFFERS-1 is the max uniform index BATCHES are allowed to set, but
-        // MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS is used here because the backend sets some 
-        // internal UBOs for things like camera correction 
+        // MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS is used here because the backend sets some
+        // internal UBOs for things like camera correction
         std::array<BufferState, MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS> _buffers;
     } _uniform;
 
-    // Helper function that provides common code 
+    // Helper function that provides common code
     void bindUniformBuffer(uint32_t slot, const BufferPointer& buffer, GLintptr offset = 0, GLsizeiptr size = 0);
     void releaseUniformBuffer(uint32_t slot);
     void resetUniformStage();
 
     // update resource cache and do the gl bind/unbind call with the current gpu::Buffer cached at slot s
     // This is using different gl object  depending on the gl version
-    virtual bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) = 0;
+    virtual bool bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) = 0;
     virtual void releaseResourceBuffer(uint32_t slot) = 0;
 
     // Helper function that provides common code used by do_setResourceTexture and
     // do_setResourceTextureTable (in non-bindless mode)
     void bindResourceTexture(uint32_t slot, const TexturePointer& texture);
-
 
     // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);
@@ -486,9 +631,12 @@ protected:
     void resetResourceStage();
 
     struct ResourceStageState {
-        std::array<BufferPointer, MAX_NUM_RESOURCE_BUFFERS> _buffers;
-        std::array<TexturePointer, MAX_NUM_RESOURCE_TEXTURES> _textures;
-        //Textures _textures { { MAX_NUM_RESOURCE_TEXTURES } };
+        struct TextureState {
+            TextureReference _texture{};
+            GLenum _target;
+        };
+        std::array<BufferReference, MAX_NUM_RESOURCE_BUFFERS> _buffers{};
+        std::array<TextureState, MAX_NUM_RESOURCE_TEXTURES> _textures{};
         int findEmptyTextureSlot() const;
     } _resource;
 
@@ -503,7 +651,7 @@ protected:
     void resetPipelineStage();
 
     struct PipelineStageState {
-        PipelinePointer _pipeline;
+        PipelineReference _pipeline{};
 
         GLuint _program{ 0 };
         GLShader* _programShader{ nullptr };
@@ -523,9 +671,9 @@ protected:
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
     virtual std::string getBackendShaderHeader() const = 0;
-    // For a program, this will return a string containing all the source files (without any 
-    // backend headers or defines).  For a vertex, fragment or geometry shader, this will 
-    // return the fully customized shader with all the version and backend specific 
+    // For a program, this will return a string containing all the source files (without any
+    // backend headers or defines).  For a vertex, fragment or geometry shader, this will
+    // return the fully customized shader with all the version and backend specific
     // preprocessor directives
     // The program string returned can be used as a key for a cache of shader binaries
     // The shader strings can be reliably sent to the low level `compileShader` functions
@@ -543,7 +691,7 @@ protected:
     void resetOutputStage();
 
     struct OutputStageState {
-        FramebufferPointer _framebuffer{ nullptr };
+        FramebufferReference _framebuffer{};
         GLuint _drawFBO{ 0 };
     } _output;
 
@@ -555,8 +703,8 @@ protected:
     void resetStages();
 
     // Stores cached binary versions of the shaders for quicker startup on subsequent runs
-    // Note that shaders in the cache can still fail to load due to hardware or driver 
-    // changes that invalidate the cached binary, in which case we fall back on compiling 
+    // Note that shaders in the cache can still fail to load due to hardware or driver
+    // changes that invalidate the cached binary, in which case we fall back on compiling
     // the source again
     struct ShaderBinaryCache {
         std::mutex _mutex;
@@ -568,7 +716,7 @@ protected:
     virtual void killShaderBinaryCache();
 
     struct TextureManagementStageState {
-        bool _sparseCapable { false };
+        bool _sparseCapable{ false };
         GLTextureTransferEnginePointer _transferEngine;
     } _textureManagement;
     virtual void initTextureManagementStage();
