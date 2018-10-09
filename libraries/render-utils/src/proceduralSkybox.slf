@@ -21,6 +21,11 @@ layout(location=1) in vec4 _prevPositionCS;
 
 #line 2033
 void main(void) {
-    vec3 color = computeProceduralSkyboxColor();
+    vec3 color = getSkyboxColor();
+    // Protect from NaNs and negative values
+    color = mix(color, vec3(0), isnan(color));
+    color = max(color, vec3(0));
+    // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
+    color = pow(color, vec3(2.2));
     packDeferredFragmentSky(_prevPositionCS, color);
 }

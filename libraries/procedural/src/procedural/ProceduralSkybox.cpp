@@ -17,9 +17,15 @@
 #include <ViewFrustum.h>
 #include <shaders/Shaders.h>
 
+const uint32_t PROCEDURAL_SKYBOX_VERTEX_DEFERRED = shader::render_utils::vertex::skybox;
+const uint32_t PROCEDURAL_SKYBOX_FRAGMENT_DEFERRED = shader::render_utils::fragment::proceduralSkybox;
+
+const uint32_t PROCEDURAL_SKYBOX_VERTEX_FORWARD = shader::graphics::vertex::skybox;
+const uint32_t PROCEDURAL_SKYBOX_FRAGMENT_FORWARD = shader::procedural::fragment::proceduralSkybox;
+
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
-    _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
-    _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::procedural::fragment::proceduralSkybox)->getSource());
+    _procedural.setVertexSource(gpu::Shader::createVertex(PROCEDURAL_SKYBOX_VERTEX_DEFERRED)->getSource());
+    _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(PROCEDURAL_SKYBOX_FRAGMENT_DEFERRED)->getSource());
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND
@@ -46,11 +52,11 @@ void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrus
             // Choose correct shader source. This is propably not the optimal way, especially if the procedural
             // skybox is drawn in the same frame in both deferred AND forward.
             if (isDeferred) {
-                _procedural.setVertexSource(gpu::Shader::createVertex(shader::render_utils::vertex::skybox)->getSource());
-                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::render_utils::fragment::proceduralSkybox)->getSource());
+                _procedural.setVertexSource(gpu::Shader::createVertex(PROCEDURAL_SKYBOX_VERTEX_DEFERRED)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(PROCEDURAL_SKYBOX_FRAGMENT_DEFERRED)->getSource());
             } else {
-                _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
-                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::procedural::fragment::proceduralSkybox)->getSource());
+                _procedural.setVertexSource(gpu::Shader::createVertex(PROCEDURAL_SKYBOX_VERTEX_FORWARD)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(PROCEDURAL_SKYBOX_FRAGMENT_FORWARD)->getSource());
             }
             _isDeferred = isDeferred;
         }
