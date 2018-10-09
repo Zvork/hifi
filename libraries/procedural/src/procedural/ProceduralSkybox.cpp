@@ -19,7 +19,7 @@
 
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
     _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
-    _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox)->getSource());
+    _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::procedural::fragment::proceduralSkybox)->getSource());
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND
@@ -47,10 +47,10 @@ void ProceduralSkybox::render(gpu::Batch& batch, bool isDeferred, const ViewFrus
             // skybox is drawn in the same frame in both deferred AND forward.
             if (isDeferred) {
                 _procedural.setVertexSource(gpu::Shader::createVertex(shader::render_utils::vertex::skybox)->getSource());
-                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::render_utils::fragment::skybox)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::render_utils::fragment::proceduralSkybox)->getSource());
             } else {
                 _procedural.setVertexSource(gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource());
-                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::graphics::fragment::skybox)->getSource());
+                _procedural.setOpaqueFragmentSource(gpu::Shader::createPixel(shader::procedural::fragment::proceduralSkybox)->getSource());
             }
             _isDeferred = isDeferred;
         }

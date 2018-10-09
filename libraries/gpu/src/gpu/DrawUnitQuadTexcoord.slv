@@ -1,8 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  Generated on <$_SCRIBE_DATE$>
-//
-//  <$_SCRIBE_TARGET$> : Draw the unit quad [-1,-1 -> 1,1] amd pass along the unit texcoords [0, 0 -> 1, 1]. 
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
+//  Draw the unit quad [-1,-1 -> 1,1] amd pass along the unit texcoords [0, 0 -> 1, 1]. 
 //  Not transform used.
 //  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
 //

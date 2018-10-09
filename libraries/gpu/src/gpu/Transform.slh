@@ -10,13 +10,13 @@
 <@if not GPU_TRANSFORM_STATE_SLH@>
 <@def GPU_TRANSFORM_STATE_SLH@>
 
-<@include gpu/ShaderConstants.h@>
 <@func declareStandardCameraTransform()@>
 // Protection from multiple declare 
 
 #ifndef GPU_DECLARESTANDARDCAMERATRANSFORM
 #define GPU_DECLARESTANDARDCAMERATRANSFORM
 
+<@include gpu/ShaderConstants.h@>
 <@include gpu/TransformCamera_shared.slh@>
 #define TransformCamera _TransformCamera
 
@@ -253,6 +253,31 @@ TransformObject getTransformObject() {
 
         <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * prevEyeWAPos;
         // Prev clip pos is in mono clip space
+    }
+<@endfunc@>
+
+<@func transformModelToWorldAndEyeAndClipPos(cameraTransform, objectTransform, modelPos, worldPos, eyePos, clipPos)@>
+    { // transformModelToWorldAndEyeAndClipPos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$worldPos$> = vec4(eyeWAPos.xyz + <$cameraTransform$>._viewInverse[3].xyz, 1.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
+    }
+<@endfunc@>
+
+<@func transformModelToWorldEyeClipPosAndPreviousClipPos(cameraTransform, objectTransform, modelPos, worldPos, eyePos, clipPos, prevClipPos)@>
+    { // transformModelToWorldEyeClipPosAndPreviousClipPos
+        vec4 eyeWAPos;
+        vec4 prevEyeWAPos;
+        <$transformModelToEyeAndPreviousEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
+        <$worldPos$> = vec4(eyeWAPos.xyz + <$cameraTransform$>._viewInverse[3].xyz, 1.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * prevEyeWAPos;
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>
 

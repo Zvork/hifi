@@ -1,4 +1,5 @@
-//  <$_SCRIBE_TARGET$>
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
 //  Add highlight effect based on two zbuffers : one containing the total scene z and another 
 //  with the z of only the objects to be outlined.
 //  This is the version with the fill effect inside the silhouette.

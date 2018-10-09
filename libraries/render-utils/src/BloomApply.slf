@@ -1,6 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  <$_SCRIBE_TARGET$>
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
 //  Mix the three gaussian blur textures.
 //
 //  Created by Olivier Prat on 10/09/2017

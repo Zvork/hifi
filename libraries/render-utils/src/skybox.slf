@@ -1,8 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  Generated on <$_SCRIBE_DATE$>
-//
-//  <$_SCRIBE_TARGET$>
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
 //
 //  Created by Sam Gateau on 5/5/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -11,22 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include DeferredBufferWrite.slh@>
-<@include graphics/ShaderConstants.h@>
-
-layout(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
-
-struct Skybox {
-    vec4 color;
-};
-
-layout(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
-    Skybox skybox;
-};
-
-layout(location=0) in vec3 _normal;
-layout(location=1) in vec4 _prevPositionCS;
-
 <@include graphics/skybox.slh@>
+
+layout(location=1) in vec4 _prevPositionCS;
 
 void main(void) {
 

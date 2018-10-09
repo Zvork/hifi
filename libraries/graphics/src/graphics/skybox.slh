@@ -1,6 +1,5 @@
 <!
-//  Light.slh
-//  fragment shader
+//  skybox.slh
 //
 //  Created by Olivier Prat on 5/29/2018.
 //  Copyright 2018 High Fidelity, Inc.
@@ -11,19 +10,20 @@
 <@if not SKYBOX_SLH@>
 <@def SKYBOX_SLH@>
 
+<@include graphics/ShaderConstants.h@>
+layout(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
+
+struct Skybox {
+    vec4 color;
+};
+
+layout(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
+    Skybox skybox;
+};
+
+layout(location=0) in vec3 _normal;
+
 vec3 computeSkyColor() {
-#ifdef PROCEDURAL
-
-    vec3 color = getSkyboxColor();
-    // Protect from NaNs and negative values
-    color = mix(color, vec3(0), isnan(color));
-    color = max(color, vec3(0));
-    // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
-    color = pow(color, vec3(2.2));
-
-    return color;
-
-#else 
     vec3 coord = normalize(_normal);
     vec3 color = skybox.color.rgb;
 
@@ -36,7 +36,6 @@ vec3 computeSkyColor() {
     }
 
     return color;
-#endif
 }
 
 <@endif@>

@@ -25,6 +25,7 @@ int main (int argc, char** argv) {
     std::string srcFilename;
     std::string destFilename;
     std::string targetName;
+    std::string fileName;
     TextTemplate::Vars vars;
     
     std::string lastVarName;
@@ -176,7 +177,7 @@ int main (int argc, char** argv) {
         // trim anything before '/' or '\'
         targetName = targetName.substr(targetName.find_last_of('/') + 1);
         targetName = targetName.substr(targetName.find_last_of('\\') + 1);
-
+        fileName = targetName;
         // trim anything after '.'
         targetName = targetName.substr(0, targetName.find_first_of('.'));
     }
@@ -185,7 +186,7 @@ int main (int argc, char** argv) {
     time_t endTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
     std::string endTimStr(ctime(&endTime));
     vars["_SCRIBE_DATE"] = endTimStr.substr(0, endTimStr.length() - 1);
-    vars["_SCRIBE_TARGET"] = targetName;
+    vars["_SCRIBE_FILENAME"] = fileName;
 
     // List vars?
     if (listVars) {

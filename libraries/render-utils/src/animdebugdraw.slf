@@ -1,8 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  Generated on <$_SCRIBE_DATE$>
-//
-//  <$_SCRIBE_TARGET$> : unlit untextured fragment shader
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
 //
 //  Copyright 2015 High Fidelity, Inc.
 //

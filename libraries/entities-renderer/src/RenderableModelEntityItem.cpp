@@ -210,7 +210,8 @@ void RenderableModelEntityItem::updateModelBounds() {
     }
 
     if (model->getScaleToFitDimensions() != getScaledDimensions() ||
-            model->getRegistrationPoint() != getRegistrationPoint()) {
+            model->getRegistrationPoint() != getRegistrationPoint() ||
+            !model->getIsScaledToFit()) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
@@ -250,8 +251,8 @@ void RenderableModelEntityItem::updateModelBounds() {
 }
 
 
-EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = ModelEntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties RenderableModelEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = ModelEntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     if (_originalTexturesRead) {
         properties.setTextureNames(_originalTextures);
     }
@@ -314,6 +315,14 @@ void RenderableModelEntityItem::getCollisionGeometryResource() {
     _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
 }
 
+bool RenderableModelEntityItem::computeShapeFailedToLoad() {
+    if (!_compoundShapeResource) {
+        getCollisionGeometryResource();
+    }
+
+    return (_compoundShapeResource && _compoundShapeResource->isFailed());
+}
+
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
@@ -342,7 +351,6 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
 
 bool RenderableModelEntityItem::isReadyToComputeShape() const {
     ShapeType type = getShapeType();
-
     auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
         if (!model || getCompoundShapeURL().isEmpty()) {
@@ -1322,6 +1330,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                 modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
+        setKey(false);
+        _didLastVisualGeometryRequestSucceed = false;
         return;
     }
 
@@ -1347,6 +1357,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (_parsedModelURL != model->getURL()) {
         withWriteLock([&] {
             _texturesLoaded = false;
+            _jointMappingCompleted = false;
             model->setURL(_parsedModelURL);
         });
     }
@@ -1457,7 +1468,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             mapJoints(entity, model->getJointNames());
         //else the joint have been mapped before but we have a new animation to load
         } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
-            _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
             _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());
         }
