@@ -17,6 +17,7 @@
 #include "LightingModel.h"
 #include "LightClusters.h"
 #include "RenderShadowTask.h"
+#include "HazeStage.h"
 
 class DrawDeferredConfig : public render::Job::Config {
     Q_OBJECT
@@ -42,7 +43,7 @@ protected:
 
 class DrawDeferred {
 public:
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, render::ItemBounds, LightingModelPointer, LightClustersPointer>;
+    using Inputs = render::VaryingSet6<DeferredFrameTransformPointer, render::ItemBounds, HazeStage::FramePointer, LightStage::FramePointer, LightingModelPointer, LightClustersPointer>;
     using Config = DrawDeferredConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 

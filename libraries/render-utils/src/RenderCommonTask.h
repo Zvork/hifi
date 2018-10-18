@@ -14,6 +14,11 @@
 #include "LightingModel.h"
 #include "DeferredFrameTransform.h"
 
+#include "LightStage.h"
+#include "BackgroundStage.h"
+#include "HazeStage.h"
+#include "BloomStage.h"
+
 class BeginGPURangeTimer {
 public:
     using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
@@ -116,10 +121,22 @@ public:
         FRUSTUM_COUNT
     };
 
-    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
-    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
+    using Inputs = LightStage::FramePointer;
+    using Outputs = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+};
+
+
+class FetchCurrentFrames {
+public:
+    using Outputs = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
+    using JobModel = render::Job::ModelO<FetchCurrentFrames, Outputs>;
+
+    FetchCurrentFrames() {}
+
+    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
 };
 
 #endif // hifi_RenderDeferredTask_h
