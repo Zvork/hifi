@@ -729,11 +729,12 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
         }
         break;
         case Command::VAR: {
-            Vars::iterator it = vars.find(block->command.arguments.front());
+            const auto varName = block->command.arguments.front();
+            Vars::iterator it = vars.find(varName);
             if (it != vars.end()) {
                 dst << (*it).second;
             } else {
-                BlockPointer funcBlock = _config->_funcs.findFunc(block->command.arguments.front().c_str());
+                BlockPointer funcBlock = _config->_funcs.findFunc(varName.c_str());
                 if (funcBlock) {
                     // before diving in the func tree, let's modify the vars with the local defs:
                     int nbParams = (int)std::min(block->command.arguments.size(),
@@ -775,6 +776,9 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             vars[funcBlock->command.arguments[i]] = paramCache[i];
                         }
                     }
+                } else {
+                    logError(block, "Invalid Var name '%s' in a <var> tag", varName.c_str());
+                    return 0;
                 }
             }
             branch = block;
