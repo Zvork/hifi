@@ -509,6 +509,7 @@ public:
     bool _invalidModel{ true };
     Transform _currentModel;
     Transform _previousModel;
+    mutable bool _mustUpdatePreviousModels;
     mutable TransformObjects _objects;
     static size_t _objectsMax;
 

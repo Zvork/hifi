@@ -52,6 +52,7 @@ Batch::Batch(const char* name) {
     _data.reserve(_dataMax);
     _objects.reserve(_objectsMax);
     _drawCallInfos.reserve(_drawCallInfosMax);
+    _mustUpdatePreviousModels = true;
 }
 
 Batch::~Batch() {
@@ -103,6 +104,7 @@ void Batch::clear() {
 
     _enableStereo = true;
     _enableSkybox = false;
+    _mustUpdatePreviousModels = true;
 }
 
 size_t Batch::cacheData(size_t size, const void* data) {
