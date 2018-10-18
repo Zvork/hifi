@@ -43,7 +43,6 @@ Rectangle {
            // padding: 10
                 Repeater {
                     model: [
-                         "Opaque Overlays:DrawOverlayInFrontOpaque:enabled",
                          "Unlit:LightingModel:enableUnlit", 
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",

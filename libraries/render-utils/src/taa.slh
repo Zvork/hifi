@@ -98,10 +98,10 @@ vec2 taa_getTexelSize() {
 }
 
 vec4 taa_transformColor(vec4 c) {
-	// Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image, using luminance as weight, as proposed in
-	// https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
-	float lum = dot(vec3(0.3,0.5,0.2),c.rgb);
-	c.rgb = c.rgb / (1.0+lum);
+    // Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image, using luminance as weight, as proposed in
+    // https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+    float lum = dot(vec3(0.3,0.5,0.2),c.rgb);
+    c.rgb = c.rgb / (1.0+lum);
 #if USE_YCOCG
     return vec4(color_LinearToYCoCg(c.rgb), c.a);
 #else
@@ -110,7 +110,7 @@ vec4 taa_transformColor(vec4 c) {
 }
 
 vec4 taa_fetchColor(sampler2D map, vec2 uv) {
-	vec4 c = texture(map, uv);
+    vec4 c = texture(map, uv);
     return taa_transformColor(c);
 }
 
@@ -135,8 +135,8 @@ vec4 taa_fetchHistoryMap(vec2 uv) {
     if (taa_bicubicHistoryFetch()) {
         // Perform a Catmull-Rom interpolation for a (possibly) sharper result.
         // Optimized 9-tap fetch based on http://vec3.ca/bicubic-filtering-in-fewer-taps/
-        vec2 samplePixelPos = uv * taa_getImageSize();
-        vec2 samplePixelIntPos = floor(samplePixelPos - 0.5) + 0.5;
+        vec2 samplePixelPos = uv * taa_getImageSize() - 0.5;
+        vec2 samplePixelIntPos = floor(samplePixelPos);
 
         vec2 samplePixelFracPos = samplePixelPos - samplePixelIntPos;
         vec2 samplePixelFracPos2 = samplePixelFracPos * samplePixelFracPos;
@@ -155,9 +155,9 @@ vec4 taa_fetchHistoryMap(vec2 uv) {
         vec2 sampleUV12 = samplePixelIntPos + offset12;
 
         vec2 texelSize = taa_getTexelSize();
-        sampleUV0 *= texelSize;
-        sampleUV3 *= texelSize;
-        sampleUV12 *= texelSize;
+        sampleUV0 = (sampleUV0 + 0.5) * texelSize;
+        sampleUV3 = (sampleUV3 + 0.5) * texelSize;
+        sampleUV12 = (sampleUV12 + 0.5) * texelSize;
 
         result = texture(historyMap, vec2(sampleUV0.x,  sampleUV0.y)) * w0.x * w0.y;
         result += texture(historyMap, vec2(sampleUV12.x, sampleUV0.y)) * w12.x * w0.y;
@@ -171,9 +171,9 @@ vec4 taa_fetchHistoryMap(vec2 uv) {
         result += texture(historyMap, vec2(sampleUV12.x, sampleUV3.y)) * w12.x * w3.y;
         result += texture(historyMap, vec2(sampleUV3.x,  sampleUV3.y)) * w3.x * w3.y;
     } else {
-	    result = texture(historyMap, uv);
+        result = texture(historyMap, uv);
     }
-	return taa_transformColor(result);
+    return taa_transformColor(result);
 }
 
 vec4 taa_fetchNextMap(vec2 uv) {
@@ -321,7 +321,6 @@ float Luminance(vec3 rgb) {
 
 mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity) {
     vec2 texelSize = taa_getTexelSize();
- 
 
     vec2 du = vec2(texelSize.x, 0.0);
     vec2 dv = vec2(0.0, texelSize.y);
@@ -366,11 +365,11 @@ mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelo
     vec3 mu = sumSamples / vec3(9.0);
     vec3 sigma = sqrt(max(sumSamples2 / vec3(9.0) - mu * mu, vec3(0.0)));
     
-       float gamma = params.covarianceGamma;
-       vec3 cmin = mu - gamma * sigma;
-       vec3 cmax = mu + gamma * sigma;
+    float gamma = params.covarianceGamma;
+    vec3 cmin = mu - gamma * sigma;
+    vec3 cmax = mu + gamma * sigma;
 
-   return mat3(cmin, cmax, mu);
+    return mat3(cmin, cmax, mu);
 }
 
 mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe) {
@@ -378,73 +377,73 @@ mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVeloci
     vec2 texelSize = taa_getTexelSize();
     vec3 cmin, cmax, cavg;
 
-    #if MINMAX_3X3_ROUNDED
-        vec2 du = vec2(texelSize.x, 0.0);
-        vec2 dv = vec2(0.0, texelSize.y);
+#if MINMAX_3X3_ROUNDED
+    vec2 du = vec2(texelSize.x, 0.0);
+    vec2 dv = vec2(0.0, texelSize.y);
 
-        vec3 ctl = taa_fetchSourceMap(fragUV - dv - du).rgb;
-        vec3 ctc = taa_fetchSourceMap(fragUV - dv).rgb;
-        vec3 ctr = taa_fetchSourceMap(fragUV - dv + du).rgb;
-        vec3 cml = taa_fetchSourceMap(fragUV - du).rgb;
-        vec3 cmc = sourceColor; //taa_fetchSourceMap(fragUV).rgb; // could resuse the same osurce sample isn't it ?
-        vec3 cmr = taa_fetchSourceMap(fragUV + du).rgb;
-        vec3 cbl = taa_fetchSourceMap(fragUV + dv - du).rgb;
-        vec3 cbc = taa_fetchSourceMap(fragUV + dv).rgb;
-        vec3 cbr = taa_fetchSourceMap(fragUV + dv + du).rgb;
+    vec3 ctl = taa_fetchSourceMap(fragUV - dv - du).rgb;
+    vec3 ctc = taa_fetchSourceMap(fragUV - dv).rgb;
+    vec3 ctr = taa_fetchSourceMap(fragUV - dv + du).rgb;
+    vec3 cml = taa_fetchSourceMap(fragUV - du).rgb;
+    vec3 cmc = sourceColor; //taa_fetchSourceMap(fragUV).rgb; // could resuse the same osurce sample isn't it ?
+    vec3 cmr = taa_fetchSourceMap(fragUV + du).rgb;
+    vec3 cbl = taa_fetchSourceMap(fragUV + dv - du).rgb;
+    vec3 cbc = taa_fetchSourceMap(fragUV + dv).rgb;
+    vec3 cbr = taa_fetchSourceMap(fragUV + dv + du).rgb;
 
-        cmin = min(ctl, min(ctc, min(ctr, min(cml, min(cmc, min(cmr, min(cbl, min(cbc, cbr))))))));
-        cmax = max(ctl, max(ctc, max(ctr, max(cml, max(cmc, max(cmr, max(cbl, max(cbc, cbr))))))));
+    cmin = min(ctl, min(ctc, min(ctr, min(cml, min(cmc, min(cmr, min(cbl, min(cbc, cbr))))))));
+    cmax = max(ctl, max(ctc, max(ctr, max(cml, max(cmc, max(cmr, max(cbl, max(cbc, cbr))))))));
 
-        #if MINMAX_3X3_ROUNDED || USE_YCOCG || USE_CLIPPING
-            cavg = (ctl + ctc + ctr + cml + cmc + cmr + cbl + cbc + cbr) / 9.0;
-        #elif
-            cavg = (cmin + cmax ) * 0.5;
-        #endif
-
-        #if MINMAX_3X3_ROUNDED
-            vec3 cmin5 = min(ctc, min(cml, min(cmc, min(cmr, cbc))));
-            vec3 cmax5 = max(ctc, max(cml, max(cmc, max(cmr, cbc))));
-            vec3 cavg5 = (ctc + cml + cmc + cmr + cbc) / 5.0;
-            cmin = 0.5 * (cmin + cmin5);
-            cmax = 0.5 * (cmax + cmax5);
-            cavg = 0.5 * (cavg + cavg5);
-        #endif
-    #else
-        const float _SubpixelThreshold = 0.5;
-        const float _GatherBase = 0.5;
-        const float _GatherSubpixelMotion = 0.1666;
-
-        vec2 texel_vel = fragVelocity * imageSize;
-        float texel_vel_mag = length(texel_vel) * -fragZe;
-        float k_subpixel_motion = clamp(_SubpixelThreshold / (0.0001 + texel_vel_mag), 0.0, 1.0);
-        float k_min_max_support = _GatherBase + _GatherSubpixelMotion * k_subpixel_motion;
-
-        vec2 ss_offset01 = k_min_max_support * vec2(-texelSize.x, texelSize.y);
-        vec2 ss_offset11 = k_min_max_support * vec2(texelSize.x, texelSize.y);
-        vec3 c00 = taa_fetchSourceMap(fragUV - ss_offset11).rgb;
-        vec3 c10 = taa_fetchSourceMap(fragUV - ss_offset01).rgb;
-        vec3 c01 = taa_fetchSourceMap(fragUV + ss_offset01).rgb;
-        vec3 c11 = taa_fetchSourceMap(fragUV + ss_offset11).rgb;
-
-        cmin = min(c00, min(c10, min(c01, c11)));
-        cmax = max(c00, max(c10, max(c01, c11)));
+    #if MINMAX_3X3_ROUNDED || USE_YCOCG || USE_CLIPPING
+        cavg = (ctl + ctc + ctr + cml + cmc + cmr + cbl + cbc + cbr) / 9.0;
+    #elif
         cavg = (cmin + cmax ) * 0.5;
-
-        #if USE_YCOCG || USE_CLIPPING
-            cavg = (c00 + c10 + c01 + c11) / 4.0;
-        #elif
-            cavg = (cmin + cmax ) * 0.5;
-        #endif
     #endif
 
-           // shrink chroma min-max
-    #if USE_YCOCG
-        vec2 chroma_extent = vec2(0.25 * 0.5 * (cmax.r - cmin.r));
-        vec2 chroma_center = sourceColor.gb;
-        cmin.yz = chroma_center - chroma_extent;
-        cmax.yz = chroma_center + chroma_extent;
-        cavg.yz = chroma_center;
+    #if MINMAX_3X3_ROUNDED
+        vec3 cmin5 = min(ctc, min(cml, min(cmc, min(cmr, cbc))));
+        vec3 cmax5 = max(ctc, max(cml, max(cmc, max(cmr, cbc))));
+        vec3 cavg5 = (ctc + cml + cmc + cmr + cbc) / 5.0;
+        cmin = 0.5 * (cmin + cmin5);
+        cmax = 0.5 * (cmax + cmax5);
+        cavg = 0.5 * (cavg + cavg5);
     #endif
+#else
+    const float _SubpixelThreshold = 0.5;
+    const float _GatherBase = 0.5;
+    const float _GatherSubpixelMotion = 0.1666;
+
+    vec2 texel_vel = fragVelocity * imageSize;
+    float texel_vel_mag = length(texel_vel) * -fragZe;
+    float k_subpixel_motion = clamp(_SubpixelThreshold / (0.0001 + texel_vel_mag), 0.0, 1.0);
+    float k_min_max_support = _GatherBase + _GatherSubpixelMotion * k_subpixel_motion;
+
+    vec2 ss_offset01 = k_min_max_support * vec2(-texelSize.x, texelSize.y);
+    vec2 ss_offset11 = k_min_max_support * vec2(texelSize.x, texelSize.y);
+    vec3 c00 = taa_fetchSourceMap(fragUV - ss_offset11).rgb;
+    vec3 c10 = taa_fetchSourceMap(fragUV - ss_offset01).rgb;
+    vec3 c01 = taa_fetchSourceMap(fragUV + ss_offset01).rgb;
+    vec3 c11 = taa_fetchSourceMap(fragUV + ss_offset11).rgb;
+
+    cmin = min(c00, min(c10, min(c01, c11)));
+    cmax = max(c00, max(c10, max(c01, c11)));
+    cavg = (cmin + cmax ) * 0.5;
+
+    #if USE_YCOCG || USE_CLIPPING
+        cavg = (c00 + c10 + c01 + c11) / 4.0;
+    #elif
+        cavg = (cmin + cmax ) * 0.5;
+    #endif
+#endif
+
+        // shrink chroma min-max
+#if USE_YCOCG
+    vec2 chroma_extent = vec2(0.25 * 0.5 * (cmax.r - cmin.r));
+    vec2 chroma_center = sourceColor.gb;
+    cmin.yz = chroma_center - chroma_extent;
+    cmax.yz = chroma_center + chroma_extent;
+    cavg.yz = chroma_center;
+#endif
 
    return mat3(cmin, cmax, cavg);
 }
@@ -464,17 +463,19 @@ vec3 taa_clampColor(vec3 colorMin, vec3 colorMax, vec3 colorSource, vec3 color) 
     vec3 a_unit = abs(v_unit);
     float ma_unit = max(a_unit.x, max(a_unit.y, a_unit.z));
 
-    if (ma_unit > 1.0)
+    if (ma_unit > 1.0) {
         return p_clip + v_clip / ma_unit;
-    else
-        return q;// point inside aabb        
+    }
+    else {
+        return q;// point inside aabb
+    }
 }
 
 vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec3 candidateColor) {
     mat3 colorMinMaxAvg;
 
     colorMinMaxAvg = taa_evalNeighbourColorVariance(sourceColor, sourceUV, sourceVel);
-     
+
     // clamp history to neighbourhood of current sample
     return taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], sourceColor, candidateColor);
 }
@@ -483,13 +484,13 @@ vec3 taa_evalFeedbackColor(vec3 sourceColor, vec3 historyColor, float blendFacto
     const float _FeedbackMin = 0.1;
     const float _FeedbackMax = 0.9;
     // feedback weight from unbiased luminance diff (t.lottes)
-    #if USE_YCOCG
-        float lum0 = sourceColor.r;
-        float lum1 = historyColor.r;
-    #else
-        float lum0 = Luminance(sourceColor.rgb);
-        float lum1 = Luminance(historyColor.rgb);
-    #endif
+#if USE_YCOCG
+    float lum0 = sourceColor.r;
+    float lum1 = historyColor.r;
+#else
+    float lum0 = Luminance(sourceColor.rgb);
+    float lum1 = Luminance(historyColor.rgb);
+#endif
     float unbiased_diff = abs(lum0 - lum1) / max(lum0, max(lum1, 0.2));
     float unbiased_weight = 1.0 - unbiased_diff;
     float unbiased_weight_sqr = unbiased_weight * unbiased_weight;
@@ -512,7 +513,7 @@ vec3 taa_getVelocityColorAboveThreshold(float velocityPixLength) {
 
 vec3 taa_evalFXAA(vec2 fragUV) {
 
-   // vec2 texelSize = getInvWidthHeight();
+    // vec2 texelSize = getInvWidthHeight();
     vec2 texelSize = taa_getTexelSize();
 
     // filter width limit for dependent "two-tap" texture samples
@@ -535,7 +536,7 @@ vec3 taa_evalFXAA(vec2 fragUV) {
     vec3 rgbSW = texture(sourceMap, fragUV + (vec2(-1.0, +1.0) * texelSize)).xyz;
     vec3 rgbSE = texture(sourceMap, fragUV + (vec2(+1.0, +1.0) * texelSize)).xyz;
     vec3 rgbM  = texture(sourceMap, fragUV).xyz;
-    
+
     // convert RGB values to luminance
     vec3 luma = vec3(0.299, 0.587, 0.114);
     float lumaNW = dot(rgbNW, luma);
@@ -543,11 +544,11 @@ vec3 taa_evalFXAA(vec2 fragUV) {
     float lumaSW = dot(rgbSW, luma);
     float lumaSE = dot(rgbSE, luma);
     float lumaM  = dot( rgbM, luma);
-    
+
     // luma range of local neighborhood
     float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
     float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
-    
+
     // direction perpendicular to local luma gradient
     vec2 dir;
     dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
@@ -559,7 +560,7 @@ vec3 taa_evalFXAA(vec2 fragUV) {
     float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
     dir = min(vec2(FXAA_SPAN_MAX,  FXAA_SPAN_MAX), 
           max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), dir * rcpDirMin)) * texelSize;
-        
+
     // perform additional texture sampling perpendicular to gradient
     vec3 rgbA = (1.0 / 2.0) * (
                 texture(sourceMap, fragUV + dir * (1.0 / 3.0 - 0.5)).xyz +

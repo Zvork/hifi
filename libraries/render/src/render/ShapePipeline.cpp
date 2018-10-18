@@ -103,6 +103,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->deferredFrameTransformBufferUnit = program->getUniformBuffers().isValid(render_utils::slot::buffer::DeferredFrameTransform);
     locations->lightAmbientMapUnit = program->getTextures().isValid(graphics::slot::texture::Skybox);
     locations->fadeMaskTextureUnit = program->getTextures().isValid(render_utils::slot::texture::FadeMask);
+    locations->fadeParameterBufferUnit = program->getUniformBuffers().isValid(render_utils::slot::buffer::FadeParameters);
     locations->fadeObjectParameterBufferUnit = program->getUniformBuffers().isValid(render_utils::slot::buffer::FadeObjectParameters);
     locations->hazeParameterBufferUnit = program->getUniformBuffers().isValid(render_utils::slot::buffer::HazeParams);
     if (key.isTranslucent()) {

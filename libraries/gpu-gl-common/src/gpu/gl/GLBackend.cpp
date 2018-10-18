@@ -47,7 +47,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = {
     (&::gpu::gl::GLBackend::do_setModelTransform),
     (&::gpu::gl::GLBackend::do_setViewTransform),
     (&::gpu::gl::GLBackend::do_setProjectionTransform),
-    (&::gpu::gl::GLBackend::do_setProjectionJitter),
+    (&::gpu::gl::GLBackend::do_setProjectionJitterEnabled),
     (&::gpu::gl::GLBackend::do_setProjectionJitterSequence),
     (&::gpu::gl::GLBackend::do_setProjectionJitterScale),
     (&::gpu::gl::GLBackend::do_setViewportTransform),
@@ -224,7 +224,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform:
-                case Batch::COMMAND_setProjectionJitter:
+                case Batch::COMMAND_setProjectionJitterEnabled:
                 case Batch::COMMAND_setProjectionJitterSequence:
                 case Batch::COMMAND_setProjectionJitterScale:
                 case Batch::COMMAND_saveViewProjectionTransform:
@@ -293,7 +293,6 @@ void GLBackend::renderPassDraw(const Batch& batch) {
             //case Batch::COMMAND_setModelTransform:
             //case Batch::COMMAND_setViewTransform:
             //case Batch::COMMAND_setProjectionTransform:
-            case Batch::COMMAND_setProjectionJitter:
             case Batch::COMMAND_setViewportTransform:
             case Batch::COMMAND_setDepthRangeTransform:
             {
@@ -741,7 +740,8 @@ void GLBackend::queueLambda(const std::function<void()> lambda) const {
 }
 
 void GLBackend::recycle() const {
-    PROFILE_RANGE(render_gpu_gl, __FUNCTION__) {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__) 
+    {
         std::list<std::function<void()>> lamdbasTrash;
         {
             Lock lock(_trashMutex);
@@ -870,9 +870,6 @@ void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
 
     auto& projectionJitter = _transform._projectionJitter;
     projectionJitter._currentSampleIndex++;
-    if (!projectionJitter._offsetSequence.empty()) {
-        projectionJitter._currentSampleIndex = projectionJitter._currentSampleIndex % projectionJitter._offsetSequence.size();
-    }
 
     // Update previous views of saved transforms
     for (auto& viewProjState : _transform._savedTransforms) {

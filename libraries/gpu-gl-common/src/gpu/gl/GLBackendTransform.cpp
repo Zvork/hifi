@@ -19,7 +19,9 @@ void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
     _transform._viewProjectionState._view = batch._transforms.get(batch._params[paramOffset]._uint);
-    // View history is only supported with saved transforms
+    // View history is only supported with saved transforms and if setViewTransform is called (and not setSavedViewProjectionTransform)
+    // then, in consequence, the view will NOT be corrected in the present thread. In which case
+    // the previousCorrectedView should be the same as the view.
     _transform._viewProjectionState._previousCorrectedView = _transform._viewProjectionState._view;
     _transform._viewProjectionState._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
@@ -34,7 +36,7 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
     _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
 }
 
-void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
+void GLBackend::do_setProjectionJitterEnabled(const Batch& batch, size_t paramOffset) {
     _transform._projectionJitter._isEnabled = (batch._params[paramOffset]._int & 1) != 0;
     _transform._invalidProj = true;
     // The current view / proj doesn't correspond to a saved camera slot
@@ -47,8 +49,7 @@ void GLBackend::do_setProjectionJitterSequence(const Batch& batch, size_t paramO
     projectionJitter._offsetSequence.resize(count);
     if (count) {
         memcpy(projectionJitter._offsetSequence.data(), batch.readData(batch._params[paramOffset + 1]._uint), sizeof(Vec2) * count);
-        projectionJitter._currentSampleIndex = projectionJitter._currentSampleIndex % projectionJitter._offsetSequence.size();
-        projectionJitter._offset = projectionJitter._offsetSequence[projectionJitter._currentSampleIndex];
+        projectionJitter._offset = projectionJitter._offsetSequence[projectionJitter._currentSampleIndex  % count];
     } else {
         projectionJitter._offset = Vec2(0.0f);
     }

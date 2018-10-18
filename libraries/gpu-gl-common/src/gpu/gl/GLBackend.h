@@ -293,7 +293,7 @@ public:
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionTransform(const Batch& batch, size_t paramOffset) final;
-    virtual void do_setProjectionJitter(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setProjectionJitterEnabled(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionJitterSequence(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionJitterScale(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewportTransform(const Batch& batch, size_t paramOffset) final;

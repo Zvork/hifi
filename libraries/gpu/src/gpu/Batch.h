@@ -330,7 +330,7 @@ public:
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
-        COMMAND_setProjectionJitter,
+        COMMAND_setProjectionJitterEnabled,
         COMMAND_setProjectionJitterSequence,
         COMMAND_setProjectionJitterScale,
         COMMAND_setViewportTransform,

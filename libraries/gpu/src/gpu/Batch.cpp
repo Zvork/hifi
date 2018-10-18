@@ -268,7 +268,7 @@ void Batch::setProjectionJitterEnabled(bool isProjectionEnabled) {
 }
 
 void Batch::pushProjectionJitterEnabled(bool isProjectionEnabled) {
-	ADD_COMMAND(setProjectionJitter);
+	ADD_COMMAND(setProjectionJitterEnabled);
     _params.emplace_back(isProjectionEnabled & 1);
 }
 
