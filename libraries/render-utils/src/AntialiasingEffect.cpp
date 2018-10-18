@@ -70,7 +70,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa_blend);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::aa_blend);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
         PrepareStencil::testNoAA(*state);
@@ -261,7 +261,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::
 
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa_blend);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::aa_blend);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testNoAA(*state);
         // Good to go add the brand new pipeline
@@ -346,6 +346,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     }
     
     gpu::doInBatch("Antialiasing::run", args->_context, [&](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "TAA");
+
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
 
@@ -373,7 +375,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaNext, _antialiasingBuffers, 1);
         }  else {
             batch.setPipeline(getBlendPipeline());
-            // Must match the bindg point in the fxaa_blend.slf shader
+            // Must match the binding point in the aa_blend.slf shader
             batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
             // Disable sharpen if FXAA
             if (!_blendParamsBuffer) {
