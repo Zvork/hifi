@@ -101,12 +101,12 @@ public:
 
 
     float blend{ 0.2f };
-    float sharpen{ 0.05f };
+    float sharpen{ 0.0f };
 
     bool constrainColor{ true };
     float covarianceGamma{ 1.15f };
     bool feedbackColor{ false };
-    bool bicubicHistoryFetch{ false };
+    bool bicubicHistoryFetch{ true };
 
     float debugX{ 0.0f };
     float debugFXAAX{ 1.0f };
