@@ -260,6 +260,8 @@ public:
 
     // Generate the mips for a texture
     void generateTextureMips(const TexturePointer& texture);
+    // Generate the mips for a texture using the current pipeline
+    void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -355,6 +357,7 @@ public:
         COMMAND_clearFramebuffer,
         COMMAND_blit,
         COMMAND_generateTextureMips,
+        COMMAND_generateTextureMipsWithPipeline,
 
         COMMAND_advance,
 

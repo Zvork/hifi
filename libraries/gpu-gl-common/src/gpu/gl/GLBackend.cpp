@@ -72,6 +72,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = {
     (&::gpu::gl::GLBackend::do_clearFramebuffer),
     (&::gpu::gl::GLBackend::do_blit),
     (&::gpu::gl::GLBackend::do_generateTextureMips),
+    (&::gpu::gl::GLBackend::do_generateTextureMipsWithPipeline),
 
     (&::gpu::gl::GLBackend::do_advance),
 
@@ -169,6 +170,10 @@ GLBackend::GLBackend() {
 GLBackend::~GLBackend() {}
 
 void GLBackend::shutdown() {
+    if (_mipGenerationFramebufferId) {
+        glDeleteFramebuffers(1, &_mipGenerationFramebufferId);
+        _mipGenerationFramebufferId = 0;
+    }
     killInput();
     killTransform();
     killTextureManagementStage();
