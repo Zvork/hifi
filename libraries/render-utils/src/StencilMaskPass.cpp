@@ -141,9 +141,9 @@ void PrepareStencil::testShape(gpu::State& state) {
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
-// Pass if this area was NOT marked as MASK, write to SHAPE if it passes
+// Pass if this area was NOT marked as MASK, write to SHAPE and reset NO_AA if it passes
 void PrepareStencil::testMaskDrawShape(gpu::State& state) {
-    state.setStencilTest(true, STENCIL_SHAPE, gpu::State::StencilTest(STENCIL_MASK | STENCIL_SHAPE, STENCIL_MASK, gpu::NOT_EQUAL,
+    state.setStencilTest(true, STENCIL_SHAPE | STENCIL_NO_AA, gpu::State::StencilTest(STENCIL_MASK | STENCIL_SHAPE, STENCIL_MASK, gpu::NOT_EQUAL,
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
 }
 

@@ -126,7 +126,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     if (!_geometryID) {
         _geometryID = geometryCache->allocateID();
     }
-    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false);
+    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false, true);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
 
     float scale = _lineHeight / _textRenderer->getFontSize();
@@ -136,5 +136,6 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
+
     _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
 }
