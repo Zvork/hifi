@@ -176,7 +176,8 @@ public:
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
-    const gpu::PipelinePointer& getAntialiasingPipeline(const render::RenderContextPointer& renderContext);
+    const gpu::PipelinePointer& getAntialiasingPipeline();
+    const gpu::PipelinePointer& getIntensityPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
     const gpu::PipelinePointer& getDebugBlendPipeline();
 
@@ -184,10 +185,14 @@ private:
 
     gpu::FramebufferSwapChainPointer _antialiasingBuffers;
     gpu::TexturePointer _antialiasingTextures[2];
+    gpu::FramebufferPointer _intensityFramebuffer;
+    gpu::TexturePointer _intensityTexture;
     gpu::BufferPointer _blendParamsBuffer;
-    gpu::PipelinePointer _antialiasingPipeline;
-    gpu::PipelinePointer _blendPipeline;
-    gpu::PipelinePointer _debugBlendPipeline;
+
+    static gpu::PipelinePointer _antialiasingPipeline;
+    static gpu::PipelinePointer _intensityPipeline;
+    static gpu::PipelinePointer _blendPipeline;
+    static gpu::PipelinePointer _debugBlendPipeline;
 
     TAAParamsBuffer _params;
     float _sharpen{ 0.15f };

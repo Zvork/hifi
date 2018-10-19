@@ -22,6 +22,7 @@ layout(binding=RENDER_UTILS_TEXTURE_TAA_SOURCE) uniform sampler2D sourceMap;
 layout(binding=RENDER_UTILS_TEXTURE_TAA_VELOCITY) uniform sampler2D velocityMap;
 layout(binding=RENDER_UTILS_TEXTURE_TAA_DEPTH) uniform sampler2D depthMap;
 layout(binding=RENDER_UTILS_TEXTURE_TAA_NEXT) uniform sampler2D nextMap;
+layout(binding=RENDER_UTILS_TEXTURE_TAA_INTENSITY) uniform sampler2D intensityMap;
 
 struct TAAParams
 {
@@ -126,7 +127,10 @@ vec3 taa_resolveColor(vec3 color) {
 }
 
 vec4 taa_fetchSourceMap(vec2 uv) {
-    return taa_fetchColor(sourceMap, uv);
+    vec4 source = taa_fetchColor(sourceMap, uv);
+    // Store AA intensity in alpha
+    source.a = texture(intensityMap, uv).r;
+    return source;
 }
 
 vec4 taa_fetchHistoryMap(vec2 uv) {
@@ -296,17 +300,21 @@ vec2 taa_computePrevFragAndEyeUV(vec2 fragUV, vec2 fragVelocity, out vec2 prevEy
     return taa_fromEyeUVToFragUV(prevEyeUV, stereoSide);
 }
 
-bool taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
-    sourceColor = texture(sourceMap, fragUV).rgb;
+bool taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec4 sourceColor, out vec4 historyColor) {
+    sourceColor.rgb = texture(sourceMap, fragUV).rgb;
+    // Store AA intensity in alpha  
+    sourceColor.a = texture(intensityMap, fragUV).r;
+
     // If velocity is 0 then don't fetch history, just return the source. This means there is no jitter on this pixel
-    if (any( notEqual(fragVelocity, vec2(0.0)) )) {
+    if (sourceColor.a>0 && any( notEqual(fragVelocity, vec2(0.0)) )) {
         vec2 prevEyeUV;
         vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
 
-        sourceColor = taa_transformColor(vec4(sourceColor, 1.0)).rgb;
+
+        sourceColor = taa_transformColor(sourceColor);
         historyColor = sourceColor;
         if (!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))) {
-            historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
+            historyColor = taa_fetchHistoryMap(prevFragUV);
         }
         return true;
     } else {
@@ -483,7 +491,7 @@ vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec
     return taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], sourceColor, candidateColor);
 }
 
-vec3 taa_evalFeedbackColor(vec3 sourceColor, vec3 historyColor, float blendFactor) {
+vec4 taa_evalFeedbackColor(vec4 sourceColor, vec4 historyColor, float blendFactor) {
     const float _FeedbackMin = 0.1;
     const float _FeedbackMax = 0.9;
     // feedback weight from unbiased luminance diff (t.lottes)
@@ -499,7 +507,7 @@ vec3 taa_evalFeedbackColor(vec3 sourceColor, vec3 historyColor, float blendFacto
     float unbiased_weight_sqr = unbiased_weight * unbiased_weight;
     float k_feedback = mix(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
 
-    vec3 nextColor =  mix(historyColor, sourceColor, k_feedback * blendFactor).xyz;
+    vec4 nextColor =  mix(historyColor, sourceColor, k_feedback * blendFactor);
     return nextColor;
 }
 

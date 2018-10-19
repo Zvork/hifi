@@ -32,6 +32,11 @@ namespace gr {
     using graphics::slot::buffer::Buffer;
 }
 
+gpu::PipelinePointer Antialiasing::_antialiasingPipeline;
+gpu::PipelinePointer Antialiasing::_intensityPipeline;
+gpu::PipelinePointer Antialiasing::_blendPipeline;
+gpu::PipelinePointer Antialiasing::_debugBlendPipeline;
+
 #if !ANTIALIASING_USE_TAA
 #include "GeometryCache.h"
 #include "ViewFrustum.h"
@@ -244,13 +249,10 @@ Antialiasing::~Antialiasing() {
     _antialiasingTextures[1].reset();
 }
 
-const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::RenderContextPointer& renderContext) {
-   
+const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() { 
     if (!_antialiasingPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        
-        PrepareStencil::testNoAA(*state);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -259,11 +261,25 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::
     return _antialiasingPipeline;
 }
 
+const gpu::PipelinePointer& Antialiasing::getIntensityPipeline() {
+    if (!_intensityPipeline) {
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTexture);
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        PrepareStencil::testNoAA(*state);
+
+        // Good to go add the brand new pipeline
+        _intensityPipeline = gpu::Pipeline::create(program, state);
+    }
+
+    return _intensityPipeline;
+}
+
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::aa_blend);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testNoAA(*state);
+
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
     }
@@ -330,11 +346,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         _antialiasingTextures[1].reset();
     }
 
-
-    if (!_antialiasingBuffers) {
+    if (!_antialiasingBuffers || !_intensityFramebuffer) {
         std::vector<gpu::FramebufferPointer> antiAliasingBuffers;
         // Link the antialiasing FBO to texture
-        auto format = sourceBuffer->getRenderBuffer(0)->getTexelFormat();
+        auto format = gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA);
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
         for (int i = 0; i < 2; i++) {
             antiAliasingBuffers.emplace_back(gpu::Framebuffer::create("antialiasing"));
@@ -343,19 +358,33 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             antiAliasingBuffer->setRenderBuffer(0, _antialiasingTextures[i]);
         }
         _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(antiAliasingBuffers);
+
+        _intensityTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_R_8, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _intensityFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("taaIntensity"));
+        _intensityFramebuffer->setRenderBuffer(0, _intensityTexture);
+        _intensityFramebuffer->setStencilBuffer(deferredFrameBuffer->getDeferredFramebuffer()->getDepthStencilBuffer(), deferredFrameBuffer->getDeferredFramebuffer()->getDepthStencilBufferFormat());
     }
-    
+
     gpu::doInBatch("Antialiasing::run", args->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "TAA");
 
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
 
+        // Set the intensity buffer to 1 except when the stencil is masked as NoAA, where it should be 0
+        // This is a bit of a hack as it is not possible and not portable to use the stencil value directly
+        // as a texture
+        batch.setFramebuffer(_intensityFramebuffer);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, gpu::Vec4(0.0f));
+        batch.setResourceTexture(0, nullptr);
+        batch.setPipeline(getIntensityPipeline());
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
         // TAA step
-        getAntialiasingPipeline(renderContext);
         batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaHistory, _antialiasingBuffers, 0);
         batch.setResourceTexture(ru::Texture::TaaSource, sourceBuffer->getRenderBuffer(0));
         batch.setResourceTexture(ru::Texture::TaaVelocity, velocityTexture);
+        batch.setResourceTexture(ru::Texture::TaaIntensity, _intensityTexture);
         // This is only used during debug
         batch.setResourceTexture(ru::Texture::TaaDepth, linearDepthBuffer->getLinearDepthTexture());
 
@@ -363,7 +392,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, deferredFrameTransform->getFrameTransformBuffer());
         
         batch.setFramebufferSwapChain(_antialiasingBuffers, 1);
-        batch.setPipeline(getAntialiasingPipeline(renderContext));
+        batch.setPipeline(getAntialiasingPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Blend step
