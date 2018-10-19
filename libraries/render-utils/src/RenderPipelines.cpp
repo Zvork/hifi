@@ -40,13 +40,15 @@ namespace gr {
 
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
-void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled);
-void initForwardTranslucentPipelines(ShapePlumber& plumber);
+void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled, bool isBloomEnabled);
+void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled);
 void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
+
+using StateSetter = std::function<void(gpu::State&)>;
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, int programId,
-        const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
+        const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter, const StateSetter& stateSetter);
 
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
@@ -55,191 +57,198 @@ static bool forceLightBatchSetter{ false };
 void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     using namespace shader::render_utils::program;
     using Key = render::ShapeKey;
-    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4);
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
     // TODO: Refactor this to use a filter
     // Opaques
     addPipeline(
         Key::Builder().withMaterial(),
-        model, nullptr, nullptr);
+        model, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder(),
-        simple_textured, nullptr, nullptr);
+        simple_textured, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withUnlit(),
-        model_unlit, nullptr, nullptr);
+        model_unlit, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withUnlit(),
-        simple_textured_unlit, nullptr, nullptr);
+        simple_textured_unlit, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents(),
-        model_normal_map, nullptr, nullptr);
+        model_normal_map, nullptr, nullptr, nullptr);
 
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withFade(),
-        model_fade, batchSetter, itemSetter);
+        model_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withFade(),
-        simple_textured_fade, batchSetter, itemSetter);
+        simple_textured_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withUnlit().withFade(),
-        model_unlit_fade, batchSetter, itemSetter);
+        model_unlit_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withUnlit().withFade(),
-        simple_textured_unlit_fade, batchSetter, itemSetter);
+        simple_textured_unlit_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents().withFade(),
-        model_normal_map_fade, batchSetter, itemSetter);
+        model_normal_map_fade, batchSetter, itemSetter, nullptr);
 
     // Translucents
     addPipeline(
         Key::Builder().withMaterial().withTranslucent(),
-        model_translucent, nullptr, nullptr);
+        model_translucent, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withTranslucent(),
-        simple_transparent_textured, nullptr, nullptr);
+        simple_transparent_textured, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withUnlit(),
-        model_translucent_unlit, nullptr, nullptr);
+        model_translucent_unlit, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit(),
-        simple_transparent_textured_unlit, nullptr, nullptr);
+        simple_transparent_textured_unlit, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
-        model_translucent_normal_map, nullptr, nullptr);
+        model_translucent_normal_map, nullptr, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap(),
-        model_translucent, nullptr, nullptr);
+        model_translucent, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withFade(),
-        model_translucent_fade, batchSetter, itemSetter);
+        model_translucent_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withFade(),
-        simple_transparent_textured_fade, batchSetter, itemSetter);
+        simple_transparent_textured_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withUnlit().withFade(),
-        model_translucent_unlit_fade, batchSetter, itemSetter);
+        model_translucent_unlit_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit().withFade(),
-        simple_transparent_textured_unlit_fade, batchSetter, itemSetter);
+        simple_transparent_textured_unlit_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents().withFade(),
-        model_translucent_normal_map_fade, batchSetter, itemSetter);
+        model_translucent_normal_map_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),
-        model_translucent_fade, batchSetter, itemSetter);
+        model_translucent_fade, batchSetter, itemSetter, nullptr);
     // Lightmapped
     addPipeline(
         Key::Builder().withMaterial().withLightmap(),
-        model_lightmap, nullptr, nullptr);
+        model_lightmap, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withLightmap().withTangents(),
-        model_lightmap_normal_map, nullptr, nullptr);
+        model_lightmap_normal_map, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withLightmap().withFade(),
-        model_lightmap_fade, batchSetter, itemSetter);
+        model_lightmap_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withLightmap().withTangents().withFade(),
-        model_lightmap_normal_map_fade, batchSetter, itemSetter);
+        model_lightmap_normal_map_fade, batchSetter, itemSetter, nullptr);
 
     // matrix palette skinned
     addPipeline(
         Key::Builder().withMaterial().withDeformed(),
-        deformed_model, nullptr, nullptr);
+        deformed_model, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTangents(),
-        deformed_model_normal_map, nullptr, nullptr);
+        deformed_model_normal_map, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withFade(),
-        deformed_model_fade, batchSetter, itemSetter);
+        deformed_model_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTangents().withFade(),
-        deformed_model_normal_map_fade, batchSetter, itemSetter);
+        deformed_model_normal_map_fade, batchSetter, itemSetter, nullptr);
     // matrix palette skinned and translucent
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTranslucent(),
-        deformed_model_translucent, nullptr, nullptr);
+        deformed_model_translucent, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(),
-        deformed_model_normal_map_translucent, nullptr, nullptr);
+        deformed_model_normal_map_translucent, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTranslucent().withFade(),
-        deformed_model_translucent_fade, batchSetter, itemSetter);
+        deformed_model_translucent_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withFade(),
-        deformed_model_normal_map_translucent_fade, batchSetter, itemSetter);
+        deformed_model_normal_map_translucent_fade, batchSetter, itemSetter, nullptr);
 
     // dual quaternion skinned
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(),
-        deformed_model_dq, nullptr, nullptr);
+        deformed_model_dq, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTangents(),
-        deformed_model_normal_map_dq, nullptr, nullptr);
+        deformed_model_normal_map_dq, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withFade(),
-        deformed_model_fade_dq, batchSetter, itemSetter);
+        deformed_model_fade_dq, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTangents().withFade(),
-        deformed_model_normal_map_fade_dq, batchSetter, itemSetter);
+        deformed_model_normal_map_fade_dq, batchSetter, itemSetter, nullptr);
     // dual quaternion skinned and translucent
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent(),
-        deformed_model_translucent_dq, nullptr, nullptr);
+        deformed_model_translucent_dq, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents(),
-        deformed_model_normal_map_translucent_dq, nullptr, nullptr);
+        deformed_model_normal_map_translucent_dq, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withFade(),
-        deformed_model_translucent_fade_dq, batchSetter, itemSetter);
+        deformed_model_translucent_fade_dq, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
-        deformed_model_normal_map_translucent_fade_dq, batchSetter, itemSetter);
+        deformed_model_normal_map_translucent_fade_dq, batchSetter, itemSetter, nullptr);
 
     // Depth-only
     addPipeline(
         Key::Builder().withDepthOnly(),
-        model_shadow, nullptr, nullptr);
+        model_shadow, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withDeformed().withDepthOnly(),
-        deformed_model_shadow, nullptr, nullptr);
+        deformed_model_shadow, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withDepthOnly().withFade(),
-        model_shadow_fade, batchSetter, itemSetter);
+        model_shadow_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withDeformed().withDepthOnly().withFade(),
-        deformed_model_shadow_fade, batchSetter, itemSetter);
+        deformed_model_shadow_fade, batchSetter, itemSetter, nullptr);
 
     // Now repeat for dual quaternion
     // Depth-only
     addPipeline(
         Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly(),
-        deformed_model_shadow_dq, nullptr, nullptr);
+        deformed_model_shadow_dq, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly().withFade(),
-        deformed_model_shadow_fade_dq, batchSetter, itemSetter);
+        deformed_model_shadow_fade_dq, batchSetter, itemSetter, nullptr);
 }
 
-void initForwardTranslucentPipelines(ShapePlumber& plumber) {
+void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled) {
     using namespace shader::render_utils::program;
 
     using Key = render::ShapeKey;
-    auto addPipelineBind = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4);
+    auto addPipelineBind = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
+    StateSetter stateSetter = nullptr;
+
+    if (!isBloomEnabled) {
+        stateSetter = [](gpu::State& state) {
+            PrepareStencil::drawNoBloom(state);
+        };
+    }
 
     // Disable fade on the forward pipeline, all shaders get added twice, once with the fade key and once without
     auto addPipeline = [&](const ShapeKey& key, int programId) {
-        addPipelineBind(key, programId, nullptr, nullptr);
-        addPipelineBind(Key::Builder(key).withFade(), programId, nullptr, nullptr);
+        addPipelineBind(key, programId, nullptr, nullptr, stateSetter);
+        addPipelineBind(Key::Builder(key).withFade(), programId, nullptr, nullptr, stateSetter);
     };
 
     // Forward pipelines need the lightBatchSetter for opaques and transparents
@@ -262,16 +271,23 @@ void initForwardTranslucentPipelines(ShapePlumber& plumber) {
     forceLightBatchSetter = false;
 }
 
-void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled) {
+void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled, bool isBloomEnabled) {
     using namespace shader::render_utils::program;
 
     using Key = render::ShapeKey;
-    auto addPipelineBind = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4);
+    auto addPipelineBind = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
+    StateSetter stateSetter = nullptr;
+
+    if (!isBloomEnabled) {
+        stateSetter = [](gpu::State& state) {
+            PrepareStencil::drawNoBloom(state);
+        };
+    }
 
     // Disable fade on the forward pipeline, all shaders get added twice, once with the fade key and once without
     auto addPipeline = [&](const ShapeKey& key, int programId) {
-        addPipelineBind(key, programId, nullptr, nullptr);
-        addPipelineBind(Key::Builder(key).withFade(), programId, nullptr, nullptr);
+        addPipelineBind(key, programId, nullptr, nullptr, stateSetter);
+        addPipelineBind(Key::Builder(key).withFade(), programId, nullptr, nullptr, stateSetter);
     };
 
     // Forward pipelines need the lightBatchSetter for opaques and transparents
@@ -309,13 +325,14 @@ void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled) {
 }
 
 void initForwardPipelines(ShapePlumber& plumber) {
-    initForwardOpaquePipelines(plumber, false);
-    initForwardTranslucentPipelines(plumber);
+    initForwardOpaquePipelines(plumber, false, true);
+    initForwardTranslucentPipelines(plumber, true);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, int programId,
-        const render::ShapePipeline::BatchSetter& extraBatchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
+        const render::ShapePipeline::BatchSetter& extraBatchSetter, const render::ShapePipeline::ItemSetter& itemSetter,
+        const StateSetter& stateSetter) {
     // These key-values' pipelines are added by this functor in addition to the key passed
     assert(!key.isWireframe());
     assert(!key.isDepthBiased());
@@ -336,6 +353,9 @@ void addPlumberPipeline(ShapePlumber& plumber,
         state->setBlendFunction(key.isTranslucent(),
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        if (stateSetter) {
+            stateSetter(*state);
+        }
 
         ShapeKey::Builder builder(key);
         if (!isCulled) {

@@ -101,7 +101,13 @@ void PrepareStencil::drawMask(gpu::State& state) {
 // Draw BACKGROUND to the stencil buffer behind everything else
 void PrepareStencil::drawBackground(gpu::State& state) {
     state.setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::ALWAYS,
-        gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
+                         gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
+}
+
+// Draw NO_BLOOM to the stencil buffer behind everything else
+void PrepareStencil::drawNoBloom(gpu::State& state) {
+    state.setStencilTest(true, STENCIL_NO_BLOOM, gpu::State::StencilTest(STENCIL_NO_BLOOM, 0xFF, gpu::ALWAYS,
+                         gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
 }
 
 // Pass if this area has NOT been marked as MASK or anything containing MASK
@@ -113,7 +119,13 @@ void PrepareStencil::testMask(gpu::State& state) {
 // Pass if this area has NOT been marked as NO_AA or anything containing NO_AA
 void PrepareStencil::testNoAA(gpu::State& state) {
     state.setStencilTest(true, 0x00, gpu::State::StencilTest(STENCIL_NO_AA, STENCIL_NO_AA, gpu::NOT_EQUAL,
-        gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+                         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+}
+
+// Pass if this area has NOT been marked as NO_BLOOM or anything containing NO_BLOOM
+void PrepareStencil::testNoBloom(gpu::State& state) {
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(STENCIL_NO_BLOOM, STENCIL_NO_BLOOM, gpu::NOT_EQUAL,
+                         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 // Pass if this area WAS marked as BACKGROUND

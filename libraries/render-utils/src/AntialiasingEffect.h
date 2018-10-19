@@ -109,7 +109,7 @@ public:
     bool bicubicHistoryFetch{ true };
 
     float debugX{ 0.0f };
-    float debugFXAAX{ 0.0f };
+    float debugFXAAX{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };

@@ -61,8 +61,8 @@
 using namespace render;
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 extern void initForwardPipelines(render::ShapePlumber& plumber);
-extern void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled);
-extern void initForwardTranslucentPipelines(ShapePlumber& plumber);
+extern void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled, bool isBloomEnabled);
+extern void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled);
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -116,8 +116,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     ShapePlumberPointer overlayTranslucentShapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     initForwardPipelines(*overlayShapePlumber);
-    initForwardOpaquePipelines(*overlayOpaqueShapePlumber, true);
-    initForwardTranslucentPipelines(*overlayTranslucentShapePlumber);
+    initForwardOpaquePipelines(*overlayOpaqueShapePlumber, true, false);
+    initForwardTranslucentPipelines(*overlayTranslucentShapePlumber, false);
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
