@@ -65,8 +65,6 @@ Rectangle {
                 spacing: 5
                 Repeater {
                     model: [
-                         "Opaques:DrawOpaqueDeferred:enabled",
-                         "Transparents:DrawTransparentDeferred:enabled",
                          "Obscurance:LightingModel:enableObscurance",
                          "Scattering:LightingModel:enableScattering",
                          "Diffuse:LightingModel:enableDiffuse",
@@ -89,7 +87,6 @@ Rectangle {
                 spacing: 5
                 Repeater {
                     model: [
-                         "Transparent Overlays:DrawOverlayInFrontTransparent:enabled",
                          "Ambient:LightingModel:enableAmbientLight",
                          "Directional:LightingModel:enableDirectionalLight",
                          "Point:LightingModel:enablePointLight",

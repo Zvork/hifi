@@ -25,6 +25,7 @@ public:
         FULL = 0,
         COLOR_DEPTH,
         LIGHTING,
+        LIGHTING_VELOCITY,
 
         MAX_TYPE
     };
@@ -42,6 +43,7 @@ public:
     gpu::TexturePointer getDeferredVelocityTexture();
 
     gpu::FramebufferPointer getLightingFramebuffer();
+    gpu::FramebufferPointer getLightingWithVelocityFramebuffer();
     gpu::TexturePointer getLightingTexture();
 
     // Update the depth buffer which will drive the allocation of all the other resources according to its size.
@@ -64,6 +66,7 @@ protected:
 
     gpu::TexturePointer _lightingTexture;
     gpu::FramebufferPointer _lightingFramebuffer;
+    gpu::FramebufferPointer _lightingWithVelocityFramebuffer;
 
     glm::ivec2 _frameSize;
 };

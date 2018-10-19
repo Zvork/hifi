@@ -60,6 +60,9 @@
 
 using namespace render;
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
+extern void initForwardPipelines(render::ShapePlumber& plumber);
+extern void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled);
+extern void initForwardTranslucentPipelines(ShapePlumber& plumber);
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -108,7 +111,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    ShapePlumberPointer overlayShapePlumber = std::make_shared<ShapePlumber>();
+    ShapePlumberPointer overlayOpaqueShapePlumber = std::make_shared<ShapePlumber>();
+    ShapePlumberPointer overlayTranslucentShapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+    initForwardPipelines(*overlayShapePlumber);
+    initForwardOpaquePipelines(*overlayOpaqueShapePlumber, true);
+    initForwardTranslucentPipelines(*overlayTranslucentShapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
@@ -137,6 +146,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto prepareDeferredOutputs = task.addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
+    const auto lightingWithVelocityFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(2);
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", scaledPrimaryFramebuffer);
@@ -223,6 +233,23 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
+    const auto overlaysInFrontRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOverlaysInFrontRangeTimer", "BeginOverlaysInFrontRangeTimer");
+
+    // Layered Overlays
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
+    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
+    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
+
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontOpaque, lightingModel).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontTransparent, lightingModel).asVarying();
+    task.addJob<SetDeferredFramebuffer>("SetOpaqueOverlayFramebuffer", deferredFramebuffer, DeferredFramebuffer::LIGHTING_VELOCITY);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, overlayOpaqueShapePlumber, true, true);
+    task.addJob<SetDeferredFramebuffer>("SetTranslucentOverlayFramebuffer", deferredFramebuffer, DeferredFramebuffer::LIGHTING);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, overlayTranslucentShapePlumber, false, false);
+
+    task.addJob<EndGPURangeTimer>("OverlaysInFrontRangeTimer", overlaysInFrontRangeTimer);
+
     // AA job before bloom to limit flickering
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
@@ -234,21 +261,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-
-    const auto overlaysInFrontRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOverlaysInFrontRangeTimer", "BeginOverlaysInFrontRangeTimer");
-
-    // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
-    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
-    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
-
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontOpaque, lightingModel).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysInFrontTransparent, lightingModel).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true, false);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false, false);
-
-    task.addJob<EndGPURangeTimer>("OverlaysInFrontRangeTimer", overlaysInFrontRangeTimer);
 
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
@@ -327,8 +339,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysHUDOpaque, lightingModel).asVarying();
     const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(deferredFrameTransform, overlaysHUDTransparent, lightingModel).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayHUDOpaque", overlayHUDOpaquesInputs, true, false);
-    task.addJob<DrawOverlay3D>("DrawOverlayHUDTransparent", overlayHUDTransparentsInputs, false, false);
+    task.addJob<DrawOverlay3D>("DrawOverlayHUDOpaque", overlayHUDOpaquesInputs, overlayShapePlumber, true, false);
+    task.addJob<DrawOverlay3D>("DrawOverlayHUDTransparent", overlayHUDTransparentsInputs, overlayShapePlumber, false, false);
 
     { // Debug the bounds of the rendered Overlay items that are marked drawHUDLayer, still look at the zbuffer
         task.addJob<DrawBounds>("DrawOverlayHUDOpaqueBounds", overlaysHUDOpaque);

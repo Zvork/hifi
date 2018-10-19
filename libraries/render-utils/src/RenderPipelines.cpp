@@ -40,6 +40,8 @@ namespace gr {
 
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
+void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled);
+void initForwardTranslucentPipelines(ShapePlumber& plumber);
 void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 void addPlumberPipeline(ShapePlumber& plumber,
@@ -228,7 +230,39 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         deformed_model_shadow_fade_dq, batchSetter, itemSetter);
 }
 
-void initForwardPipelines(ShapePlumber& plumber) {
+void initForwardTranslucentPipelines(ShapePlumber& plumber) {
+    using namespace shader::render_utils::program;
+
+    using Key = render::ShapeKey;
+    auto addPipelineBind = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4);
+
+    // Disable fade on the forward pipeline, all shaders get added twice, once with the fade key and once without
+    auto addPipeline = [&](const ShapeKey& key, int programId) {
+        addPipelineBind(key, programId, nullptr, nullptr);
+        addPipelineBind(Key::Builder(key).withFade(), programId, nullptr, nullptr);
+    };
+
+    // Forward pipelines need the lightBatchSetter for opaques and transparents
+    forceLightBatchSetter = true;
+
+    // Simple Translucents
+    addPipeline(Key::Builder().withTranslucent(), simpleTranslucent);
+    addPipeline(Key::Builder().withTranslucent().withUnlit(), simpleTranslucentUnlit);
+
+    // Translucents
+    addPipeline(Key::Builder().withMaterial().withTranslucent(), forward_model_translucent);
+    addPipeline(Key::Builder().withMaterial().withTranslucent().withTangents(), forward_model_normal_map_translucent);
+
+    // Deformed Translucents
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent(), forward_deformed_translucent);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), forward_deformed_translucent_normal_map);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), forward_deformed_translucent_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), forward_deformed_translucent_normal_map_dq);
+
+    forceLightBatchSetter = false;
+}
+
+void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled) {
     using namespace shader::render_utils::program;
 
     using Key = render::ShapeKey;
@@ -247,32 +281,36 @@ void initForwardPipelines(ShapePlumber& plumber) {
     addPipeline(Key::Builder(), simple);
     addPipeline(Key::Builder().withUnlit(), simpleUnlit);
 
-    // Simple Translucents
-    addPipeline(Key::Builder().withTranslucent(), simpleTranslucent);
-    addPipeline(Key::Builder().withTranslucent().withUnlit(), simpleTranslucentUnlit);
+    if (isVelocityEnabled) {
+        // Opaques
+        addPipeline(Key::Builder().withMaterial(), forward_model_velocity);
+        addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit_velocity);
+        addPipeline(Key::Builder().withMaterial().withTangents(), forward_model_normal_map_velocity);
 
-    // Opaques
-    addPipeline(Key::Builder().withMaterial(), forward_model);
-    addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit);
-    addPipeline(Key::Builder().withMaterial().withTangents(), forward_model_translucent);
- 
-    // Deformed Opaques
-    addPipeline(Key::Builder().withMaterial().withDeformed(), forward_deformed_model);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTangents(), forward_deformed_model_normal_map);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(), forward_deformed_model_dq);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTangents().withDualQuatSkinned(), forward_deformed_model_normal_map_dq);
+        // Deformed Opaques
+        addPipeline(Key::Builder().withMaterial().withDeformed(), forward_deformed_model_velocity);
+        addPipeline(Key::Builder().withMaterial().withDeformed().withTangents(), forward_deformed_model_normal_map_velocity);
+        addPipeline(Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(), forward_deformed_model_dq_velocity);
+        addPipeline(Key::Builder().withMaterial().withDeformed().withTangents().withDualQuatSkinned(), forward_deformed_model_normal_map_dq_velocity);
+    } else {
+        // Opaques
+        addPipeline(Key::Builder().withMaterial(), forward_model);
+        addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit);
+        addPipeline(Key::Builder().withMaterial().withTangents(), forward_model_normal_map);
 
-    // Translucents
-    addPipeline(Key::Builder().withMaterial().withTranslucent(), forward_model_translucent);
-    addPipeline(Key::Builder().withMaterial().withTranslucent().withTangents(), forward_model_normal_map_translucent);
-
-    // Deformed Translucents
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent(), forward_deformed_translucent);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), forward_deformed_translucent_normal_map);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), forward_deformed_translucent_dq);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), forward_deformed_translucent_normal_map_dq);
+        // Deformed Opaques
+        addPipeline(Key::Builder().withMaterial().withDeformed(), forward_deformed_model);
+        addPipeline(Key::Builder().withMaterial().withDeformed().withTangents(), forward_deformed_model_normal_map);
+        addPipeline(Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(), forward_deformed_model_dq);
+        addPipeline(Key::Builder().withMaterial().withDeformed().withTangents().withDualQuatSkinned(), forward_deformed_model_normal_map_dq);
+    }
 
     forceLightBatchSetter = false;
+}
+
+void initForwardPipelines(ShapePlumber& plumber) {
+    initForwardOpaquePipelines(plumber, false);
+    initForwardTranslucentPipelines(plumber);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,

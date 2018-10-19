@@ -27,7 +27,6 @@ namespace gr {
 
 
 using namespace render;
-extern void initForwardPipelines(ShapePlumber& plumber);
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
@@ -56,11 +55,10 @@ void SetFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     });
 }
 
-DrawOverlay3D::DrawOverlay3D(bool opaque, bool velocity) :
-    _shapePlumber(std::make_shared<ShapePlumber>()),
+DrawOverlay3D::DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity) :
+    _shapePlumber(shapePlumber),
     _opaquePass(opaque),
     _outputVelocity(velocity) {
-    initForwardPipelines(*_shapePlumber);
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {

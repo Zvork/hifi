@@ -1,0 +1,47 @@
+<!
+//  VelocityWrite.slh
+//  libraries/render-utils/src
+//
+//  Created by Olivier Prat on 10/19/18.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not VELOCITY_WRITE_SLH@>
+<@def VELOCITY_WRITE_SLH@>
+
+<@if not GPU_TRANSFORM_STATE_SLH@>
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+<@endif@>
+
+vec2 getEyeTexcoordPos(ivec2 fragCoord) {
+    vec2 texCoordPos = fragCoord + 0.5;
+    texCoordPos *= cam_getInvWidthHeight();
+    texCoordPos.x -= cam_getStereoSide();
+    return texCoordPos;
+}
+
+vec2 packVelocity(vec4 prevPositionCS) {
+    vec2 uv = getEyeTexcoordPos(ivec2(gl_FragCoord.xy));
+    vec2 prevUV =  (prevPositionCS.xy / prevPositionCS.w)*0.5 + 0.5;
+    vec2 deltaUV = uv - prevUV;
+    // Velocity should be computed without any jitter inside.
+    return deltaUV;
+}
+
+void packDeferredFragmentSky(vec4 prevPositionCS, vec3 color) {
+    // Force w to 1. It is already the case as the sky is on the far plane but this is a small
+    // optimization to tell the shader compiler to drop the division by w
+    prevPositionCS.w = 1.0;
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = vec4(color, 1.0);
+}
+
+void packDeferredFragmentLighting(vec4 prevPositionCS, vec4 color) {
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
+    _lighting = color;
+}
+
+<@endif@>

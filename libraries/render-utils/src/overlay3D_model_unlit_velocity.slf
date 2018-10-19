@@ -38,5 +38,5 @@ void main(void) {
 
     vec4 color = vec4(albedo * isUnlitEnabled(), opacity);
 
-    packDeferredFragmentOverlay(_prevPositionCS, color);
+    packDeferredFragmentLighting(_prevPositionCS, color);
 }

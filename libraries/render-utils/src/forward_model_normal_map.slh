@@ -1,45 +1,38 @@
-<@include gpu/Config.slh@>
-<$VERSION_HEADER$>
-// <$_SCRIBE_FILENAME$> 
-// Generated on <$_SCRIBE_DATE$>
-//
-//  Created by Olivier Prat on 06/05/17.
-//  Copyright 2017 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+<@func declareForwardModelNormalMap(velocity)@>
 
-<@include DeferredBufferWrite.slh@>
+<@include gpu/Transform.slh@>
 <@include graphics/Material.slh@>
 <@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
-<@include Fade.slh@>
+<@include ForwardGlobalLight.slh@>
 
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC, EMISSIVE, OCCLUSION, SCATTERING)$>
+<$declareEvalSkyboxGlobalColor()$>
+<$declareStandardCameraTransform()$>
 
-<$declareFadeFragment()$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC, EMISSIVE, OCCLUSION)$>
 
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
-layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_TANGENT_WS) in vec3 _tangentWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+
+layout(location=0) out vec4 _lighting;
+
+<@if velocity@>
 layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 
+layout(location=1) out vec4 _velocity;
+
+<@include VelocityWrite.slh@>
+<@endif@>
+
 void main(void) {
-    vec3 fadeEmissive;
-    FadeObjectParams fadeParams;
-
-    <$fetchFadeObjectParams(fadeParams)$>
-    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
-
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, metallicTex, emissiveTex, scatteringTex)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, metallicTex, emissiveTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = 1.0;
@@ -56,23 +49,35 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
-    vec3 fragNormalWS;
-    <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
-
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+    vec3 fresnel = getFresnelF0(metallic, albedo);
 
-    float scattering = getMaterialScattering(mat);
-    <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
+    vec3 fragPosition = _positionES.xyz;
+    vec3 fragNormal;
+    <$evalMaterialNormal(normalTex, _normalWS, _tangentWS, fragNormal)$>
 
-    packDeferredFragment(
-        _prevPositionCS,
-        normalize(fragNormalWS.xyz),
-        opacity,
-        albedo,
-        roughness,
-        metallic,
-        emissive + fadeEmissive,
+    TransformCamera cam = getTransformCamera();
+
+    vec4 color = vec4(evalSkyboxGlobalColor(
+        cam._viewInverse,
+        1.0,
         occlusionTex,
-        scattering);
+        fragPosition,
+        fragNormal,
+        albedo,
+        fresnel,
+        metallic,
+        roughness),
+        opacity);
+
+    color.rgb += emissive * isEmissiveEnabled();
+
+<@if velocity@>
+    packDeferredFragmentLighting(_prevPositionCS, color);
+<@else@>
+    _lighting = color;
+<@endif@>
 }
+
+<@endfunc@>

@@ -3,8 +3,8 @@
 // <$_SCRIBE_FILENAME$> 
 // Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Sam Gateau on 2/15/2016.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Olivier Prat on 10/19/2018.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,4 +12,5 @@
 
 <@include forward_model_normal_map.slh@>
 
-<$declareForwardModelNormalMap()$>
+<! Output velocity !>
+<$declareForwardModelNormalMap(true)$>

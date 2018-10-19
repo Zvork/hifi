@@ -43,6 +43,7 @@ void DeferredFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depthBuf
         _deferredVelocityTexture.reset();
         _lightingTexture.reset();
         _lightingFramebuffer.reset();
+        _lightingWithVelocityFramebuffer.reset();
     }
 }
 
@@ -88,6 +89,11 @@ void DeferredFramebuffer::allocate() {
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
+    _lightingWithVelocityFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("lighting_velocity"));
+    _lightingWithVelocityFramebuffer->setRenderBuffer(0, _lightingTexture);
+    _lightingWithVelocityFramebuffer->setRenderBuffer(1, _deferredVelocityTexture);
+    _lightingWithVelocityFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
     _deferredFramebuffer->setRenderBuffer(DEFERRED_LIGHTING_SLOT, _lightingTexture);
 
 }
@@ -108,6 +114,8 @@ gpu::FramebufferPointer DeferredFramebuffer::getFramebuffer(Type type) {
             return getDeferredFramebufferDepthColor();
         case LIGHTING:
             return getLightingFramebuffer();
+        case LIGHTING_VELOCITY:
+            return getLightingWithVelocityFramebuffer();
     };
 }
 
@@ -158,6 +166,13 @@ gpu::FramebufferPointer DeferredFramebuffer::getLightingFramebuffer() {
         allocate();
     }
     return _lightingFramebuffer;
+}
+
+gpu::FramebufferPointer DeferredFramebuffer::getLightingWithVelocityFramebuffer() {
+    if (!_lightingWithVelocityFramebuffer) {
+        allocate();
+    }
+    return _lightingWithVelocityFramebuffer;
 }
 
 gpu::TexturePointer DeferredFramebuffer::getLightingTexture() {

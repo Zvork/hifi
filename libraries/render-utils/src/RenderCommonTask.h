@@ -71,7 +71,7 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
-    DrawOverlay3D(bool opaque, bool velocity);
+    DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
