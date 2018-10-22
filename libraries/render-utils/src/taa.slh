@@ -53,16 +53,20 @@ bool taa_showClosestFragment() {
     return GET_BIT(params.flags.x, 3);
 }
 
+bool taa_bicubicHistoryFetch() {
+    return GET_BIT(params.flags.y, 0);
+}
+
 bool taa_constrainColor() {
     return GET_BIT(params.flags.y, 1);
 }
 
-bool taa_feedbackColor() {
-    return GET_BIT(params.flags.y, 4);
+bool taa_sharpenOutput() {
+    return GET_BIT(params.flags.y, 2);
 }
 
-bool taa_bicubicHistoryFetch() {
-    return GET_BIT(params.flags.y, 0);
+bool taa_feedbackColor() {
+    return GET_BIT(params.flags.y, 4);
 }
 
 vec2 taa_getDebugCursorTexcoord() {

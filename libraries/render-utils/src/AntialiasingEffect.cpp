@@ -304,6 +304,8 @@ void Antialiasing::configure(const Config& config) {
     if (!_isSharpenEnabled) {
         _sharpen = 0.0f;
     }
+    _params.edit().setSharpenedOutput(_sharpen > 0.0f);
+
     _params.edit().blend = config.blend * config.blend;
     _params.edit().covarianceGamma = config.covarianceGamma;
 
@@ -356,6 +358,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             const auto& antiAliasingBuffer = antiAliasingBuffers.back();
             _antialiasingTextures[i] = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
             antiAliasingBuffer->setRenderBuffer(0, _antialiasingTextures[i]);
+            antiAliasingBuffer->setRenderBuffer(1, sourceBuffer->getRenderBuffer(0));
         }
         _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(antiAliasingBuffers);
 
@@ -397,27 +400,29 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setPipeline(getAntialiasingPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        // Blend step
-        batch.setResourceTexture(ru::Texture::TaaSource, nullptr);
+        if (_sharpen > 0.0f || _params->isDebug()) {
+            // Blend step
+            batch.setResourceTexture(ru::Texture::TaaSource, nullptr);
 
-        batch.setFramebuffer(sourceBuffer);
-        if (_params->isDebug()) {
-            batch.setPipeline(getDebugBlendPipeline());
-            batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaNext, _antialiasingBuffers, 1);
-        }  else {
-            batch.setPipeline(getBlendPipeline());
-            // Must match the binding point in the aa_blend.slf shader
-            batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
-            // Disable sharpen if FXAA
-            if (!_blendParamsBuffer) {
-                _blendParamsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+            batch.setFramebuffer(sourceBuffer);
+            if (_params->isDebug()) {
+                batch.setPipeline(getDebugBlendPipeline());
+                batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaNext, _antialiasingBuffers, 1);
+            } else {
+                batch.setPipeline(getBlendPipeline());
+                // Must match the binding point in the aa_blend.slf shader
+                batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
+                // Disable sharpen if FXAA
+                if (!_blendParamsBuffer) {
+                    _blendParamsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+                }
+                _blendParamsBuffer->setSubData(0, _sharpen * _params.get().regionInfo.z);
+                batch.setUniformBuffer(0, _blendParamsBuffer);
             }
-            _blendParamsBuffer->setSubData(0, _sharpen * _params.get().regionInfo.z);
-            batch.setUniformBuffer(0, _blendParamsBuffer);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.advance(_antialiasingBuffers);
-        
+
         batch.setUniformBuffer(ru::Buffer::TaaParams, nullptr);
         batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, nullptr);
 

@@ -13,7 +13,9 @@
 <@include taa.slh@>
 
 layout(location=0) in vec2 varTexCoord0;
-layout(location=0) out vec4 outFragColor;
+
+layout(location=0) out vec4 outNextColor;
+layout(location=1) out vec4 outFragColor;
 
 void main() {
     vec2 fragUV = varTexCoord0;
@@ -21,7 +23,7 @@ void main() {
     // Debug region before debug or fxaa region X
     float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
     if (distToRegionFXAA > 0.0) {
-        outFragColor = vec4(taa_evalFXAA(fragUV), 1.0);
+        outNextColor = vec4(taa_evalFXAA(fragUV), 1.0);
         return;
     }
 
@@ -44,9 +46,11 @@ void main() {
         }
 
         nextColor.rgb = mix(sourceColor.rgb, nextColor.rgb, nextColor.a);
-        outFragColor = vec4(taa_resolveColor(nextColor.rgb), nextColor.a);
-    } else {
-        // Pass through color
-        outFragColor = nextColor;
+        nextColor.rgb = taa_resolveColor(nextColor.rgb);
+    }
+
+    outNextColor = nextColor;
+    if (!taa_sharpenOutput()) {
+        outFragColor = vec4(nextColor.rgb, 1.0);
     }
 }

@@ -148,6 +148,9 @@ struct TAAParams {
     void setBicubicHistoryFetch(bool enabled) { SET_BIT(flags.y, 0, enabled); }
     bool isBicubicHistoryFetch() const { return (bool)GET_BIT(flags.y, 0); }
 
+    void setSharpenedOutput(bool enabled) { SET_BIT(flags.y, 2, enabled); }
+    bool isSharpenedOutput() const { return (bool)GET_BIT(flags.y, 2); }
+
     void setDebug(bool enabled) { SET_BIT(flags.x, 0, enabled); }
     bool isDebug() const { return (bool) GET_BIT(flags.x, 0); }
 
