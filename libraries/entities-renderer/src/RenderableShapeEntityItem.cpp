@@ -44,7 +44,7 @@ ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Pare
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     _procedural._transparentState->setCullMode(gpu::State::CULL_BACK);
     _procedural._transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
-    PrepareStencil::testMask(*_procedural._transparentState);
+    PrepareStencil::testMaskResetNoAA(*_procedural._transparentState);
     _procedural._transparentState->setBlendFunction(true,
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);

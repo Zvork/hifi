@@ -2092,7 +2092,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch,
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testMaskResetNoAA(*state);
         _glowLinePipeline = gpu::Pipeline::create(program, state);
     });
 
@@ -2142,7 +2142,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
         // enable decal blend
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testMaskResetNoAA(*state);
 
         _standardDrawPipeline = gpu::Pipeline::create(program, state);
 
@@ -2166,7 +2166,7 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
         _gridSlot = 0;
         auto stateLayered = std::make_shared<gpu::State>();
         stateLayered->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        PrepareStencil::testMask(*stateLayered);
+        PrepareStencil::testMaskResetNoAA(*stateLayered);
         _gridPipelineLayered = gpu::Pipeline::create(program, stateLayered);
 
         auto state = std::make_shared<gpu::State>(stateLayered->getValues());
@@ -2351,7 +2351,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     if (config.isAntiAliased()) {
-        config.isTransparent() ? PrepareStencil::testMask(*state) : PrepareStencil::testMaskDrawShape(*state);
+        config.isTransparent() ? PrepareStencil::testMaskResetNoAA(*state) : PrepareStencil::testMaskDrawShape(*state);
     } else {
         PrepareStencil::testMaskDrawShapeNoAA(*state);
     }

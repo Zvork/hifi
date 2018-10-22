@@ -174,6 +174,8 @@ vec4 taa_fetchHistoryMap(vec2 uv) {
         result += texture(historyMap, vec2(sampleUV0.x,  sampleUV3.y)) * w0.x * w3.y;
         result += texture(historyMap, vec2(sampleUV12.x, sampleUV3.y)) * w12.x * w3.y;
         result += texture(historyMap, vec2(sampleUV3.x,  sampleUV3.y)) * w3.x * w3.y;
+
+        result.a = clamp(result.a, 0.0, 1.0);
     } else {
         result = texture(historyMap, uv);
     }
@@ -306,10 +308,9 @@ bool taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec4 sourceCo
     sourceColor.a = texture(intensityMap, fragUV).r;
 
     // If velocity is 0 then don't fetch history, just return the source. This means there is no jitter on this pixel
-    if (sourceColor.a>0 && any( notEqual(fragVelocity, vec2(0.0)) )) {
+    if (any( notEqual(fragVelocity, vec2(0.0)) )) {
         vec2 prevEyeUV;
         vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
-
 
         sourceColor = taa_transformColor(sourceColor);
         historyColor = sourceColor;

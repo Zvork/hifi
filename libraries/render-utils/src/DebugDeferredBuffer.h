@@ -41,12 +41,13 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet6<DeferredFramebufferPointer,
+    using Inputs = render::VaryingSet7<DeferredFramebufferPointer,
                                        LinearDepthFramebufferPointer,
                                        SurfaceGeometryFramebufferPointer,
                                        AmbientOcclusionFramebufferPointer,
                                        DeferredFrameTransformPointer,
-                                       LightStage::FramePointer>;
+                                       LightStage::FramePointer,
+                                       gpu::TexturePointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
 
@@ -91,6 +92,7 @@ protected:
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
         VelocityMode,
+        AntialiasingIntensityMode,
         CustomMode,  // Needs to stay last
 
         NumModes,

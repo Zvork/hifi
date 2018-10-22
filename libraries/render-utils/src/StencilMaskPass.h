@@ -52,6 +52,7 @@ public:
     static void drawBackground(gpu::State& state);
     static void drawNoBloom(gpu::State& state);
     static void testMask(gpu::State& state);
+    static void testMaskResetNoAA(gpu::State& state);
     static void testNoAA(gpu::State& state);
     static void testBackground(gpu::State& state);
     static void testNoBloom(gpu::State& state);

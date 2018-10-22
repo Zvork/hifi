@@ -263,7 +263,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
 const gpu::PipelinePointer& Antialiasing::getIntensityPipeline() {
     if (!_intensityPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTexture);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawWhite);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         PrepareStencil::testNoAA(*state);
@@ -326,7 +326,7 @@ void Antialiasing::configure(const Config& config) {
 }
 
 
-void Antialiasing::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+void Antialiasing::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     
     RenderArgs* args = renderContext->args;
@@ -364,6 +364,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         _intensityFramebuffer->setRenderBuffer(0, _intensityTexture);
         _intensityFramebuffer->setStencilBuffer(deferredFrameBuffer->getDeferredFramebuffer()->getDepthStencilBuffer(), deferredFrameBuffer->getDeferredFramebuffer()->getDepthStencilBufferFormat());
     }
+
+    outputs = _intensityTexture;
 
     gpu::doInBatch("Antialiasing::run", args->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "TAA");

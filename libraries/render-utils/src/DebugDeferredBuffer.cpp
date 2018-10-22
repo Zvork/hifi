@@ -238,6 +238,12 @@ static const std::string DEFAULT_VELOCITY_SHADER{
     "}"
 };
 
+static const std::string DEFAULT_ANTIALIASING_INTENSITY_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(texture(debugTexture0, uv).rrr, 1.0);"
+    " }"
+};
+
 static const std::string DEFAULT_CUSTOM_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(1.0, 0.0, 0.0, 1.0);"
@@ -326,6 +332,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
         case VelocityMode:
             return DEFAULT_VELOCITY_SHADER;
+        case AntialiasingIntensityMode:
+            return DEFAULT_ANTIALIASING_INTENSITY_SHADER;
         case CustomMode:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
         default:
@@ -406,6 +414,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& ambientOcclusionFramebuffer = inputs.get3();
     auto& frameTransform = inputs.get4();
     auto& lightFrame = inputs.get5();
+    const auto& antialiasingIntensityTexture = inputs.get6();
 
     gpu::doInBatch("DebugDeferredBuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -469,6 +478,10 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
                 batch.setResourceTexture(Textures::DebugTexture0, ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
             }
         }
+        if (antialiasingIntensityTexture && _mode == AntialiasingIntensityMode) {
+            batch.setResourceTexture(Textures::DebugTexture0, antialiasingIntensityTexture);
+        }
+
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(_size.x, _size.y);
         const glm::vec2 topRight(_size.z, _size.w);

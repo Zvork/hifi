@@ -168,13 +168,14 @@ using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 class Antialiasing {
 public:
     using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer> ;
+    using Outputs = gpu::TexturePointer;
     using Config = AntialiasingConfig;
-    using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
+    using JobModel = render::Job::ModelIO<Antialiasing, Inputs, Outputs, Config>;
 
     Antialiasing(bool isSharpenEnabled = true);
     ~Antialiasing();
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getIntensityPipeline();

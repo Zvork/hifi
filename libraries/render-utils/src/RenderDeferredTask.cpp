@@ -252,7 +252,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // AA job before bloom to limit flickering
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
-    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
+    const auto antialiasingIntensityTexture = task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
     const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame).asVarying();
@@ -300,7 +300,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, deferredFrameTransform, lightFrame));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, 
+                                                                                   deferredFrameTransform, lightFrame, antialiasingIntensityTexture));
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,

@@ -43,7 +43,7 @@ void main() {
             nextColor = mix(historyColor, sourceColor, params.blend);
         }
 
-        nextColor = mix(sourceColor, nextColor, nextColor.a);
+        nextColor.rgb = mix(sourceColor.rgb, nextColor.rgb, nextColor.a);
         outFragColor = vec4(taa_resolveColor(nextColor.rgb), nextColor.a);
     } else {
         // Pass through color
