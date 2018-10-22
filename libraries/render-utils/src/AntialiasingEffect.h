@@ -165,6 +165,8 @@ struct TAAParams {
 
     void setShowClosestFragment(bool enabled) { SET_BIT(flags.x, 3, enabled); }
 
+    bool isFXAAEnabled() const { return regionInfo.z > 0.0f; }
+
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 

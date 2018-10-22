@@ -19,38 +19,44 @@ layout(location=1) out vec4 outFragColor;
 
 void main() {
     vec2 fragUV = varTexCoord0;
+    vec4 nextColor;
 
     // Debug region before debug or fxaa region X
     float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
     if (distToRegionFXAA > 0.0) {
-        outNextColor = vec4(taa_evalFXAA(fragUV), 1.0);
-        return;
-    }
+        nextColor = vec4(taa_evalFXAA(fragUV), 1.0);
 
-    vec4 sourceColor;
-    vec4 historyColor;
-
-    vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
-    bool needsTAA = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
-    vec4 nextColor = sourceColor;
-    if (needsTAA) {
-        if (taa_constrainColor()) {
-            // clamp history to neighbourhood of current sample
-            historyColor.rgb = taa_evalConstrainColor(sourceColor.rgb, fragUV, fragVel, historyColor.rgb);
-        }
-    
-        if (taa_feedbackColor()) {
-            nextColor = taa_evalFeedbackColor(sourceColor, historyColor, params.blend);
+        if (taa_sharpenOutput()) {
+            outNextColor = nextColor;
         } else {
-            nextColor = mix(historyColor, sourceColor, params.blend);
+            outFragColor = nextColor;
+        }
+    } else {
+        vec4 sourceColor;
+        vec4 historyColor;
+
+        vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
+        bool needsTAA = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
+        vec4 nextColor = sourceColor;
+        if (needsTAA) {
+            if (taa_constrainColor()) {
+                // clamp history to neighbourhood of current sample
+                historyColor.rgb = taa_evalConstrainColor(sourceColor.rgb, fragUV, fragVel, historyColor.rgb);
+            }
+        
+            if (taa_feedbackColor()) {
+                nextColor = taa_evalFeedbackColor(sourceColor, historyColor, params.blend);
+            } else {
+                nextColor = mix(historyColor, sourceColor, params.blend);
+            }
+
+            nextColor.rgb = mix(sourceColor.rgb, nextColor.rgb, nextColor.a);
+            nextColor.rgb = taa_resolveColor(nextColor.rgb);
         }
 
-        nextColor.rgb = mix(sourceColor.rgb, nextColor.rgb, nextColor.a);
-        nextColor.rgb = taa_resolveColor(nextColor.rgb);
-    }
-
-    outNextColor = nextColor;
-    if (!taa_sharpenOutput()) {
-        outFragColor = vec4(nextColor.rgb, 1.0);
+        outNextColor = nextColor;
+        if (!taa_sharpenOutput()) {
+            outFragColor = vec4(nextColor.rgb, 1.0);
+        }
     }
 }
