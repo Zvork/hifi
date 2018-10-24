@@ -16,9 +16,13 @@ layout(location=0) out vec4 _fragColor;
 <@include procedural/ProceduralCommon.slh@>
 
 #line 1001
-//PROCEDURAL_BLOCK
+//PROCEDURAL_BLOCK_BEGIN
+vec3 getSkyboxColor() {
+    return vec3(abs(sin(iGlobalTime / 5.0)), 1.0, 0.0);
+}
+//PROCEDURAL_BLOCK_END
 
-#line 2033
+#line 2038
 void main(void) {
     vec3 color = getSkyboxColor();
     // Protect from NaNs and negative values

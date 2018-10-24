@@ -21,7 +21,7 @@
 #define DeferredFrameTransform _DeferredFrameTransform
 #define TransformCamera _TransformCamera
 
-layout(std140, binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 

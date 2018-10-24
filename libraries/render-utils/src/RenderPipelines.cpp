@@ -255,18 +255,18 @@ void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled)
     forceLightBatchSetter = true;
 
     // Simple Translucents
-    addPipeline(Key::Builder().withTranslucent(), simpleTranslucent);
-    addPipeline(Key::Builder().withTranslucent().withUnlit(), simpleTranslucentUnlit);
+    addPipeline(Key::Builder().withTranslucent(), program::forward_simple_textured_transparent);
+    addPipeline(Key::Builder().withTranslucent().withUnlit(), program::simple_transparent_textured_unlit);
 
     // Translucents
-    addPipeline(Key::Builder().withMaterial().withTranslucent(), forward_model_translucent);
-    addPipeline(Key::Builder().withMaterial().withTranslucent().withTangents(), forward_model_normal_map_translucent);
+    addPipeline(Key::Builder().withMaterial().withTranslucent(), program::forward_model_translucent);
+    addPipeline(Key::Builder().withMaterial().withTranslucent().withTangents(), program::forward_model_normal_map_translucent);
 
     // Deformed Translucents
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent(), forward_deformed_translucent);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), forward_deformed_translucent_normal_map);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), forward_deformed_translucent_dq);
-    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), forward_deformed_translucent_normal_map_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent(), program::forward_deformed_translucent);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), program::forward_deformed_translucent_normal_map);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), program::forward_deformed_translucent_dq);
+    addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), program::forward_deformed_translucent_normal_map_dq);
 
     forceLightBatchSetter = false;
 }

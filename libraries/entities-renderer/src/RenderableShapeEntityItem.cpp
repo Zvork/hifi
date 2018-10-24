@@ -30,6 +30,8 @@ using namespace render::entities;
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
+static_assert(shader::render_utils::program::simple != 0, "Validate simple program exists");
+static_assert(shader::render_utils::program::simple_transparent != 0, "Validate simple transparent program exists");
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _procedural.setVertexSource( gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple) );

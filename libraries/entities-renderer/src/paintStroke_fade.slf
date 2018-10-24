@@ -16,7 +16,7 @@
 <$declareFadeFragment()$>
 
 // the albedo texture
-layout(binding=0) uniform sampler2D originalTexture;
+LAYOUT(binding=0) uniform sampler2D originalTexture;
 
 // the interpolated normal
 layout(location=0) in vec3 interpolatedNormal;
@@ -28,7 +28,7 @@ struct PolyLineUniforms {
     vec3 color;
 };
 
-layout(binding=0) uniform polyLineBuffer {
+LAYOUT(binding=0) uniform polyLineBuffer {
     PolyLineUniforms polyline;
 };
 
