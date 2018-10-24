@@ -604,6 +604,7 @@ void Batch::captureDrawCallInfoImpl() {
         // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
         //_model.getInverseMatrix(_object._modelInverse);
         object._modelInverse = glm::inverse(object._model);
+        object._previousModelInverse = glm::inverse(object._previousModel);
 
         _objects.emplace_back(object);
 

@@ -16,7 +16,6 @@
 <@include entities-renderer/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normal;
-layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _position;
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 
@@ -36,9 +35,9 @@ void main(void) {
     vec3 worldNormal = cross(dFdy(_positionWS.xyz), dFdx(_positionWS.xyz));
     worldNormal = normalize(worldNormal);
 
-    float inPositionX = (_positionWS.x - 0.5) / voxelVolumeSize.x;
-    float inPositionY = (_positionWS.y - 0.5) / voxelVolumeSize.y;
-    float inPositionZ = (_positionWS.z - 0.5) / voxelVolumeSize.z;
+    float inPositionX = (_positionWS.x - 0.5) / params.voxelVolumeSize.x;
+    float inPositionY = (_positionWS.y - 0.5) / params.voxelVolumeSize.y;
+    float inPositionZ = (_positionWS.z - 0.5) / params.voxelVolumeSize.z;
 
     vec4 xyDiffuse = texture(xMap, vec2(-inPositionX, -inPositionY));
     vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));

@@ -17,7 +17,11 @@ layout(location=1) in vec4 _prevPositionCS;
 <@include procedural/ProceduralCommon.slh@>
 
 #line 1001
-//PROCEDURAL_BLOCK
+//PROCEDURAL_BLOCK_BEGIN
+vec3 getSkyboxColor() {
+    return vec3(abs(sin(iGlobalTime / 5.0)), 1.0, 0.0);
+}
+//PROCEDURAL_BLOCK_END
 
 #line 2033
 void main(void) {
