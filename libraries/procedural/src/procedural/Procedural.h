@@ -114,8 +114,8 @@ protected:
 
     // Rendering objects
     gpu::Shader::Source _vertexSource;
-    gpu::Shader::Source _opaquefragmentSource;
-    gpu::Shader::Source _transparentfragmentSource;
+    gpu::Shader::Source _opaqueFragmentSource;
+    gpu::Shader::Source _transparentFragmentSource;
 
     UniformLambdas _uniforms;
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];

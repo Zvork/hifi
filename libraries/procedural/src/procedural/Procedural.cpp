@@ -210,35 +210,18 @@ bool Procedural::isReady() const {
     return true;
 }
 
-std::string Procedural::replaceProceduralBlock(const std::string& fragmentSource) {
-    std::string result = fragmentSource;
-    auto replaceIndex = result.find(PROCEDURAL_VERSION);
-    if (replaceIndex != std::string::npos) {
-        if (_data.version == 1) {
-            result.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V1 1");
-        } else if (_data.version == 2) {
-            result.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V2 1");
-        }
-    }
-    replaceIndex = result.find(PROCEDURAL_BLOCK);
-    if (replaceIndex != std::string::npos) {
-        result.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
-    }
-    return result;
-}
-
 void Procedural::setVertexSource(const gpu::Shader::Source& source) {
     _vertexSource = source;
     _shaderDirty = true;
 }
 
 void Procedural::setOpaqueFragmentSource(const gpu::Shader::Source& source) {
-    _opaquefragmentSource = source;
+    _opaqueFragmentSource = source;
     _shaderDirty = true;
 }
 
 void Procedural::setTransparentFragmentSource(const gpu::Shader::Source& source) {
-    _transparentfragmentSource = source;
+    _transparentFragmentSource = source;
     _shaderDirty = true;
 }
 
