@@ -3,11 +3,14 @@
 // <$_SCRIBE_FILENAME$> 
 // Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Bradley Austin Davis on 2015-02-04
+//  Created by Olivier Prat on 10/25/18.
+//  Copyright 2018 High Fidelity, Inc.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-<@include sdf_text3D.slh@>
+<@include forward_simple_textured.slh@>
 
-<! Deferred write !>
-<$declareSDFText3D()$>
+<! Output velocity !>
+<$declareForwardSimpleTextured(true)$>

@@ -293,11 +293,11 @@ void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled, b
     // Forward pipelines need the lightBatchSetter for opaques and transparents
     forceLightBatchSetter = true;
 
-    // Simple Opaques
-    addPipeline(Key::Builder(), forward_simple_textured);
-    addPipeline(Key::Builder().withUnlit(), forward_simple_textured_unlit);
-
     if (isVelocityEnabled) {
+        // Simple Opaques
+        addPipeline(Key::Builder(), forward_simple_textured_velocity);
+        addPipeline(Key::Builder().withUnlit(), forward_simple_textured_unlit_velocity);
+
         // Opaques
         addPipeline(Key::Builder().withMaterial(), forward_model_velocity);
         addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit_velocity);
@@ -309,6 +309,10 @@ void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled, b
         addPipeline(Key::Builder().withMaterial().withDeformed().withDualQuatSkinned(), forward_deformed_model_dq_velocity);
         addPipeline(Key::Builder().withMaterial().withDeformed().withTangents().withDualQuatSkinned(), forward_deformed_model_normal_map_dq_velocity);
     } else {
+        // Simple Opaques
+        addPipeline(Key::Builder(), forward_simple_textured);
+        addPipeline(Key::Builder().withUnlit(), forward_simple_textured_unlit);
+
         // Opaques
         addPipeline(Key::Builder().withMaterial(), forward_model);
         addPipeline(Key::Builder().withMaterial().withUnlit(), forward_model_unlit);

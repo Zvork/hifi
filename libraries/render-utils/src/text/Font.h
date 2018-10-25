@@ -46,7 +46,7 @@ public:
     // Render string to batch
     void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str,
         const glm::vec4& color, EffectType effectType, 
-        const glm::vec2& origin, const glm::vec2& bound, bool layered = false);
+        const glm::vec2& origin, const glm::vec2& bound, bool layered = false, bool forward = false);
 
     static Pointer load(const QString& family);
 
@@ -82,6 +82,8 @@ private:
     // gpu structures
     gpu::PipelinePointer _pipeline;
     gpu::PipelinePointer _transparentPipeline;
+    gpu::PipelinePointer _forwardPipeline;
+    gpu::PipelinePointer _transparentForwardPipeline;
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
     gpu::BufferStreamPointer _stream;

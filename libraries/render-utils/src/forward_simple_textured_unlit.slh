@@ -1,0 +1,38 @@
+<@func declareForwardSimpleTexturedUnlit<velocity>@>
+
+<@include LightingModel.slh@>
+<@include gpu/Color.slh@>
+
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=0) out vec4 _lighting;
+
+<@if velocity@>
+layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
+
+layout(location=1) out vec4 _velocity;
+
+<@include VelocityWrite.slh@>
+<@endif@>
+
+// the albedo texture
+LAYOUT(binding=0) uniform sampler2D originalTexture;
+
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+
+void main(void) {
+    vec4 texel = texture(originalTexture, _texCoord0.st);
+    float colorAlpha = _color.a * texel.a;
+
+    vec4 color = vec4(_color.rgb * texel.rgb * isUnlitEnabled(), colorAlpha);
+<@if velocity@>
+    packDeferredFragmentLighting(_prevPositionCS, color);
+<@else@>
+    _lighting = color;
+<@endif@>
+}
+
+<@endfunc@>

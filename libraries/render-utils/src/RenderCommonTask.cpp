@@ -32,11 +32,13 @@ void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, 
     timer = _gpuTimer;
     gpu::doInBatch("BeginGPURangeTimer", renderContext->args->_context, [&](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
+        batch.pushProfileRange(timer->name().c_str());
     });
 }
 
 void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
     gpu::doInBatch("EndGPURangeTimer", renderContext->args->_context, [&](gpu::Batch& batch) {
+        batch.popProfileRange();
         timer->end(batch);
     });
     
@@ -83,7 +85,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     if (_opaquePass) {
         gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
-            batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
+            batch.clearDepthFramebuffer(true, false);
         });
     }
 
@@ -91,6 +93,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
         // Render the items
         gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
+
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
