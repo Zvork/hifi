@@ -24,7 +24,7 @@ public:
 
     RenderForwardTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, unsigned int mainViewTransformSlot, unsigned int backgroundViewTransformSlot);
 };
 
 class PrepareFramebuffer {
@@ -55,12 +55,13 @@ public:
     using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
     using JobModel = render::Job::ModelI<DrawForward, Inputs>;
 
-    DrawForward(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
+    DrawForward(const render::ShapePlumberPointer& shapePlumber, unsigned int transformSlot) : _shapePlumber(shapePlumber), _transformSlot(transformSlot) {}
     void run(const render::RenderContextPointer& renderContext,
             const Inputs& inputs);
 
 private:
     render::ShapePlumberPointer _shapePlumber;
+    unsigned int _transformSlot;
 };
 
 #endif // hifi_RenderForwardTask_h

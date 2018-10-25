@@ -116,7 +116,12 @@ gpu::PipelinePointer DrawHighlightMask::_stencilMaskPipeline;
 gpu::PipelinePointer DrawHighlightMask::_stencilMaskFillPipeline;
 
 DrawHighlightMask::DrawHighlightMask(unsigned int highlightIndex, render::ShapePlumberPointer shapePlumber,
-    HighlightSharedParametersPointer parameters) : _highlightPassIndex(highlightIndex), _shapePlumber(shapePlumber), _sharedParameters(parameters) {}
+    HighlightSharedParametersPointer parameters, unsigned int transformSlot) :
+    _highlightPassIndex(highlightIndex), 
+    _shapePlumber(shapePlumber), 
+    _sharedParameters(parameters),
+    _transformSlot(transformSlot) {
+}
 
 void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
@@ -186,7 +191,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             args->getViewFrustum().evalViewTransform(viewMat);
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionJitterEnabled(true);
-            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+            batch.setSavedViewProjectionTransform(_transformSlot);
 
             std::vector<ShapeKey> deformedShapeKeys;
             std::vector<ShapeKey> deformedDQShapeKeys;
@@ -242,7 +247,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionJitterEnabled(true);
-            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+            batch.setSavedViewProjectionTransform(_transformSlot);
 
             // Draw stencil mask with object bounding boxes
             auto stencilPipeline = highlight._style.isFilled() ? _stencilMaskFillPipeline : _stencilMaskPipeline;
@@ -342,7 +347,8 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
     return style.isFilled() ? _pipelineFilled : _pipeline;
 }
 
-DebugHighlight::DebugHighlight() {
+DebugHighlight::DebugHighlight(unsigned int transformSlot) :
+    _transformSlot(transformSlot) {
     _geometryDepthId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
@@ -373,7 +379,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
             const auto geometryBuffer = DependencyManager::get<GeometryCache>();
 
             batch.setProjectionJitterEnabled(true);
-            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+            batch.setSavedViewProjectionTransform(_transformSlot);
             batch.setModelTransform(Transform());
 
             const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -471,7 +477,7 @@ void DrawHighlightTask::configure(const Config& config) {
 
 }
 
-void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
+void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, unsigned int transformSlot) {
     const auto items = inputs.getN<Inputs>(0).get<RenderFetchCullSortTask::BucketList>();
     const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
     const auto primaryFramebuffer = inputs.getN<Inputs>(2);
@@ -512,7 +518,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
             name = stream.str();
         }
         const auto drawMaskInputs = DrawHighlightMask::Inputs(sortedBounds, highlightResources).asVarying();
-        const auto highlightedRect = task.addJob<DrawHighlightMask>(name, drawMaskInputs, i, shapePlumber, sharedParameters);
+        const auto highlightedRect = task.addJob<DrawHighlightMask>(name, drawMaskInputs, i, shapePlumber, sharedParameters, transformSlot);
         if (i == 0) {
             highlight0Rect = highlightedRect;
         }
@@ -529,7 +535,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
 
     // Debug highlight
     const auto debugInputs = DebugHighlight::Inputs(highlightResources, const_cast<const render::Varying&>(highlight0Rect)).asVarying();
-    task.addJob<DebugHighlight>("HighlightDebug", debugInputs);
+    task.addJob<DebugHighlight>("HighlightDebug", debugInputs, transformSlot);
 }
 
 const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const render::Varying& selectionName,

@@ -37,109 +37,6 @@ gpu::PipelinePointer Antialiasing::_intensityPipeline;
 gpu::PipelinePointer Antialiasing::_blendPipeline;
 gpu::PipelinePointer Antialiasing::_debugBlendPipeline;
 
-#if !ANTIALIASING_USE_TAA
-#include "GeometryCache.h"
-#include "ViewFrustum.h"
-#include "DependencyManager.h"
-
-#include "fxaa_vert.h"
-#include "fxaa_frag.h"
-#include "fxaa_blend_frag.h"
-
-
-Antialiasing::Antialiasing() {
-    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
-}
-
-Antialiasing::~Antialiasing() {
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (geometryCache) {
-        geometryCache->releaseID(_geometryId);
-    }
-}
-
-const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
-    if (!_antialiasingPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
-        state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        PrepareStencil::testNoAA(*state);
-
-        // Good to go add the brand new pipeline
-        _antialiasingPipeline = gpu::Pipeline::create(program, state);
-    }
-
-    return _antialiasingPipeline;
-}
-
-const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
-    if (!_blendPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::aa_blend);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        PrepareStencil::testNoAA(*state);
-
-        // Good to go add the brand new pipeline
-        _blendPipeline = gpu::Pipeline::create(program, state);
-    }
-    return _blendPipeline;
-}
-
-void Antialiasing::run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    RenderArgs* args = renderContext->args;
-
-    gpu::doInBatch("Antialiasing::run", args->_context, [&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-
-        if (!_paramsBuffer) {
-            _paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
-        }
-
-        {
-            int width = args->_viewport.z; 
-            int height = args->_viewport.w;
-            if (_antialiasingBuffer && _antialiasingBuffer->getSize() != uvec2(width, height)) {
-                _antialiasingBuffer.reset();
-            }
-
-            if (!_antialiasingBuffer) {
-                // Link the antialiasing FBO to texture
-                _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
-                auto format = gpu::Element::COLOR_SRGBA_32;
-                auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-                _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
-                _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
-                glm::vec2 fbExtent { args->_viewport.z, args->_viewport.w };
-                glm::vec2 inverseFbExtent = 1.0f / fbExtent;
-                _paramsBuffer->setSubData(0, glm::vec4(inverseFbExtent, 0.0, 0.0));
-            }
-        }
-
-
-        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
-        batch.setModelTransform(Transform());
-
-        // FXAA step
-        auto pipeline = getAntialiasingPipeline();
-        batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
-        batch.setFramebuffer(_antialiasingBuffer);
-        batch.setPipeline(pipeline);
-        batch.setUniformBuffer(0, _paramsBuffer);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        // Blend step
-        batch.setResourceTexture(0, _antialiasingTexture);
-        batch.setFramebuffer(sourceBuffer);
-        batch.setPipeline(getBlendPipeline());
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
-}
-#else
 #include "RandomAndNoise.h"
 
 #define TAA_JITTER_SEQUENCE_LENGTH 16
@@ -358,7 +255,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             const auto& antiAliasingBuffer = antiAliasingBuffers.back();
             _antialiasingTextures[i] = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
             antiAliasingBuffer->setRenderBuffer(0, _antialiasingTextures[i]);
-            antiAliasingBuffer->setRenderBuffer(1, sourceBuffer->getRenderBuffer(0));
         }
         _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(antiAliasingBuffers);
 
@@ -386,9 +282,14 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // TAA step
-        batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaHistory, _antialiasingBuffers, 0);
+        if (!_params->isFXAAEnabled()) {
+            batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaHistory, _antialiasingBuffers, 0);
+            batch.setResourceTexture(ru::Texture::TaaVelocity, velocityTexture);
+        } else {
+            batch.setResourceTexture(ru::Texture::TaaHistory, nullptr);
+            batch.setResourceTexture(ru::Texture::TaaVelocity, nullptr);
+        }
         batch.setResourceTexture(ru::Texture::TaaSource, sourceBuffer->getRenderBuffer(0));
-        batch.setResourceTexture(ru::Texture::TaaVelocity, velocityTexture);
         batch.setResourceTexture(ru::Texture::TaaIntensity, _intensityTexture);
         // This is only used during debug
         batch.setResourceTexture(ru::Texture::TaaDepth, linearDepthBuffer->getLinearDepthTexture());
@@ -400,27 +301,25 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setPipeline(getAntialiasingPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        if (_sharpen > 0.0f || _params->isDebug()) {
-            // Blend step
-            batch.setResourceTexture(ru::Texture::TaaSource, nullptr);
+        // Blend step
+        batch.setResourceTexture(ru::Texture::TaaSource, nullptr);
 
-            batch.setFramebuffer(sourceBuffer);
-            if (_params->isDebug()) {
-                batch.setPipeline(getDebugBlendPipeline());
-                batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaNext, _antialiasingBuffers, 1);
-            } else {
-                batch.setPipeline(getBlendPipeline());
-                // Must match the binding point in the aa_blend.slf shader
-                batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
-                // Disable sharpen if FXAA
-                if (!_blendParamsBuffer) {
-                    _blendParamsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
-                }
-                _blendParamsBuffer->setSubData(0, _sharpen * _params.get().regionInfo.z);
-                batch.setUniformBuffer(0, _blendParamsBuffer);
+        batch.setFramebuffer(sourceBuffer);
+        if (_params->isDebug()) {
+            batch.setPipeline(getDebugBlendPipeline());
+            batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaNext, _antialiasingBuffers, 1);
+        } else {
+            batch.setPipeline(getBlendPipeline());
+            // Must match the binding point in the aa_blend.slf shader
+            batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
+            // Disable sharpen if FXAA
+            if (!_blendParamsBuffer) {
+                _blendParamsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
             }
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            _blendParamsBuffer->setSubData(0, _sharpen * _params.get().regionInfo.z);
+            batch.setUniformBuffer(0, _blendParamsBuffer);
         }
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.advance(_antialiasingBuffers);
 
         batch.setUniformBuffer(ru::Buffer::TaaParams, nullptr);
@@ -435,5 +334,3 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setProjectionJitterSequence(nullptr, 0);
     });
 }
-
-#endif

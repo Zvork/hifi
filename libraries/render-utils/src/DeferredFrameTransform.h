@@ -53,11 +53,13 @@ public:
     using Output = DeferredFrameTransformPointer;
     using JobModel = render::Job::ModelO<GenerateDeferredFrameTransform, Output>;
 
-    GenerateDeferredFrameTransform() {}
+    GenerateDeferredFrameTransform(unsigned int transformSlot) : _transformSlot{ transformSlot } {}
 
     void run(const render::RenderContextPointer& renderContext, Output& frameTransform);
 
 private:
+
+    unsigned int _transformSlot;
 };
 
 #endif // hifi_DeferredFrameTransform_h

@@ -55,10 +55,11 @@ void SetFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     });
 }
 
-DrawOverlay3D::DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity) :
+DrawOverlay3D::DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity, unsigned int transformSlot) :
     _shapePlumber(shapePlumber),
     _opaquePass(opaque),
-    _outputVelocity(velocity) {
+    _outputVelocity(velocity),
+    _transformSlot(transformSlot) {
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -94,7 +95,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setStateScissorRect(args->_viewport);
 
 			batch.setProjectionJitterEnabled(_outputVelocity);
-            batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+            batch.setSavedViewProjectionTransform(_transformSlot);
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
@@ -118,7 +119,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     // Grab the HUD texture
 #if !defined(DISABLE_QML)
     gpu::doInBatch("CompositeHUD", renderContext->args->_context, [&](gpu::Batch& batch) {
-        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+        batch.setSavedViewProjectionTransform(_transformSlot);
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }

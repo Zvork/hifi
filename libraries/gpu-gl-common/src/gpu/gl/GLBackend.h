@@ -562,7 +562,7 @@ protected:
             std::vector<Vec2> _offsetSequence;
             Vec2 _offset{ 0.0f };
             float _scale{ 0.f };
-            int _currentSampleIndex{ 0 };
+            unsigned int _currentSampleIndex{ 0 };
             bool _isEnabled{ false };
         };
 

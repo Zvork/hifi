@@ -80,7 +80,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
             batch.setStateScissorRect(args->_viewport);
             batch.setProjectionJitterEnabled(_deferred);
 
-            skybox->render(batch, _deferred, args->getViewFrustum(), render::RenderEngine::TS_BACKGROUND_VIEW);
+            skybox->render(batch, _deferred, args->getViewFrustum(), _transformSlot);
         });
         args->_batch = nullptr;
     }

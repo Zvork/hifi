@@ -260,7 +260,8 @@ static std::string getFileContent(const std::string& fileName, const std::string
 }
 
 #include <QStandardPaths>  // TODO REMOVE: Temporary until UI
-DebugDeferredBuffer::DebugDeferredBuffer() {
+DebugDeferredBuffer::DebugDeferredBuffer(unsigned int transformSlot)
+    : _transformSlot{ transformSlot } {
     // TODO REMOVE: Temporary until UI
     static const auto DESKTOP_PATH = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     static const auto CUSTOM_FILE = DESKTOP_PATH.toStdString() + "/custom.slh";
@@ -421,7 +422,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
 
-        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+        batch.setSavedViewProjectionTransform(_transformSlot);
         batch.setModelTransform(Transform());
 
         using Textures = render_utils::slot::texture::Texture;

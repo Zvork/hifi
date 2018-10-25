@@ -203,13 +203,19 @@ public:
 void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
+
     assert(items.canCast<RenderFetchCullSortTask::Output>());
+
+    // Offset the transform slots so they don't overlap with the main view's
+    const auto mainViewTransformSlot = render::RenderEngine::TS_MAIN_VIEW + 2;
+    const auto backgroundViewTransformSlot = render::RenderEngine::TS_BACKGROUND_VIEW +2;
+
     if (isDeferred) {
         const render::Varying cascadeSceneBBoxes;
         const auto renderInput = RenderDeferredTask::Input(items, cascadeSceneBBoxes).asVarying();
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, false);
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, false, mainViewTransformSlot, backgroundViewTransformSlot);
     } else {
-        task.addJob<RenderForwardTask>("Forward", items);
+        task.addJob<RenderForwardTask>("Forward", items, mainViewTransformSlot, backgroundViewTransformSlot);
     }
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

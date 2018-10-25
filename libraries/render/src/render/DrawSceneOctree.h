@@ -61,10 +61,11 @@ namespace render {
         bool _showEmptyCells; // initialized by Config
 
     public:
+
         using Config = DrawSceneOctreeConfig;
         using JobModel = Job::ModelI<DrawSceneOctree, ItemSpatialTree::ItemSelection, Config>;
 
-        DrawSceneOctree() {}
+        DrawSceneOctree(unsigned int transformSlot) : _transformSlot{ transformSlot } {}
 
         void configure(const Config& config);
         void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
@@ -72,6 +73,10 @@ namespace render {
         const gpu::PipelinePointer getDrawCellBoundsPipeline();
         const gpu::PipelinePointer getDrawLODReticlePipeline();
         const gpu::PipelinePointer getDrawItemBoundPipeline();
+
+    private:
+
+        unsigned int _transformSlot;
     };
 
 
@@ -122,12 +127,16 @@ namespace render {
         using Config = DrawItemSelectionConfig;
         using JobModel = Job::ModelI<DrawItemSelection, ItemSpatialTree::ItemSelection, Config>;
 
-        DrawItemSelection() {}
+        DrawItemSelection(unsigned int transformSlot) : _transformSlot{ transformSlot } {}
 
         void configure(const Config& config);
         void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
 
         const gpu::PipelinePointer getDrawItemBoundPipeline();
+
+    private:
+
+        unsigned int _transformSlot;
     };
 }
 

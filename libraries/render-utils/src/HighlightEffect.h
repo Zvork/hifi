@@ -117,7 +117,7 @@ public:
     using Outputs = glm::ivec4;
     using JobModel = render::Job::ModelIO<DrawHighlightMask, Inputs, Outputs>;
 
-    DrawHighlightMask(unsigned int highlightIndex, render::ShapePlumberPointer shapePlumber, HighlightSharedParametersPointer parameters);
+    DrawHighlightMask(unsigned int highlightIndex, render::ShapePlumberPointer shapePlumber, HighlightSharedParametersPointer parameters, unsigned int transformSlot);
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
@@ -127,6 +127,7 @@ protected:
     HighlightSharedParametersPointer _sharedParameters;
     gpu::BufferPointer _boundsBuffer;
     gpu::StructBuffer<glm::vec2> _outlineWidth;
+    unsigned int _transformSlot;
 
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
@@ -177,7 +178,7 @@ public:
     using Config = DebugHighlightConfig;
     using JobModel = render::Job::ModelI<DebugHighlight, Inputs, Config>;
 
-    DebugHighlight();
+    DebugHighlight(unsigned int transformSlot);
     ~DebugHighlight();
 
     void configure(const Config& config);
@@ -188,6 +189,7 @@ private:
     gpu::PipelinePointer _depthPipeline;
     int _geometryDepthId{ 0 };
     bool _isDisplayEnabled{ false };
+    unsigned int _transformSlot;
 
     const gpu::PipelinePointer& getDepthPipeline();
     void initializePipelines();
@@ -203,7 +205,7 @@ public:
     DrawHighlightTask();
 
     void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, unsigned int transformSlot);
 
 private:
     static const render::Varying addSelectItemJobs(JobModel& task, const render::Varying& selectionName, const RenderFetchCullSortTask::BucketList& items);

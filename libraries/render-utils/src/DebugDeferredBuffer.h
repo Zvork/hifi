@@ -51,7 +51,7 @@ public:
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
 
-    DebugDeferredBuffer();
+    DebugDeferredBuffer(unsigned int);
     ~DebugDeferredBuffer();
 
     void configure(const Config& config);
@@ -101,6 +101,7 @@ protected:
 private:
     Mode _mode{ Off };
     glm::vec4 _size;
+    unsigned int _transformSlot;
 
 #include "debug_deferred_buffer_shared.slh"
 

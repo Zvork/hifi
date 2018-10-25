@@ -194,7 +194,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
         args->_batch = &batch;
 
         // Setup projection
-        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+        batch.setSavedViewProjectionTransform(_transformSlot);
         batch.setModelTransform(Transform());
 
         // Bind program

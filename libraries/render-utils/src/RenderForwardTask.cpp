@@ -47,8 +47,8 @@ using namespace render;
 
 extern void initForwardPipelines(ShapePlumber& plumber);
 
-void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    auto items = input.get<Input>();
+void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output, unsigned int mainViewTransformSlot, unsigned int backgroundViewTransformSlot) {
+    const auto& items = input.get<Input>();
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
     // Prepare the ShapePipelines
@@ -69,7 +69,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     fadeEffect->build(task, opaques);
 
     // Prepare objects shared by several jobs
-    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
+    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", mainViewTransformSlot);
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
     // Filter zones from the general metas bucket
@@ -99,28 +99,28 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, nullptr).asVarying();
     const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, nullptr).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, shapePlumber, true, false);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, shapePlumber, false, false);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, shapePlumber, true, false, mainViewTransformSlot);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, shapePlumber, false, false, mainViewTransformSlot);
 
     // Draw opaques forward
     const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
-    task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
+    task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber, mainViewTransformSlot);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
-    task.addJob<DrawBackgroundStage>("DrawBackgroundForward", backgroundInputs, false);
+    task.addJob<DrawBackgroundStage>("DrawBackgroundForward", backgroundInputs, false, backgroundViewTransformSlot);
 
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
-    task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
+    task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber, mainViewTransformSlot);
 
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
-        task.addJob<DrawBounds>("DrawMetaBounds", metas);
-        task.addJob<DrawBounds>("DrawBounds", opaques);
-        task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
+        task.addJob<DrawBounds>("DrawMetaBounds", metas, mainViewTransformSlot);
+        task.addJob<DrawBounds>("DrawBounds", opaques, mainViewTransformSlot);
+        task.addJob<DrawBounds>("DrawTransparentBounds", transparents, mainViewTransformSlot);
 
-        task.addJob<DrawBounds>("DrawZones", zones);
+        task.addJob<DrawBounds>("DrawZones", zones, mainViewTransformSlot);
         const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
@@ -133,7 +133,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Layered Overlays
     // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD");
+    task.addJob<CompositeHUD>("HUD", mainViewTransformSlot);
 
     // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!
@@ -219,7 +219,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
         args->_batch = &batch;
 
         // Setup projection
-        batch.setSavedViewProjectionTransform(render::RenderEngine::TS_MAIN_VIEW);
+        batch.setSavedViewProjectionTransform(_transformSlot);
         batch.setModelTransform(Transform());
 
         // Setup lighting model for all items;

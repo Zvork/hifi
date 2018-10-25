@@ -15,7 +15,6 @@
 #include <render/Engine.h>
 #include <render/RenderFetchCullSortTask.h>
 
-
 class RenderViewTask {
 public:
     using Input = RenderFetchCullSortTask::Output;

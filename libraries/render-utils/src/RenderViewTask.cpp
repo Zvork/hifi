@@ -25,9 +25,9 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
         // is performed, then casters not in the view frustum will be removed, which is not what we wish.
         const auto cascadeSceneBBoxes = task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, tagBits, tagMask);
         const auto renderInput = RenderDeferredTask::Input(items, cascadeSceneBBoxes).asVarying();
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, true);
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, true, render::RenderEngine::TS_MAIN_VIEW, render::RenderEngine::TS_BACKGROUND_VIEW);
     } else {
-        task.addJob<RenderForwardTask>("Forward", items);
+        task.addJob<RenderForwardTask>("Forward", items, render::RenderEngine::TS_MAIN_VIEW, render::RenderEngine::TS_BACKGROUND_VIEW);
     }
 }
 

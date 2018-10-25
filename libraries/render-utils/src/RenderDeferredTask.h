@@ -47,8 +47,8 @@ public:
     using Config = DrawDeferredConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
-    DrawDeferred(render::ShapePlumberPointer shapePlumber)
-        : _shapePlumber{ shapePlumber } {}
+    DrawDeferred(render::ShapePlumberPointer shapePlumber, unsigned int transformSlot)
+        : _shapePlumber{ shapePlumber }, _transformSlot{ transformSlot } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -56,6 +56,7 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn;  // initialized by Config
+    unsigned int _transformSlot;
 };
 
 class DrawStateSortConfig : public render::Job::Config {
@@ -88,8 +89,8 @@ public:
     using Config = DrawStateSortConfig;
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
-    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber)
-        : _shapePlumber{ shapePlumber } {
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber, unsigned int transformSlot)
+        : _shapePlumber{ shapePlumber }, _transformSlot{ transformSlot } {
     }
 
     void configure(const Config& config) {
@@ -101,6 +102,7 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn;  // initialized by Config
+    unsigned int _transformSlot;
     bool _stateSort;
 };
 
@@ -137,16 +139,17 @@ signals:
 
 class RenderDeferredTask {
 public:
-    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, RenderShadowTask::Output>;
+    using Input = render::VaryingSet2 < RenderFetchCullSortTask::Output, RenderShadowTask::Output > ;
     using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 
     RenderDeferredTask();
 
     void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, bool renderShadows);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, bool renderShadows, unsigned int mainViewTransformSlot, unsigned int backgroundViewTransformSlot);
 
 private:
+
     static const render::Varying addSelectItemJobs(JobModel& task,
                                                    const char* selectionName,
                                                    const render::Varying& metas,

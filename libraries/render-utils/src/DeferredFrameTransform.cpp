@@ -59,9 +59,9 @@ void GenerateDeferredFrameTransform::run(const render::RenderContextPointer& ren
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         // This is the main view / projection transform that will be reused later on
-        batch.saveViewProjectionTransform(0);
+        batch.saveViewProjectionTransform(_transformSlot);
         // Copy it to the deferred transform for the lighting pass
-        batch.copySavedViewProjectionTransformToBuffer(0, frameTransform->getFrameTransformBuffer()._buffer,
+        batch.copySavedViewProjectionTransformToBuffer(_transformSlot, frameTransform->getFrameTransformBuffer()._buffer,
                                                        sizeof(DeferredFrameTransform::DeferredFrameInfo));
     });
 }

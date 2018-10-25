@@ -575,10 +575,10 @@ void LightClusteringPass::run(const render::RenderContextPointer& renderContext,
     config->setNumClusteredLightReferences(clusteringStats.z);
 }
 
-DebugLightClusters::DebugLightClusters() {
+DebugLightClusters::DebugLightClusters(unsigned int transformSlot) :
+    _transformSlot(transformSlot) {
 
 }
-
 
 void DebugLightClusters::configure(const Config& config) {
     doDrawGrid = config.doDrawGrid;

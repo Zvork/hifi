@@ -28,7 +28,8 @@ extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::S
 extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
 #endif
 
-TestWindow::TestWindow() {
+TestWindow::TestWindow() :
+    _generateDeferredFrameTransform(render::RenderEngine::TS_MAIN_VIEW) {
     setSurfaceType(QSurface::OpenGLSurface);
 
 

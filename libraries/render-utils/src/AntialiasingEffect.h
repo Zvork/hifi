@@ -125,10 +125,6 @@ signals:
 #define SET_BIT(bitfield, bitIndex, value) bitfield = ((bitfield) & ~(1 << (bitIndex))) | ((value) << (bitIndex))
 #define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))
 
-#define ANTIALIASING_USE_TAA    1
-
-#if ANTIALIASING_USE_TAA
-
 struct TAAParams {
     float nope{ 0.0f };
     float blend{ 0.15f };
@@ -165,7 +161,7 @@ struct TAAParams {
 
     void setShowClosestFragment(bool enabled) { SET_BIT(flags.x, 3, enabled); }
 
-    bool isFXAAEnabled() const { return regionInfo.z > 0.0f; }
+    bool isFXAAEnabled() const { return regionInfo.z == 0.0f; }
 
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
@@ -204,7 +200,5 @@ private:
     float _sharpen{ 0.15f };
     bool _isSharpenEnabled{ true };
 };
-
-#endif // if ANTIALIASING_USE_TAA
 
 #endif // hifi_AntialiasingEffect_h

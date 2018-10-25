@@ -43,7 +43,7 @@ public:
 
     enum
     {
-        MAX_TRANSFORM_SAVE_SLOT_COUNT = 4
+        MAX_TRANSFORM_SAVE_SLOT_COUNT = 6
     };
 
     class DrawCallInfo {

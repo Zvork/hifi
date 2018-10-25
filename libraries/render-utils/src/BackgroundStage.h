@@ -81,12 +81,13 @@ public:
     using Inputs = render::VaryingSet2<LightingModelPointer, BackgroundStage::FramePointer>;
     using JobModel = render::Job::ModelI<DrawBackgroundStage, Inputs>;
 
-    DrawBackgroundStage(bool deferred) : _deferred(deferred) {}
+    DrawBackgroundStage(bool deferred, unsigned int transformSlot) : _transformSlot(transformSlot), _deferred(deferred) {}
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 private:
 
+    unsigned int _transformSlot;
     bool _deferred{ true };
 };
 

@@ -71,7 +71,7 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
-    DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity);
+    DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity, unsigned int transformSlot);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -79,6 +79,7 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
+    unsigned int _transformSlot;
     bool _opaquePass{ true };
     bool _outputVelocity{ false };
 };
@@ -87,8 +88,12 @@ class CompositeHUD {
 public:
     using JobModel = render::Job::Model<CompositeHUD>;
 
-    CompositeHUD() {}
+    CompositeHUD(unsigned int transformSlot) : _transformSlot(transformSlot) {}
     void run(const render::RenderContextPointer& renderContext);
+
+private:
+
+    unsigned int _transformSlot;
 };
 
 class SetFramebuffer {
