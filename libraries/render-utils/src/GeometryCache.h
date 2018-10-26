@@ -171,10 +171,10 @@ public:
 
     // Bind the pipeline and get the state to render static geometry
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true);
+                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true, bool isForward = false);
     // Get the pipeline to render static geometry
     static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true);
+                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true, bool isForward = false);
 
     void bindWebBrowserProgram(gpu::Batch& batch, bool transparent = false);
     gpu::PipelinePointer getWebBrowserProgram(bool transparent);
@@ -471,10 +471,19 @@ private:
     QHash<int, GridBuffer> _registeredGridBuffers;
 
     static gpu::ShaderPointer _simpleShader;
+    static gpu::ShaderPointer _forwardSimpleShader;
+    static gpu::ShaderPointer _forwardSimpleVelocityShader;
     static gpu::ShaderPointer _transparentShader;
+    static gpu::ShaderPointer _forwardTransparentShader;
     static gpu::ShaderPointer _unlitShader;
+    static gpu::ShaderPointer _forwardUnlitShader;
+    static gpu::ShaderPointer _forwardUnlitVelocityShader;
     static gpu::ShaderPointer _simpleFadeShader;
+    static gpu::ShaderPointer _forwardSimpleFadeShader;
+    static gpu::ShaderPointer _forwardSimpleFadeVelocityShader;
     static gpu::ShaderPointer _unlitFadeShader;
+    static gpu::ShaderPointer _forwardUnlitFadeShader;
+    static gpu::ShaderPointer _forwardUnlitFadeVelocityShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;

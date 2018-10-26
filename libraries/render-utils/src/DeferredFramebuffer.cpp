@@ -90,8 +90,8 @@ void DeferredFramebuffer::allocate() {
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
     _lightingWithVelocityFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("lighting_velocity"));
-    _lightingWithVelocityFramebuffer->setRenderBuffer(0, _lightingTexture);
-    _lightingWithVelocityFramebuffer->setRenderBuffer(1, _deferredVelocityTexture);
+    _lightingWithVelocityFramebuffer->setRenderBuffer(DEFERRED_COLOR_SLOT, _lightingTexture);
+    _lightingWithVelocityFramebuffer->setRenderBuffer(DEFERRED_VELOCITY_SLOT, _deferredVelocityTexture);
     _lightingWithVelocityFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
     _deferredFramebuffer->setRenderBuffer(DEFERRED_LIGHTING_SLOT, _lightingTexture);

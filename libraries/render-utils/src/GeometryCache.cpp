@@ -726,9 +726,18 @@ gpu::Stream::FormatPointer& getInstancedWireFadeStreamFormat() {
 QHash<SimpleProgramKey, gpu::PipelinePointer> GeometryCache::_simplePrograms;
 
 gpu::ShaderPointer GeometryCache::_simpleShader;
+gpu::ShaderPointer GeometryCache::_forwardSimpleShader;
+gpu::ShaderPointer GeometryCache::_forwardSimpleVelocityShader;
 gpu::ShaderPointer GeometryCache::_transparentShader;
+gpu::ShaderPointer GeometryCache::_forwardTransparentShader;
 gpu::ShaderPointer GeometryCache::_unlitShader;
+gpu::ShaderPointer GeometryCache::_forwardUnlitShader;
+gpu::ShaderPointer GeometryCache::_forwardUnlitFadeShader;
+gpu::ShaderPointer GeometryCache::_forwardUnlitVelocityShader;
+gpu::ShaderPointer GeometryCache::_forwardUnlitFadeVelocityShader;
 gpu::ShaderPointer GeometryCache::_simpleFadeShader;
+gpu::ShaderPointer GeometryCache::_forwardSimpleFadeShader;
+gpu::ShaderPointer GeometryCache::_forwardSimpleFadeVelocityShader;
 gpu::ShaderPointer GeometryCache::_unlitFadeShader;
 
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
@@ -2193,6 +2202,7 @@ public:
         HAS_DEPTH_BIAS_FLAG,
         IS_FADING_FLAG,
         IS_ANTIALIASED_FLAG,
+        IS_FORWARD_FLAG,
 
         NUM_FLAGS,
     };
@@ -2206,6 +2216,7 @@ public:
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
         IS_FADING = (1 << IS_FADING_FLAG),
         IS_ANTIALIASED = (1 << IS_ANTIALIASED_FLAG),
+        IS_FORWARD = (1 << IS_FORWARD_FLAG),
     };
     typedef unsigned short Flags;
 
@@ -2218,6 +2229,7 @@ public:
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
     bool isFading() const { return isFlag(IS_FADING); }
     bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
+    bool isForward() const { return isFlag(IS_FORWARD); }
 
     Flags _flags = 0;
 #if defined(__clang__)
@@ -2233,10 +2245,11 @@ public:
                      bool unlit = false,
                      bool depthBias = false,
                      bool fading = false,
-                     bool isAntiAliased = true) {
+                     bool isAntiAliased = true,
+                     bool isForward = false) {
         _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
                  (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) |
-                 (isAntiAliased ? IS_ANTIALIASED : 0);
+                 (isAntiAliased ? IS_ANTIALIASED : 0) | (isForward ? IS_FORWARD : 0);
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -2288,8 +2301,9 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch,
                                       bool culled,
                                       bool unlit,
                                       bool depthBiased,
-                                      bool isAntiAliased) {
-    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased));
+                                      bool isAntiAliased,
+                                      bool isForward) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased, isForward));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -2304,8 +2318,9 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured,
                                                       bool unlit,
                                                       bool depthBiased,
                                                       bool fading,
-                                                      bool isAntiAliased) {
-    SimpleProgramKey config{ textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased };
+                                                      bool isAntiAliased,
+                                                      bool isForward) {
+    SimpleProgramKey config{ textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased, isForward };
 
     // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
@@ -2318,18 +2333,25 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured,
         static std::once_flag once;
         std::call_once(once, [&]() {
             using namespace shader::render_utils::program;
-            auto PS = DISABLE_DEFERRED ? forward_simple_textured : simple_textured;
+            // Forward
+            _forwardTransparentShader = gpu::Shader::createProgram(forward_simple_textured_transparent);
+            _forwardSimpleVelocityShader = gpu::Shader::createProgram(forward_simple_textured_velocity);
+            _forwardUnlitVelocityShader = gpu::Shader::createProgram(forward_simple_textured_unlit_velocity);
+            _forwardSimpleShader = gpu::Shader::createProgram(forward_simple_textured);
+            _forwardUnlitShader = gpu::Shader::createProgram(forward_simple_textured_unlit);
+            _simpleShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured : simple_textured);
             // Use the forward pipeline for both here, otherwise transparents will be unlit
-            auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent : forward_simple_textured_transparent;
-            auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit;
-            _simpleShader = gpu::Shader::createProgram(PS);
-            _transparentShader = gpu::Shader::createProgram(PSTransparent);
-            _unlitShader = gpu::Shader::createProgram(PSUnlit);
+            _transparentShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured_transparent : forward_simple_textured_transparent);
+            _unlitShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit);
         });
     } else {
         static std::once_flag once;
         std::call_once(once, [&]() {
             using namespace shader::render_utils::program;
+            _forwardSimpleVelocityShader = gpu::Shader::createProgram(forward_simple_textured_velocity);
+            _forwardUnlitVelocityShader = gpu::Shader::createProgram(forward_simple_textured_unlit_velocity);
+            _forwardSimpleFadeShader = gpu::Shader::createProgram(forward_simple_textured);
+            _forwardSimpleFadeVelocityShader = gpu::Shader::createProgram(forward_simple_textured_velocity);
             _simpleFadeShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured : simple_textured_fade);
             _unlitFadeShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit_fade);
         });
@@ -2350,16 +2372,31 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured,
     state->setBlendFunction(config.isTransparent(), gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
+    gpu::ShaderPointer program;
     if (config.isAntiAliased()) {
         config.isTransparent() ? PrepareStencil::testMaskResetNoAA(*state) : PrepareStencil::testMaskDrawShape(*state);
+        if (config.isForward()) {
+            program = (config.isUnlit())
+                ? (config.isFading() ? _forwardUnlitFadeVelocityShader : _forwardUnlitVelocityShader)
+                : (config.isFading() ? _forwardSimpleFadeVelocityShader : (config.isTransparent() ? _forwardTransparentShader : _forwardSimpleVelocityShader));
+        } else {
+            program = (config.isUnlit())
+                ? (config.isFading() ? _unlitFadeShader : _unlitShader)
+                : (config.isFading() ? _simpleFadeShader : (config.isTransparent() ? _transparentShader : _simpleShader));
+        }
     } else {
         PrepareStencil::testMaskDrawShapeNoAA(*state);
+        if (config.isForward()) {
+            program = (config.isUnlit())
+                ? (config.isFading() ? _forwardUnlitFadeShader : _forwardUnlitShader)
+                : (config.isFading() ? _forwardSimpleFadeShader : (config.isTransparent() ? _forwardTransparentShader : _forwardSimpleShader));
+        } else {
+            program = (config.isUnlit())
+                ? (config.isFading() ? _unlitFadeShader : _unlitShader)
+                : (config.isFading() ? _simpleFadeShader : (config.isTransparent() ? _transparentShader : _simpleShader));
+        }
     }
 
-    gpu::ShaderPointer program =
-        (config.isUnlit())
-            ? (config.isFading() ? _unlitFadeShader : _unlitShader)
-            : (config.isFading() ? _simpleFadeShader : (config.isTransparent() ? _transparentShader : _simpleShader));
     gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
     _simplePrograms.insert(config, pipeline);
     return pipeline;

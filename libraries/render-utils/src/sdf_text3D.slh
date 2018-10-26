@@ -4,8 +4,9 @@
 //  https://github.com/paulhoux/Cinder-Samples/blob/master/TextRendering/include/text/Text.cpp 
 
 <@if forward@>
+<@include DeferredBufferWrite_shared.slh@>
 layout(location=0) out vec4 _lighting;
-layout(location=1) out vec4 _velocity;
+layout(location=DEFERRED_VELOCITY_SLOT) out vec4 _velocity;
 <@include VelocityWrite.slh@>
 <@else@>
 <@include DeferredBufferWrite.slh@>
@@ -54,7 +55,7 @@ void main() {
     vec2 dxTexCoord = dFdx(_texCoord0) * 0.5 * taaBias;
     vec2 dyTexCoord = dFdy(_texCoord0) * 0.5 * taaBias;
 
-    // Perform 4x supersampling for anisotropic filtering
+    // Perform supersampling for anisotropic filtering
     float a;
     a = evalSDF(_texCoord0);
     a += evalSDF(_texCoord0+dxTexCoord);
