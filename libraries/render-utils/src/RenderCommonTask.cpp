@@ -59,9 +59,9 @@ void SetFramebuffer::run(const render::RenderContextPointer& renderContext, cons
 
 DrawOverlay3D::DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity, unsigned int transformSlot) :
     _shapePlumber(shapePlumber),
+    _transformSlot(transformSlot),
     _opaquePass(opaque),
-    _outputVelocity(velocity),
-    _transformSlot(transformSlot) {
+    _outputVelocity(velocity){
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
