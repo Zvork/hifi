@@ -22,11 +22,14 @@
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
 BloomThreshold::BloomThreshold(unsigned int downsamplingFactor) {
+    auto& params = _parameters.edit();
     assert(downsamplingFactor > 0);
-    _parameters.edit()._sampleCount = downsamplingFactor;
+    params._sampleCount = downsamplingFactor;
+    params._offset = (1.0f - downsamplingFactor)*0.5f;
 }
 
-void BloomThreshold::configure(const Config& config) {}
+void BloomThreshold::configure(const Config& config) {
+}
 
 void BloomThreshold::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
