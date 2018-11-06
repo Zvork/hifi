@@ -16,15 +16,16 @@
 <$declareStandardCameraTransform()$>
 <@endif@>
 
-vec2 getEyeTexcoordPos(vec2 fragCoord) {
-    vec2 texCoordPos = fragCoord + 0.5;
+vec2 getEyeTexcoordPos() {
+    // No need to add 0.5 as, by default, frag coords are pixel centered at (0.5, 0.5)
+    vec2 texCoordPos = gl_FragCoord.xy;
     texCoordPos *= cam_getInvWidthHeight();
     texCoordPos.x -= cam_getStereoSide();
     return texCoordPos;
 }
 
 vec2 packVelocity(vec4 prevPositionCS) {
-    vec2 uv = getEyeTexcoordPos(gl_FragCoord.xy);
+    vec2 uv = getEyeTexcoordPos();
     vec2 prevUV =  (prevPositionCS.xy / prevPositionCS.w)*0.5 + 0.5;
     vec2 deltaUV = uv - prevUV;
     // Velocity should be computed without any jitter inside.

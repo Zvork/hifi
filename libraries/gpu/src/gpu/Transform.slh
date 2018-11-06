@@ -360,16 +360,16 @@ TransformObject getTransformObject() {
 <@endfunc@>
 
 <@func transformEyeToPreviousWorldDir(cameraTransform, eyeDir, worldDir)@>
-    { // transformEyeToWorldDir
+    { // transformEyeToPreviousWorldDir
         <$worldDir$> = vec3(<$cameraTransform$>._previousViewInverse * vec4(<$eyeDir$>.xyz, 0.0));
     }
 <@endfunc@>
 
-<@func transformEyeToWorldDirAndPreviousClipPos(cameraTransform, eyeDir, worldDir, prevClipDir)@>
-    { // transformEyeToWorldDir
+<@func transformEyeToWorldDirAndPreviousClipPos(cameraTransform, eyeDir, worldDir, prevClipPos)@>
+    { // transformEyeToWorldDirAndPreviousClipPos
         vec4 worldVec = <$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0);
         <$worldDir$> = worldVec.xyz;
-        <$prevClipDir$> = <$cameraTransform$>._previousProjectionViewUntranslated * worldVec;
+        <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * worldVec;
     }
 <@endfunc@>
 
