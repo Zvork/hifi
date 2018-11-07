@@ -92,6 +92,8 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     if (!inItems.empty()) {
         // Render the items
         gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
+            PROFILE_RANGE_BATCH(batch, "Overlay3D");
+
             args->_batch = &batch;
 
             batch.setViewportTransform(args->_viewport);
@@ -103,6 +105,12 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
             batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+
+            ShapeKey::Builder keyBuilder;
+            keyBuilder.withForward().withVelocity();
+
+            ShapeKey globalKey = keyBuilder.build();
+            args->_globalShapeKey = globalKey._flags.to_ulong();
 
             renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;
@@ -122,6 +130,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     // Grab the HUD texture
 #if !defined(DISABLE_QML)
     gpu::doInBatch("CompositeHUD", renderContext->args->_context, [&](gpu::Batch& batch) {
+        PROFILE_RANGE_BATCH(batch, "HUD");
         batch.setSavedViewProjectionTransform(_transformSlot);
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);

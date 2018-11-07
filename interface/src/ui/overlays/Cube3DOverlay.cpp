@@ -57,15 +57,20 @@ void Cube3DOverlay::render(RenderArgs* args) {
         Transform transform = getRenderTransform();
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto shapePipeline = args->_shapePipeline;
+        const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
         if (!shapePipeline) {
-            shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+            if (isForward) {
+                shapePipeline = _isSolid ? geometryCache->getOpaqueShapeForwardPipeline() : geometryCache->getWireShapeForwardPipeline();
+            } else {
+                shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+            }
         }
 
         if (_isSolid) {
             batch->setModelTransform(transform);
             geometryCache->renderSolidCubeInstance(args, *batch, cubeColor, shapePipeline);
         } else {
-            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true, true, isForward);
             if (getIsDashedLine()) {
                 auto dimensions = transform.getScale();
                 transform.setScale(1.0f);

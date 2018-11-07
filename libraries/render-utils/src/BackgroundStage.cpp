@@ -72,6 +72,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         auto args = renderContext->args;
 
         gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
+            PROFILE_RANGE_BATCH(batch, "Background");
             args->_batch = &batch;
 
             batch.enableSkybox(true);

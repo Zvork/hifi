@@ -62,14 +62,15 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
 
         batch->setModelTransform(transform);
         auto geometryCache = DependencyManager::get<GeometryCache>();
+        const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
 
         if (getIsSolid()) {
             glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
             glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
-            geometryCache->bindSimpleProgram(*batch);
+            geometryCache->bindSimpleProgram(*batch, false, false, true, false, false, true, isForward);
             geometryCache->renderQuad(*batch, topLeft, bottomRight, rectangleColor, _geometryCacheID);
         } else {
-            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true, true, isForward);
             if (getIsDashedLine()) {
                 glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
                 glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);

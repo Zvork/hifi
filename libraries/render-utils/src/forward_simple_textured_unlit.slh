@@ -8,10 +8,10 @@
 layout(location=0) out vec4 _lighting;
 
 <@if velocity@>
-<@include DeferredBufferWrite_shared.slh@>
-layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
+layout(location=1) out vec4 _velocity;
 
-layout(location=DEFERRED_VELOCITY_SLOT) out vec4 _velocity;
+layout(location=RENDER_UTILS_ATTR_POSITION_CS) in vec4 _positionCS;
+layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 
 <@include VelocityWrite.slh@>
 <@endif@>
@@ -30,7 +30,7 @@ void main(void) {
 
     vec4 color = vec4(_color.rgb * texel.rgb * isUnlitEnabled(), colorAlpha);
 <@if velocity@>
-    packDeferredFragmentLighting(_prevPositionCS, color);
+    packDeferredFragmentLighting(_positionCS, _prevPositionCS, color);
 <@else@>
     _lighting = color;
 <@endif@>

@@ -402,6 +402,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
+        keyBuilder.withForward().withVelocity();
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();

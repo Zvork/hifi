@@ -741,10 +741,12 @@ gpu::ShaderPointer GeometryCache::_forwardSimpleFadeVelocityShader;
 gpu::ShaderPointer GeometryCache::_unlitFadeShader;
 
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleOpaqueForwardPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleWireForwardPipeline;
 
 uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
 
@@ -818,17 +820,19 @@ void GeometryCache::releaseID(int id) {
 void GeometryCache::initializeShapePipelines() {
     if (!_simpleOpaquePipeline) {
         _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
+        _simpleOpaqueForwardPipeline = getShapePipeline(false, false, true, false, false, true);
         _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
         _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
         _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);
+        _simpleWireForwardPipeline = getShapePipeline(false, false, true, true, false, true);
     }
 }
 
 render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias) {
+    bool unlit, bool depthBias, bool isForward) {
 
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true), nullptr,
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true, isForward), nullptr,
         [](const render::ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
             batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
             DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch);
@@ -837,11 +841,11 @@ render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool
 }
 
 render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias) {
+    bool unlit, bool depthBias, bool isForward) {
     auto fadeEffect = DependencyManager::get<FadeEffect>();
     auto fadeBatchSetter = fadeEffect->getBatchSetter();
     auto fadeItemSetter = fadeEffect->getItemStoredSetter();
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true), nullptr,
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true, true, isForward), nullptr,
         [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args* args) {
             batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
             fadeBatchSetter(shapePipeline, batch, args);
@@ -2075,7 +2079,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch,
                                    const glm::vec4& color,
                                    float glowIntensity,
                                    float glowWidth,
-                                   int id) {
+                                   int id, bool isAntialiased, bool isForward) {
 // Disable glow lines on OSX
 #ifndef Q_OS_WIN
     glowIntensity = 0.0f;
@@ -2083,7 +2087,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch,
 
     if (glowIntensity <= 0.0f) {
         if (color.a >= 1.0f) {
-            bindSimpleProgram(batch, false, false, false, true, true);
+            bindSimpleProgram(batch, false, false, false, true, true, isAntialiased, isForward);
         } else {
             bindSimpleProgram(batch, false, true, false, true, true);
         }
@@ -2337,8 +2341,10 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured,
             _forwardTransparentShader = gpu::Shader::createProgram(forward_simple_textured_transparent);
             _forwardSimpleVelocityShader = gpu::Shader::createProgram(forward_simple_textured_velocity);
             _forwardUnlitVelocityShader = gpu::Shader::createProgram(forward_simple_textured_unlit_velocity);
+            _forwardUnlitFadeVelocityShader = gpu::Shader::createProgram(simple_textured_unlit_fade);
             _forwardSimpleShader = gpu::Shader::createProgram(forward_simple_textured);
             _forwardUnlitShader = gpu::Shader::createProgram(forward_simple_textured_unlit);
+            _forwardUnlitFadeShader = gpu::Shader::createProgram(simple_textured_unlit_fade);
             _simpleShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured : simple_textured);
             // Use the forward pipeline for both here, otherwise transparents will be unlit
             _transparentShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured_transparent : forward_simple_textured_transparent);

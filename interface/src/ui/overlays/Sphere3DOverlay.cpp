@@ -88,7 +88,12 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto shapePipeline = args->_shapePipeline;
         if (!shapePipeline) {
-            shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+            const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
+            if (isForward) {
+                shapePipeline = _isSolid ? geometryCache->getOpaqueShapeForwardPipeline() : geometryCache->getWireShapeForwardPipeline();
+            } else {
+                shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+            }
         }
 
         if (_isSolid) {

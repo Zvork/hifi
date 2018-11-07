@@ -121,9 +121,9 @@ void Text3DOverlay::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     glm::vec4 textColor = { toGlm(_color), getTextAlpha() };
-
+    const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
-    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true, true);
+    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true, isForward);
 }
 
 const render::ShapeKey Text3DOverlay::getShapeKey() {

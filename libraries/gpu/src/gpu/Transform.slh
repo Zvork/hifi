@@ -245,6 +245,21 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
+<@func transformModelToEyeMonoClipPosAndPreviousClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos, monoClipPos, prevClipPos)@>
+    { // transformModelToEyeClipPosAndPreviousClipPos
+        vec4 eyeWAPos;
+        vec4 prevEyeWAPos;
+        <$transformModelToEyeAndPreviousEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos, prevEyeWAPos)$>
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        <$monoClipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$clipPos$> = <$monoClipPos$>;
+        <$transformStereoClipSpace($clipPos$)$>
+
+        <$prevClipPos$> = <$cameraTransform$>._previousProjectionViewUntranslated * prevEyeWAPos;        
+        // Prev clip pos is in mono clip space
+    }
+<@endfunc@>
+
 <@func transformModelToClipPosAndPreviousClipPos(cameraTransform, objectTransform, modelPos, clipPos, prevClipPos)@>
     { // transformModelToClipPosAndPreviousClipPos
         vec4 eyeWAPos;

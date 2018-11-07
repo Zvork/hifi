@@ -22,10 +22,9 @@ layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=0) out vec4 _lighting;
 
 <@if velocity@>
-<@include DeferredBufferWrite_shared.slh@>
-layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
+layout(location=1) out vec4 _velocity;
 
-layout(location=DEFERRED_VELOCITY_SLOT) out vec4 _velocity;
+layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 
 <@include VelocityWrite.slh@>
 <@endif@>

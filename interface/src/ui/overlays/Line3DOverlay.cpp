@@ -138,13 +138,14 @@ void Line3DOverlay::render(RenderArgs* args) {
         glm::vec3 end = renderTransform.transform(vec3(0.0, 0.0, -1.0));
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
+        const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()
-            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
+            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true, true, isForward);
             geometryCache->renderDashedLine(*batch, start, end, colorv4, _geometryCacheID);
         } else {
             // renderGlowLine handles both glow = 0 and glow > 0 cases
-            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _lineWidth, _geometryCacheID);
+            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _lineWidth, _geometryCacheID, true, isForward);
         }
     }
 }

@@ -36,6 +36,8 @@ public:
         DEPTH_BIAS,
         WIREFRAME,
         NO_CULL_FACE,
+        FORWARD,
+        VELOCITY,
         FADE,
 
         OWN_PIPELINE,
@@ -84,6 +86,8 @@ public:
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
         Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); return (*this); }
+        Builder& withForward() { _flags.set(FORWARD); return (*this); }
+        Builder& withVelocity() { _flags.set(VELOCITY); return (*this); }
         Builder& withFade() { _flags.set(FADE); return (*this); }
 
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
@@ -145,6 +149,12 @@ public:
             Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
             Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
+            Builder& withForward() { _flags.set(FORWARD); _mask.set(FORWARD); return (*this); }
+            Builder& withoutForward() { _flags.reset(FORWARD); _mask.set(FORWARD); return (*this); }
+
+            Builder& withVelocity() { _flags.set(VELOCITY); _mask.set(VELOCITY); return (*this); }
+            Builder& withoutVelocity() { _flags.reset(VELOCITY); _mask.set(VELOCITY); return (*this); }
+
             Builder& withFade() { _flags.set(FADE); _mask.set(FADE); return (*this); }
             Builder& withoutFade() { _flags.reset(FADE); _mask.set(FADE); return (*this); }
 
@@ -175,6 +185,8 @@ public:
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireframe() const { return _flags[WIREFRAME]; }
     bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
+    bool isForward() const { return _flags[FORWARD]; }
+    bool hasVelocity() const { return _flags[VELOCITY]; }
     bool isFaded() const { return _flags[FADE]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
@@ -215,6 +227,8 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "isDepthBiased:" << key.isDepthBiased()
                 << "isWireframe:" << key.isWireframe()
                 << "isCullFace:" << key.isCullFace()
+                << "isForward:" << key.isForward()
+                << "hasVelocity:" << key.hasVelocity()
                 << "isFaded:" << key.isFaded()
                 << "]";
         }

@@ -80,8 +80,9 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
+    const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
 
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, isTransparent(), false, !getIsSolid(), true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, isTransparent(), false, !getIsSolid(), true, true, isForward);
 
     batch.setModelTransform(getRenderTransform());
 

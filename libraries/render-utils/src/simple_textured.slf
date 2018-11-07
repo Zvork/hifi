@@ -23,6 +23,7 @@ layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_POSITION_CS) in vec4 _positionCS;
 layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 
 void main(void) {

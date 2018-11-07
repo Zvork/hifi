@@ -182,12 +182,14 @@ public:
     static void initializeShapePipelines();
 
     render::ShapePipelinePointer getOpaqueShapePipeline() { assert(_simpleOpaquePipeline != nullptr); return _simpleOpaquePipeline; }
+    render::ShapePipelinePointer getOpaqueShapeForwardPipeline() { assert(_simpleOpaqueForwardPipeline != nullptr); return _simpleOpaqueForwardPipeline; }
     render::ShapePipelinePointer getTransparentShapePipeline() { assert(_simpleTransparentPipeline != nullptr); return _simpleTransparentPipeline; }
     render::ShapePipelinePointer getOpaqueFadeShapePipeline() { assert(_simpleOpaqueFadePipeline != nullptr); return _simpleOpaqueFadePipeline; }
     render::ShapePipelinePointer getTransparentFadeShapePipeline() { assert(_simpleTransparentFadePipeline != nullptr); return _simpleTransparentFadePipeline; }
     render::ShapePipelinePointer getOpaqueShapePipeline(bool isFading);
     render::ShapePipelinePointer getTransparentShapePipeline(bool isFading);
     render::ShapePipelinePointer getWireShapePipeline() { assert(_simpleWirePipeline != nullptr); return GeometryCache::_simpleWirePipeline; }
+    render::ShapePipelinePointer getWireShapeForwardPipeline() { assert(_simpleWireForwardPipeline != nullptr); return GeometryCache::_simpleWireForwardPipeline; }
 
 
     // Static (instanced) geometry
@@ -320,10 +322,10 @@ public:
                     const glm::vec4& color1, const glm::vec4& color2, int id);
 
     void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
-                    const glm::vec4& color, float glowIntensity, float glowWidth, int id);
+                    const glm::vec4& color, float glowIntensity, float glowWidth, int id, bool isAntialiased = true, bool isForward = false);
 
-    void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec4& color, int id) 
-                       { renderGlowLine(batch, p1, p2, color, 1.0f, 0.05f, id); }
+    void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec4& color, int id, bool isAntialiased = true, bool isForward = false)
+                       { renderGlowLine(batch, p1, p2, color, 1.0f, 0.05f, id, isAntialiased, isForward); }
 
     void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id)
                           { renderDashedLine(batch, start, end, color, 0.05f, 0.025f, id); }
@@ -485,10 +487,12 @@ private:
     static gpu::ShaderPointer _forwardUnlitFadeShader;
     static gpu::ShaderPointer _forwardUnlitFadeVelocityShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
+    static render::ShapePipelinePointer _simpleOpaqueForwardPipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
+    static render::ShapePipelinePointer _simpleWireForwardPipeline;
     gpu::PipelinePointer _glowLinePipeline;
 
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
@@ -499,9 +503,9 @@ private:
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false);
+        bool unlit = false, bool depthBias = false, bool isForward = false);
     static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false);
+        bool unlit = false, bool depthBias = false, bool isForward = false);
 };
 
 #endif // hifi_GeometryCache_h
