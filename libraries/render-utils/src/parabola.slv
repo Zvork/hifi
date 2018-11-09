@@ -63,5 +63,6 @@ void main(void) {
         prevPos -= 0.5 * _parabolaData.width * prevNormal;
     }
 
-    <$transformModelToClipPosAndPreviousClipPos(cam, obj, pos, gl_Position, _prevPositionCS)$>
+    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+    <$transformModelToMonoClipPos(cam, obj, prevPos, _prevPositionCS)$>
 }
