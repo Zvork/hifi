@@ -19,7 +19,7 @@
 #include "RenderShadowTask.h"
 #include "HazeStage.h"
 
-class DrawDeferredConfig : public render::Job::Config {
+class DrawTransparentDeferredConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
@@ -41,13 +41,13 @@ protected:
     int _numDrawn{ 0 };
 };
 
-class DrawDeferred {
+class DrawTransparentDeferred {
 public:
     using Inputs = render::VaryingSet6<DeferredFrameTransformPointer, render::ItemBounds, HazeStage::FramePointer, LightStage::FramePointer, LightingModelPointer, LightClustersPointer>;
-    using Config = DrawDeferredConfig;
-    using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
+    using Config = DrawTransparentDeferredConfig;
+    using JobModel = render::Job::ModelI<DrawTransparentDeferred, Inputs, Config>;
 
-    DrawDeferred(render::ShapePlumberPointer shapePlumber, unsigned int transformSlot)
+    DrawTransparentDeferred(render::ShapePlumberPointer shapePlumber, unsigned int transformSlot)
         : _shapePlumber{ shapePlumber }, _transformSlot{ transformSlot } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }

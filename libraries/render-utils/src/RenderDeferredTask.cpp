@@ -214,8 +214,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(deferredFrameTransform, transparents, hazeFrame, lightFrame, lightingModel, lightClusters).asVarying();
-    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber, mainViewTransformSlot);
+    const auto transparentsInputs = DrawTransparentDeferred::Inputs(deferredFrameTransform, transparents, hazeFrame, lightFrame, lightingModel, lightClusters).asVarying();
+    task.addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber, mainViewTransformSlot);
 
     // Light Cluster Grid Debuging job
     {
@@ -354,7 +354,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
-void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawTransparentDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -370,7 +370,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch("DrawDeferred::run", args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawTransparentDeferred::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         
         // Setup camera, projection and viewport for all items
@@ -402,7 +402,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
-        keyBuilder.withForward().withVelocity();
+        keyBuilder.withForward();
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();

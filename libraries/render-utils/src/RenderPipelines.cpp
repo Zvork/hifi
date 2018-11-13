@@ -95,44 +95,45 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
 
     // Translucents
     addPipeline(
-        Key::Builder().withMaterial().withTranslucent(),
+        Key::Builder().withMaterial().withTranslucent().withForward(),
         model_translucent, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withTranslucent(),
         simple_transparent_textured, nullptr, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withTranslucent().withUnlit(),
+        Key::Builder().withMaterial().withTranslucent().withUnlit().withForward(),
         model_translucent_unlit, nullptr, nullptr, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit(),
         simple_transparent_textured_unlit, nullptr, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withTranslucent().withTangents(),
+        Key::Builder().withMaterial().withTranslucent().withTangents().withForward(),
         model_translucent_normal_map, nullptr, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
-        Key::Builder().withMaterial().withTranslucent().withLightmap(),
+        Key::Builder().withMaterial().withTranslucent().withLightmap().withForward(),
         model_translucent, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
-        Key::Builder().withMaterial().withTranslucent().withFade(),
+        Key::Builder().withMaterial().withTranslucent().withFade().withForward(),
         model_translucent_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withFade(),
         simple_transparent_textured_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withTranslucent().withUnlit().withFade(),
+        Key::Builder().withMaterial().withTranslucent().withUnlit().withFade().withForward(),
         model_translucent_unlit_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit().withFade(),
         simple_transparent_textured_unlit_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withTranslucent().withTangents().withFade(),
+        Key::Builder().withMaterial().withTranslucent().withTangents().withFade().withForward(),
         model_translucent_normal_map_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
-        Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),
+        Key::Builder().withMaterial().withTranslucent().withLightmap().withFade().withForward(),
         model_translucent_fade, batchSetter, itemSetter, nullptr);
+
     // Lightmapped
     addPipeline(
         Key::Builder().withMaterial().withLightmap(),
@@ -162,19 +163,20 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withTangents().withFade(),
         deformed_model_normal_map_fade, batchSetter, itemSetter, nullptr);
+
     // matrix palette skinned and translucent
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withTranslucent(),
+        Key::Builder().withMaterial().withDeformed().withTranslucent().withForward(),
         deformed_model_translucent, nullptr, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(),
+        Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withForward(),
         deformed_model_normal_map_translucent, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withTranslucent().withFade(),
+        Key::Builder().withMaterial().withDeformed().withTranslucent().withFade().withForward(),
         deformed_model_translucent_fade, batchSetter, itemSetter, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withFade(),
+        Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withFade().withForward(),
         deformed_model_normal_map_translucent_fade, batchSetter, itemSetter, nullptr);
 
     // dual quaternion skinned
@@ -191,19 +193,20 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTangents().withFade(),
         deformed_model_normal_map_fade_dq, batchSetter, itemSetter, nullptr);
+
     // dual quaternion skinned and translucent
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent(),
+        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withForward(),
         deformed_model_translucent_dq, nullptr, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents(),
+        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withForward(),
         deformed_model_normal_map_translucent_dq, nullptr, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withFade(),
+        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withFade().withForward(),
         deformed_model_translucent_fade_dq, batchSetter, itemSetter, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
+        Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withFade().withForward(),
         deformed_model_normal_map_translucent_fade_dq, batchSetter, itemSetter, nullptr);
 
     // Depth-only
