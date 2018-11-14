@@ -81,7 +81,6 @@ void main() {
         normalize(_normalWS),
         opacity,
         params.color.rgb,
-        DEFAULT_FRESNEL,
         DEFAULT_ROUGHNESS);
 <@else@>
     packDeferredFragment(

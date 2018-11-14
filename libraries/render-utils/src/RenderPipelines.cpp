@@ -42,7 +42,7 @@ void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::B
 void initForwardPipelines(ShapePlumber& plumber);
 void initForwardOpaquePipelines(ShapePlumber& plumber, bool isVelocityEnabled, bool isBloomEnabled);
 void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled);
-void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
+void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 using StateSetter = std::function<void(gpu::State&)>;
 
@@ -208,31 +208,6 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withMaterial().withDeformed().withDualQuatSkinned().withTranslucent().withTangents().withFade().withForward(),
         deformed_model_normal_map_translucent_fade_dq, batchSetter, itemSetter, nullptr);
-
-    // Depth-only
-    addPipeline(
-        Key::Builder().withDepthOnly(),
-        model_shadow, nullptr, nullptr, nullptr);
-    addPipeline(
-        Key::Builder().withDeformed().withDepthOnly(),
-        deformed_model_shadow, nullptr, nullptr, nullptr);
-    // Same thing but with Fade on
-    addPipeline(
-        Key::Builder().withDepthOnly().withFade(),
-        model_shadow_fade, batchSetter, itemSetter, nullptr);
-    addPipeline(
-        Key::Builder().withDeformed().withDepthOnly().withFade(),
-        deformed_model_shadow_fade, batchSetter, itemSetter, nullptr);
-
-    // Now repeat for dual quaternion
-    // Depth-only
-    addPipeline(
-        Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly(),
-        deformed_model_shadow_dq, nullptr, nullptr, nullptr);
-    // Same thing but with Fade on
-    addPipeline(
-        Key::Builder().withDeformed().withDualQuatSkinned().withDepthOnly().withFade(),
-        deformed_model_shadow_fade_dq, batchSetter, itemSetter, nullptr);
 }
 
 void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled) {
@@ -270,6 +245,8 @@ void initForwardTranslucentPipelines(ShapePlumber& plumber, bool isBloomEnabled)
     addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents(), forward_deformed_translucent_normal_map);
     addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withDualQuatSkinned(), forward_deformed_translucent_dq);
     addPipeline(Key::Builder().withMaterial().withDeformed().withTranslucent().withTangents().withDualQuatSkinned(), forward_deformed_translucent_normal_map_dq);
+
+    // FIXME: incorrent pipelines for normal mapped + translucent models
 
     forceLightBatchSetter = false;
 }
@@ -427,37 +404,29 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderAr
     }
 }
 
-void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
+void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& extraBatchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     using namespace shader::render_utils::program;
-    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(model_shadow);
+
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutDeformed().withoutFade(),
-        modelProgram, state);
-
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(deformed_model_shadow);
-    shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withDeformed().withoutDualQuatSkinned().withoutFade(),
-        skinProgram, state);
-
-    gpu::ShaderPointer modelFadeProgram = gpu::Shader::createProgram(model_shadow_fade);
+        gpu::Shader::createProgram(model_shadow), state);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutDeformed().withFade(),
-        modelFadeProgram, state);
+        gpu::Shader::createProgram(model_shadow_fade), state, extraBatchSetter, itemSetter);
 
-    gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(deformed_model_shadow_fade);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withDeformed().withoutDualQuatSkinned().withoutFade(),
+        gpu::Shader::createProgram(deformed_model_shadow), state);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withDeformed().withoutDualQuatSkinned().withFade(),
-        skinFadeProgram, state);
+        gpu::Shader::createProgram(deformed_model_shadow_fade), state, extraBatchSetter, itemSetter);
 
-    gpu::ShaderPointer skinModelShadowDualQuatProgram = gpu::Shader::createProgram(deformed_model_shadow_dq);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withDeformed().withDualQuatSkinned().withoutFade(),
-        skinModelShadowDualQuatProgram, state);
-
-    gpu::ShaderPointer skinModelShadowFadeDualQuatProgram = gpu::Shader::createProgram(deformed_model_shadow_fade_dq);
+        gpu::Shader::createProgram(deformed_model_shadow_dq), state);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withDeformed().withDualQuatSkinned().withFade(),
-        skinModelShadowFadeDualQuatProgram, state);
+        gpu::Shader::createProgram(deformed_model_shadow_fade_dq), state, extraBatchSetter, itemSetter);
 }
 
 // FIXME find a better way to setup the default textures

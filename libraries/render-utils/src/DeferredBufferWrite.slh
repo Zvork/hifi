@@ -44,7 +44,7 @@ void packDeferredFragment(vec4 prevPositionCS, vec3 normal, float alpha, vec3 al
     _lighting = vec4(isEmissiveEnabled() * emissive, 1.0);
 }
 
-void packDeferredFragmentLightmap(vec4 prevPositionCS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 fresnel, vec3 lightmap) {
+void packDeferredFragmentLightmap(vec4 prevPositionCS, vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 lightmap) {
     if (alpha != 1.0) {
         discard;
     }
@@ -68,7 +68,7 @@ void packDeferredFragmentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, ve
     _lighting = vec4(color, 1.0);
 }
 
-void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3 fresnel, float roughness) {
+void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, float roughness) {
     if (alpha <= 0.0) {
         discard;
     }
