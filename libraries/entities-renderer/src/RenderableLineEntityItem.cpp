@@ -50,10 +50,14 @@ void LineEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     const auto& modelTransform = getModelTransform();
-    Transform transform = Transform();
+    const auto& prevModelTransform = getPreviousModelTransform();
+    Transform transform;
+    Transform prevTransform;
     transform.setTranslation(modelTransform.getTranslation());
     transform.setRotation(modelTransform.getRotation());
-    batch.setModelTransform(transform);
+    prevTransform.setTranslation(prevModelTransform.getTranslation());
+    prevTransform.setRotation(prevModelTransform.getRotation());
+    batch.setModelTransform(transform, prevTransform);
     if (_linePoints.size() > 1) {
         DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);

@@ -246,7 +246,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<SetDeferredFramebuffer>("SetOpaqueOverlayFramebuffer", deferredFramebuffer, DeferredFramebuffer::LIGHTING_VELOCITY);
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, overlayOpaqueShapePlumber, true, true, mainViewTransformSlot);
     task.addJob<SetDeferredFramebuffer>("SetTranslucentOverlayFramebuffer", deferredFramebuffer, DeferredFramebuffer::LIGHTING);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, overlayTranslucentShapePlumber, false, false, mainViewTransformSlot);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, overlayTranslucentShapePlumber, false, true, mainViewTransformSlot);
 
     task.addJob<EndGPURangeTimer>("OverlaysInFrontRangeTimer", overlaysInFrontRangeTimer);
 

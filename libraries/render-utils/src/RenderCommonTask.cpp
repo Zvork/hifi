@@ -57,11 +57,11 @@ void SetFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     });
 }
 
-DrawOverlay3D::DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity, unsigned int transformSlot) :
+DrawOverlay3D::DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool jitter, unsigned int transformSlot) :
     _shapePlumber(shapePlumber),
     _transformSlot(transformSlot),
     _opaquePass(opaque),
-    _outputVelocity(velocity){
+    _isJitterEnabled(jitter){
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -99,7 +99,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
-			batch.setProjectionJitterEnabled(_outputVelocity);
+			batch.setProjectionJitterEnabled(_isJitterEnabled);
             batch.setSavedViewProjectionTransform(_transformSlot);
 
             // Setup lighting model for all items;
@@ -107,7 +107,10 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
             ShapeKey::Builder keyBuilder;
-            keyBuilder.withForward().withVelocity();
+            keyBuilder.withForward();
+            if (_opaquePass) {
+                keyBuilder.withVelocity();
+            }
 
             ShapeKey globalKey = keyBuilder.build();
             args->_globalShapeKey = globalKey._flags.to_ulong();

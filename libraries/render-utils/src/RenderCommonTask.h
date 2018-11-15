@@ -71,7 +71,7 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
 
-    DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool velocity, unsigned int transformSlot);
+    DrawOverlay3D(const render::ShapePlumberPointer& shapePlumber, bool opaque, bool jitter, unsigned int transformSlot);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -81,7 +81,7 @@ protected:
     int _maxDrawn; // initialized by Config
     unsigned int _transformSlot;
     bool _opaquePass{ true };
-    bool _outputVelocity{ false };
+    bool _isJitterEnabled{ false };
 };
 
 class CompositeHUD {
