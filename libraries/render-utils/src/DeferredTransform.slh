@@ -100,7 +100,7 @@ vec2 getSideImageSize(int resolutionLevel) {
 
 int getStereoSideFromPixel(int xPos, int resolutionLevel) {
     int sideWidth = int(getStereoSideWidth(resolutionLevel));
-    return int(xPos >= sideWidth && isStereo()) & 1;
+    return int(xPos >= sideWidth && isStereo());
 }
 
 int getStereoSideFromPixel(int xPos) {
@@ -112,7 +112,7 @@ int getStereoSideFromFragCoord() {
 }
 
 int getStereoSideFromUV(float uPos) {
-    return int(uPos >= 0.5 && isStereo()) & 1;
+    return int(uPos >= 0.5 && isStereo());
 }
 
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
