@@ -115,9 +115,21 @@ int getStereoSideFromUV(float uPos) {
     return int(uPos >= 0.5 && isStereo());
 }
 
+vec2 getStereoSideSize(int resolutionLevel) {
+    return vec2(getStereoSideWidth(resolutionLevel), getStereoSideHeight(resolutionLevel));
+}
+
+ivec4 getStereoSideInfoFromWidth(int xPos, int sideWidth) {
+    return ivec4(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth, isStereo());
+}
+
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
     int sideWidth = int(getStereoSideWidth(resolutionLevel));
-    return ivec4(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth, isStereo());
+    return getStereoSideInfoFromWidth(xPos, sideWidth);
+}
+
+int getStereoSide(ivec4 sideInfo) {
+    return sideInfo.x;
 }
 
 float evalZeyeFromZdb(float depth) {

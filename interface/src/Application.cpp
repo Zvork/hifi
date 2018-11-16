@@ -4039,21 +4039,22 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_P: {
-                AudioInjectorOptions options;
-                options.localOnly = true;
-                options.stereo = true;
-                Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true};
-                Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true};
-                if (notificationSounds.get() && notificationSoundSnapshot.get()) {
-                    if (_snapshotSoundInjector) {
-                        _snapshotSoundInjector->setOptions(options);
-                        _snapshotSoundInjector->restart();
-                    } else {
-                        QByteArray samples = _snapshotSound->getByteArray();
-                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
+                    AudioInjectorOptions options;
+                    options.localOnly = true;
+                    options.stereo = true;
+                    Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true };
+                    Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
+                    if (notificationSounds.get() && notificationSoundSnapshot.get()) {
+                        if (_snapshotSoundInjector) {
+                            _snapshotSoundInjector->setOptions(options);
+                            _snapshotSoundInjector->restart();
+                        } else {
+                            _snapshotSoundInjector = AudioInjector::playSound(_snapshotSound, options);
+                        }
                     }
+                    takeSnapshot(true);
                 }
-                takeSnapshot(true);
                 break;
             }
 
@@ -4157,6 +4158,10 @@ void Application::focusOutEvent(QFocusEvent* event) {
     SpacemouseManager::getInstance().ManagerFocusOutEvent();
 #endif
 
+    synthesizeKeyReleasEvents();
+}
+
+void Application::synthesizeKeyReleasEvents() {
     // synthesize events for keys currently pressed, since we may not get their release events
     // Because our key event handlers may manipulate _keysPressed, lets swap the keys pressed into a local copy,
     // clearing the existing list.
@@ -4782,6 +4787,7 @@ void Application::idle() {
         if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
             _keyboardMouseDevice->pluginFocusOutEvent();
             _keyboardDeviceHasFocus = false;
+            synthesizeKeyReleasEvents();
         } else if (activeFocusItem == offscreenUi->getRootItem()) {
             _keyboardDeviceHasFocus = true;
         }
