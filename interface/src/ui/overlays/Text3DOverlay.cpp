@@ -104,7 +104,8 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, quadColor.a < 1.0f, false, false, false, true, true);
+    const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, quadColor.a < 1.0f, false, false, false, true, isForward);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor, _geometryId);
 
     // Same font properties as textSize()
@@ -121,7 +122,6 @@ void Text3DOverlay::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     glm::vec4 textColor = { toGlm(_color), getTextAlpha() };
-    const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
     _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true, isForward);
 }

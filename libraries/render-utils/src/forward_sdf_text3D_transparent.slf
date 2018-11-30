@@ -11,5 +11,18 @@
 
 <@include sdf_text3D.slh@>
 
-<! Forward write !>
-<$declareSDFText3D(true, true)$>
+<@include DeferredBufferWrite_shared.slh@>
+layout(location=0) out vec4 _lighting;
+
+void main() {
+    float a = evalSDF(_texCoord0);
+
+    // discard if invisible
+    if (a < 0.01) {
+        discard;
+    }
+
+    float opacity = a * params.color.a;
+
+    _lighting = vec4(params.color.rgb, opacity);
+}

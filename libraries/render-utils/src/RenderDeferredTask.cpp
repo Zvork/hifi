@@ -250,6 +250,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     task.addJob<EndGPURangeTimer>("OverlaysInFrontRangeTimer", overlaysInFrontRangeTimer);
 
+    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
+
     // AA job before bloom to limit flickering
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget).asVarying();
     const auto antialiasingIntensityTexture = task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
@@ -261,8 +263,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-
-    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas, mainViewTransformSlot);

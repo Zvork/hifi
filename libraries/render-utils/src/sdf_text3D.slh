@@ -1,17 +1,7 @@
-<@func declareSDFText3D<forward, transparent>@>
-
 //  Based on fragment shader code from 
 //  https://github.com/paulhoux/Cinder-Samples/blob/master/TextRendering/include/text/Text.cpp 
 
-<@if forward@>
-<@include DeferredBufferWrite_shared.slh@>
-layout(location=0) out vec4 _lighting;
-layout(location=1) out vec4 _velocity;
 
-<@include VelocityWrite.slh@>
-<@else@>
-<@include DeferredBufferWrite.slh@>
-<@endif@>
 <@include render-utils/ShaderConstants.h@>
 
 LAYOUT(binding=0) uniform sampler2D Font;
@@ -30,7 +20,6 @@ layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
-layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 
 const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
@@ -53,41 +42,3 @@ float evalSDF(vec2 texCoord) {
     float smoothEnd = min(1.0, 0.5+uvFootprint);
     return max(smoothstep(smoothStart, smoothEnd, sdf), step(0.5, sdf));
 }
-
-void main() {
-    float a = evalSDF(_texCoord0);
-
-    // discard if invisible
-    if (a < 0.01) {
-        discard;
-    }
-
-    float opacity = a * params.color.a;
-
-<@if forward@>
-    packDeferredFragmentLighting(
-        _prevPositionCS, 
-        vec4(params.color.rgb, opacity));
-<@else@>
-<@if transparent@>
-    packDeferredFragmentTranslucent(
-        normalize(_normalWS),
-        opacity,
-        params.color.rgb,
-        DEFAULT_ROUGHNESS);
-<@else@>
-    packDeferredFragment(
-        _prevPositionCS,
-        normalize(_normalWS),
-        opacity,
-        params.color.rgb,
-        DEFAULT_ROUGHNESS,
-        DEFAULT_METALLIC,
-        DEFAULT_EMISSIVE,
-        DEFAULT_OCCLUSION,
-        DEFAULT_SCATTERING);
-<@endif@>
-<@endif@>
-}
-
-<@endfunc@>

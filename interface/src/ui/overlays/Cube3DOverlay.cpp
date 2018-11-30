@@ -58,15 +58,11 @@ void Cube3DOverlay::render(RenderArgs* args) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto shapePipeline = args->_shapePipeline;
         const auto isForward = render::ShapeKey(args->_globalShapeKey).isForward();
-        if (!shapePipeline) {
-            if (isForward) {
-                shapePipeline = _isSolid ? geometryCache->getOpaqueShapeForwardPipeline() : geometryCache->getWireShapeForwardPipeline();
-            } else {
-                shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
-            }
-        }
 
         if (_isSolid) {
+            if (!shapePipeline) {
+                shapePipeline = isForward ? geometryCache->getOpaqueShapeForwardPipeline() : geometryCache->getOpaqueShapePipeline();
+            }
             batch->setModelTransform(transform);
             geometryCache->renderSolidCubeInstance(args, *batch, cubeColor, shapePipeline);
         } else {

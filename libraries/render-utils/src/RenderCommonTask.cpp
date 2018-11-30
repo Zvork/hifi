@@ -99,7 +99,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
 
-			batch.setProjectionJitterEnabled(_isJitterEnabled);
+            batch.setProjectionJitterEnabled(_isJitterEnabled);
             batch.setSavedViewProjectionTransform(_transformSlot);
 
             // Setup lighting model for all items;

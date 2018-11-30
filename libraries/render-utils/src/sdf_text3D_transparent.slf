@@ -9,5 +9,21 @@
 
 <@include sdf_text3D.slh@>
 
-<! Deferred write !>
-<$declareSDFText3D(_SCRIBE_NULL, true)$>
+<@include DeferredBufferWrite.slh@>
+
+void main() {
+    float a = evalSDF(_texCoord0);
+
+    // discard if invisible
+    if (a < 0.01) {
+        discard;
+    }
+
+    float opacity = a * params.color.a;
+
+    packDeferredFragmentTranslucent(
+        normalize(_normalWS),
+        opacity,
+        params.color.rgb,
+        DEFAULT_ROUGHNESS);
+}

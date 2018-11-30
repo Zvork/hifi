@@ -9,5 +9,28 @@
 
 <@include sdf_text3D.slh@>
 
-<! Deferred write !>
-<$declareSDFText3D()$>
+<@include DeferredBufferWrite.slh@>
+
+layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
+
+void main() {
+    float a = evalSDF(_texCoord0);
+
+    // discard if invisible
+    if (a < 0.01) {
+        discard;
+    }
+
+    float opacity = a * params.color.a;
+
+    packDeferredFragment(
+        _prevPositionCS,
+        normalize(_normalWS),
+        opacity,
+        params.color.rgb,
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE,
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING);
+}

@@ -11,5 +11,25 @@
 
 <@include sdf_text3D.slh@>
 
-<! Forward write !>
-<$declareSDFText3D(true)$>
+<@include DeferredBufferWrite_shared.slh@>
+layout(location=0) out vec4 _lighting;
+layout(location=1) out vec4 _velocity;
+
+<@include VelocityWrite.slh@>
+
+layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
+
+void main() {
+    float a = evalSDF(_texCoord0);
+
+    // discard if invisible
+    if (a < 0.01) {
+        discard;
+    }
+
+    float opacity = a * params.color.a;
+
+    packDeferredFragmentLighting(
+        _prevPositionCS, 
+        vec4(params.color.rgb, opacity));
+}

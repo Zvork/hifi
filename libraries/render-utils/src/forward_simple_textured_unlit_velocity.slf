@@ -10,7 +10,32 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include forward_simple_textured_unlit.slh@>
+<@include LightingModel.slh@>
+<@include gpu/Color.slh@>
 
-<! Output velocity !>
-<$declareForwardSimpleTexturedUnlit(true)$>
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=0) out vec4 _lighting;
+layout(location=1) out vec4 _velocity;
+
+layout(location=RENDER_UTILS_ATTR_POSITION_CS) in vec4 _positionCS;
+layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
+
+<@include VelocityWrite.slh@>
+
+// the albedo texture
+LAYOUT(binding=0) uniform sampler2D originalTexture;
+
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+
+void main(void) {
+    vec4 texel = texture(originalTexture, _texCoord0.st);
+    float colorAlpha = _color.a * texel.a;
+
+    vec4 color = vec4(_color.rgb * texel.rgb * isUnlitEnabled(), colorAlpha);
+
+    packDeferredFragmentLighting(_positionCS, _prevPositionCS, color);
+}
